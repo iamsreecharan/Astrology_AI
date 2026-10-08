@@ -2,6 +2,12 @@
 
 A complete astrology reflection web app built with React, TypeScript, Vite, and a Node/Express backend.
 
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/iamsreecharan/Astrology_AI) · [Deployment instructions](docs/DEPLOY.md)
+
+![Astral daily-reading screen](docs/preview.png)
+
+The image shows the working app with its sample profile. A live URL is created by Render after deployment; this image is a screenshot.
+
 ## Features
 
 - A birth-date profile with an approximate Western sun sign, element, modality, and traits.
@@ -22,6 +28,8 @@ npm run dev
 ```
 
 The app and API share port 3000. Development mode supports hot reload. `PORT` and `HOST` may be set to change the listening address.
+
+For a hosted app, the repository includes a Render free-tier Blueprint. See [deployment instructions](docs/DEPLOY.md). Render account access is needed to launch the service.
 
 For a production build:
 

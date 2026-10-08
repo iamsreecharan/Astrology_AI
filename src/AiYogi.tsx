@@ -8,7 +8,8 @@ const AiYogiAvatar = lazy(() => import('./AiYogiAvatar'));
 export type YogiProfile = { name: string; birthDate: string; birthTime?: string; birthPlace?: string; latitude?: number; longitude?: number; timeZone?: string };
 type YogiProps = { profile: YogiProfile | null; aiEnabled: boolean; onEditProfile: () => void };
 type Reference = { id: string; title: string };
-type Prediction = { topic?: string; searchWindows?: CareerSearchWindow[]; searchHorizonEnd?: string; planningDates?: CareerPlanningDates; factors?: string[]; themes?: string[]; method?: string[]; limitations?: string[]; windows?: { start: string; end: string; label?: string; reasons?: string[] }[] };
+type PredictionSupport = { kind: 'relative' | 'interpretation' | 'calculated-phase' | 'unavailable' | 'planning'; label: string; explanation: string; comparison?: 'unique-top' | 'tied-top' | 'single' | 'lower' };
+type Prediction = { topic?: string; support?: PredictionSupport; searchWindows?: CareerSearchWindow[]; searchHorizonEnd?: string; planningDates?: CareerPlanningDates; factors?: string[]; themes?: string[]; method?: string[]; limitations?: string[]; windows?: { start: string; end: string; ageRange?: { min: number; max: number }; label?: string; reasons?: string[]; support?: PredictionSupport }[] };
 type Message = { id: number; role: 'user' | 'assistant'; text: string; source?: 'local' | 'ai'; responseLanguage?: string; references?: Reference[]; prediction?: Prediction };
 type AvatarState = 'idle' | 'listening' | 'thinking' | 'speaking';
 type Meter = { context: AudioContext; ownsContext: boolean; frame: number | null; source: MediaStreamAudioSourceNode | AudioBufferSourceNode; analyser: AnalyserNode };
@@ -76,8 +77,20 @@ function CalculationDetails({ message }: { message: Message }) {
   const prediction = message.prediction;
   if (!prediction && !message.references?.length) return null;
   return <details className="yogi-calculations"><summary>Calculation details</summary>
+    {prediction?.support?.kind === 'relative' && Boolean(prediction.windows?.length) && <div className="prediction-support-note"><strong>{prediction.support.label}</strong><p>{prediction.support.explanation}</p></div>}
     {prediction?.topic === 'career' && <CareerTiming planningDates={prediction.planningDates} searchWindows={prediction.searchWindows} searchHorizonEnd={prediction.searchHorizonEnd} compact />}
-    {Boolean(prediction?.windows?.length) && <ul>{prediction?.windows?.map((window, index) => <li key={`${window.start}-${index}`}><strong>{window.label || `${window.start.slice(0, 10)} – ${window.end.slice(0, 10)}`}</strong>{window.reasons?.slice(0, 3).map(reason => <p key={reason}>{reason}</p>)}</li>)}</ul>}
+    {Boolean(prediction?.windows?.length) && <ul className="yogi-prediction-windows">{prediction?.windows?.map((window, index) => {
+      const leading = window.support?.comparison === 'unique-top' || window.support?.comparison === 'tied-top';
+      const age = window.ageRange;
+      const formatAge = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
+      return <li key={`${window.start}-${index}`} className={leading ? 'window-most-supported' : undefined}>
+        {prediction.topic === 'marriage' && age && <strong className="yogi-prediction-age">Age {formatAge(age.min)}{age.min !== age.max ? `–${formatAge(age.max)}` : ''}</strong>}
+        {window.support && <span className={`prediction-support-badge prediction-support-${window.support.kind} ${leading ? 'is-leading' : ''}`}>{window.support.label}</span>}
+        <strong>{window.label || `${window.start.slice(0, 10)} – ${window.end.slice(0, 10)}`}</strong>
+        {window.label && <p className="yogi-window-dates">{window.start.slice(0, 10)} – {window.end.slice(0, 10)}</p>}
+        {window.reasons?.slice(0, 3).map(reason => <p key={reason}>{reason}</p>)}
+      </li>;
+    })}</ul>}
     {Boolean(prediction?.factors?.length) && <ul>{prediction?.factors?.slice(0, 5).map(factor => <li key={factor}>{factor}</li>)}</ul>}
     {Boolean(prediction?.method?.length) && <p>{prediction?.method?.join(' ')}</p>}
     {Boolean(message.references?.length) && <ul>{message.references?.map(reference => <li key={reference.id}>{reference.id} · {reference.title}</li>)}</ul>}

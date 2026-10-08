@@ -304,12 +304,15 @@ function CelestialFallback() {
   </svg>;
 }
 
-export default function CelestialScene({ intro = false }: { intro?: boolean }) {
+export default function CelestialScene({ intro = false, motionOverride = null }: { intro?: boolean; motionOverride?: boolean | null }) {
   const host = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [pageHidden, setPageHidden] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const introMode = useRef(intro);
+  const motionMode = useRef(motionOverride);
   const refreshLayout = useRef<(() => void) | null>(null);
+  const refreshAnimation = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     introMode.current = intro;
@@ -317,10 +320,21 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
   }, [intro]);
 
   useEffect(() => {
+    motionMode.current = motionOverride;
+    refreshAnimation.current?.();
+  }, [motionOverride]);
+
+  useEffect(() => {
     const syncFallbackVisibility = () => setPageHidden(document.hidden);
     syncFallbackVisibility();
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncMotionPreference = () => setPrefersReducedMotion(reducedMotion.matches);
     document.addEventListener('visibilitychange', syncFallbackVisibility);
-    return () => document.removeEventListener('visibilitychange', syncFallbackVisibility);
+    reducedMotion.addEventListener('change', syncMotionPreference);
+    return () => {
+      document.removeEventListener('visibilitychange', syncFallbackVisibility);
+      reducedMotion.removeEventListener('change', syncMotionPreference);
+    };
   }, []);
 
   useEffect(() => {
@@ -346,8 +360,10 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
     element.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-8, 8, 5, -5, 0.1, 80);
-    camera.position.set(0, 0, 18);
+    const backgroundCamera = new THREE.OrthographicCamera(-8, 8, 5, -5, 0.1, 80);
+    backgroundCamera.position.set(0, 0, 18);
+    const introCamera = new THREE.PerspectiveCamera(32, 1, 0.1, 80);
+    introCamera.position.set(0, 0, 5 / Math.tan(THREE.MathUtils.degToRad(16)));
     const ambientLight = new THREE.AmbientLight(0xdce1dd, 1.65);
     scene.add(ambientLight);
     const sunlight = new THREE.DirectionalLight(0xffefd0, 3.4);
@@ -384,6 +400,11 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
 
     const neighboringPlanets = new THREE.Group();
     scene.add(neighboringPlanets);
+    const planetOrbits = new THREE.Group();
+    planetOrbits.rotation.x = 0.82;
+    planetOrbits.add(orbitLine(2.35, 0xb8a179, 0.12));
+    planetOrbits.add(orbitLine(2.85, 0xb8a179, 0.1));
+    neighboringPlanets.add(planetOrbits);
     const earth = new THREE.Mesh(new THREE.SphereGeometry(0.43, 32, 24), new THREE.MeshStandardMaterial({
       map: surfaceTexture('earth'), roughness: 0.78, metalness: 0,
     }));
@@ -473,6 +494,7 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
     let disposed = false;
     let contextUnavailable = false;
     let narrow = false;
+    let compactIntro = false;
     const pointer = new THREE.Vector2();
     const drift = new THREE.Vector2();
     const earthHome = new THREE.Vector3();
@@ -480,45 +502,48 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
     const marsHome = new THREE.Vector3();
     const moveAlongOrbit = (body: THREE.Mesh, home: THREE.Vector3, speed: number) => {
       const angle = elapsed * speed;
+      const flattening = compactIntro ? 0.75 : Math.cos(0.82);
+      const orbitY = home.x * Math.sin(angle) + home.y / flattening * Math.cos(angle);
       body.position.set(
-        home.x * Math.cos(angle) - home.y / 0.75 * Math.sin(angle),
-        home.x * 0.75 * Math.sin(angle) + home.y * Math.cos(angle),
-        home.z + Math.sin(angle) * 0.55,
+        home.x * Math.cos(angle) - home.y / flattening * Math.sin(angle),
+        orbitY * flattening,
+        compactIntro ? home.z + Math.sin(angle) * 0.55 : home.z + orbitY * Math.sin(0.82),
       );
     };
+    const motionEnabled = () => introMode.current ? motionMode.current ?? !reducedMotion.matches : !reducedMotion.matches;
 
     const render = () => {
-      if (!contextUnavailable) renderer.render(scene, camera);
+      if (!contextUnavailable) renderer.render(scene, introMode.current ? introCamera : backgroundCamera);
     };
     const update = (time: number) => {
-      if (disposed || contextUnavailable || document.hidden || reducedMotion.matches) return;
+      if (disposed || contextUnavailable || document.hidden || !motionEnabled()) return;
       frame = requestAnimationFrame(update);
       if (time - previousFrame < (narrow ? 1000 / 24 : 1000 / 30)) return;
-      elapsed += lastTime ? Math.min((time - lastTime) / 1000, 0.1) : 0;
+      elapsed += lastTime ? Math.min((time - lastTime) / 1000, 0.5) : 0;
       lastTime = time;
       previousFrame = time;
       drift.lerp(pointer, 0.025);
       const welcoming = introMode.current;
       planet.rotation.y = elapsed * (welcoming ? 0.22 : 0.05);
-      planetarySystem.rotation.y = Math.sin(elapsed * (welcoming ? 0.36 : 0.06)) * 0.12 + drift.x;
-      planetarySystem.rotation.x = 0.27 + (welcoming ? Math.sin(elapsed * 0.3) * 0.08 : 0) + drift.y;
-      planetarySystem.rotation.z = 0.38 + (welcoming ? Math.sin(elapsed * 0.28) * 0.06 : 0);
+      planetarySystem.rotation.y = Math.sin(elapsed * (welcoming ? 0.43 : 0.06)) * (welcoming && !compactIntro ? 0.29 : 0.12) + drift.x;
+      planetarySystem.rotation.x = 0.27 + (welcoming ? Math.sin(elapsed * 0.4) * (compactIntro ? 0.08 : 0.16) : 0) + drift.y;
+      planetarySystem.rotation.z = 0.38 + (welcoming ? Math.sin(elapsed * 0.32) * (compactIntro ? 0.06 : 0.1) : 0);
       neighboringPlanets.rotation.y = drift.x * 0.4;
       earth.rotation.y = -1.55 + elapsed * (welcoming ? 0.3 : 0.095);
       earthClouds.rotation.y = elapsed * (welcoming ? 0.075 : 0.025);
       jupiter.rotation.y = -0.65 + elapsed * (welcoming ? 0.18 : 0.058);
       mars.rotation.y = 0.8 + elapsed * (welcoming ? 0.25 : 0.078);
       if (welcoming) {
-        moveAlongOrbit(earth, earthHome, 0.16);
-        moveAlongOrbit(jupiter, jupiterHome, 0.12);
-        moveAlongOrbit(mars, marsHome, 0.21);
+        moveAlongOrbit(earth, earthHome, compactIntro ? 0.16 : 0.24);
+        moveAlongOrbit(jupiter, jupiterHome, compactIntro ? 0.12 : 0.18);
+        moveAlongOrbit(mars, marsHome, compactIntro ? 0.21 : 0.29);
       } else {
         earth.position.set(earthHome.x + Math.cos(elapsed * 0.13) * 0.08, earthHome.y + Math.sin(elapsed * 0.15) * 0.1, earthHome.z);
         jupiter.position.set(jupiterHome.x + Math.sin(elapsed * 0.09) * 0.07, jupiterHome.y + Math.sin(elapsed * 0.12 + 2) * 0.07, jupiterHome.z);
         mars.position.set(marsHome.x + Math.sin(elapsed * 0.17) * 0.1, marsHome.y + Math.sin(elapsed * 0.14 + 1) * 0.07, marsHome.z);
       }
       zodiacWheel.rotation.z = -0.14 + elapsed * (welcoming ? 0.025 : 0.009);
-      const moonAngle = elapsed * (welcoming ? 0.38 : 0.075) + 0.8;
+      const moonAngle = elapsed * (welcoming ? compactIntro ? 0.38 : 0.48 : 0.075) + 0.8;
       moon.position.set(Math.cos(moonAngle) * 2.35, Math.sin(moonAngle) * 0.58, Math.sin(moonAngle) * 1.6);
       sun.rotation.y = elapsed * 0.025;
       starMaterial.opacity = (introMode.current ? 0.75 : 0.39) + Math.sin(elapsed * 0.48) * 0.07;
@@ -538,7 +563,7 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
       stopAnimation();
       if (disposed || contextUnavailable) return;
       render();
-      if (!document.hidden && !reducedMotion.matches) frame = requestAnimationFrame(update);
+      if (!document.hidden && motionEnabled()) frame = requestAnimationFrame(update);
     };
     const resize = () => {
       const { width, height } = element.getBoundingClientRect();
@@ -546,10 +571,12 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
       const aspect = width / height;
       narrow = width < 640;
       const welcoming = introMode.current;
-      const compactIntro = welcoming && width <= 900;
-      camera.left = -aspect * 5;
-      camera.right = aspect * 5;
-      camera.updateProjectionMatrix();
+      compactIntro = welcoming && width <= 900;
+      backgroundCamera.left = -aspect * 5;
+      backgroundCamera.right = aspect * 5;
+      backgroundCamera.updateProjectionMatrix();
+      introCamera.aspect = aspect;
+      introCamera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, narrow ? 1.25 : 1.5));
       renderer.setSize(width, height, false);
       ambientLight.intensity = welcoming ? 0.9 : 1.65;
@@ -561,6 +588,7 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
       planetarySystem.position.set(welcoming ? compactIntro ? 0.15 : aspect * 5 - 3 : aspect * 5 - (narrow ? 0.75 : 2.1), welcoming ? compactIntro ? 2.25 : 0.4 : narrow ? 3.02 : 2.8, 0);
       neighboringPlanets.position.copy(planetarySystem.position);
       neighboringPlanets.scale.setScalar(welcoming ? compactIntro ? 0.7 : 1.15 : narrow ? 0.53 : 0.88);
+      planetOrbits.visible = welcoming && !compactIntro;
       earthHome.set(compactIntro ? -1.62 : narrow ? -1.45 : -2.21, compactIntro ? 0.65 : narrow ? -0.95 : 0.54, 0.9);
       jupiterHome.set(compactIntro ? 1.5 : narrow ? 0.75 : 1.52, compactIntro ? -1.27 : narrow ? -2.53 : -1.7, -0.5);
       marsHome.set(compactIntro ? -1.18 : narrow ? -0.48 : -2.05, compactIntro ? -1.73 : narrow ? -3.13 : -1.17, 0.4);
@@ -572,6 +600,7 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
       sparkleMaterials.forEach(material => { material.opacity = welcoming ? 0.75 : 0.47; });
       zodiacWheel.scale.setScalar(welcoming ? compactIntro ? 0.65 : 1.2 : narrow ? 0.64 : 0.91);
       zodiacWheel.position.copy(planetarySystem.position);
+      zodiacWheel.rotation.x = welcoming && !compactIntro ? 0.68 : 0.36;
       sunGroup.position.set((welcoming ? 1 : -1) * (aspect * 5 - (narrow ? 0.25 : 0.65)), welcoming ? -3.5 : -2.35, 0);
       sunGroup.scale.setScalar(narrow ? 0.75 : 1);
       sunGroup.visible = !compactIntro;
@@ -579,7 +608,7 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
       render();
     };
     const onPointerMove = (event: PointerEvent) => {
-      if (reducedMotion.matches || !finePointer.matches || narrow) return;
+      if (!motionEnabled() || !finePointer.matches || narrow) return;
       pointer.set((event.clientX / window.innerWidth - 0.5) * 0.08, (event.clientY / window.innerHeight - 0.5) * 0.05);
     };
     const contextLost = (event: Event) => {
@@ -599,6 +628,7 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
       resize();
       syncAnimation();
     };
+    refreshAnimation.current = syncAnimation;
     observer.observe(element);
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     document.addEventListener('visibilitychange', syncAnimation);
@@ -612,6 +642,7 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
     return () => {
       disposed = true;
       refreshLayout.current = null;
+      refreshAnimation.current = null;
       stopAnimation();
       observer.disconnect();
       window.removeEventListener('pointermove', onPointerMove);
@@ -626,7 +657,8 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
     };
   }, []);
 
-  return <div ref={host} className={`celestial-scene${ready ? ' is-ready' : ''}${intro ? ' is-intro' : ''}${pageHidden ? ' is-paused' : ''}`} aria-hidden="true">
+  const animated = intro ? motionOverride ?? !prefersReducedMotion : !prefersReducedMotion;
+  return <div ref={host} className={`celestial-scene${ready ? ' is-ready' : ''}${intro ? ' is-intro' : ''}${animated ? ' is-animated' : ''}${pageHidden ? ' is-paused' : ''}`} aria-hidden="true">
     <div className="celestial-wash" />
     <CelestialFallback />
   </div>;

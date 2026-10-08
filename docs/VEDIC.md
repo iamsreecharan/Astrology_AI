@@ -32,6 +32,14 @@ The PDF recomputes the birth chart and every supported life topic. South Indian 
 
 ## Marriage windows
 
+### Reading support labels
+
+Marriage and combined career windows carry relative support labels in the chart, chat, AI Yogi and English report. **Most supported** identifies the strongest returned window under the existing rules; **Joint most supported** preserves equal support without using the earlier date to declare a winner. Other qualifying windows are **Supported**. A single returned window is also **Supported**, since there is no second shown window to compare. The comparison applies only to the shown windows, not every future date.
+
+The comparison uses each window's existing dasha weight first, followed by its duration-weighted average of sampled Jupiter target-sign links; marriage also uses Saturn corroboration. Calendar dates, age ranges and display order stay unchanged. Career windows remain chronological, and nearer application/interview guidance comes first even when a later combined window ranks higher.
+
+These labels are not calibrated probabilities or numerical confidence. There is no validated data set of personal outcomes behind them, so the app does not supply percentage chances of marriage, hiring or another event. Qualitative readings are labeled **Traditional interpretation**, Saturn classifications **Calculated phase**, and career search periods and individual dates **Planning suggestion**. **No timing window found** describes an empty result under the stated rules, not zero chance of a life event.
+
 The public endpoint searches ten calendar years ahead and returns up to three ranked adult windows:
 
 1. Determine the D1 seventh house, its traditional ruler, and natal Venus.

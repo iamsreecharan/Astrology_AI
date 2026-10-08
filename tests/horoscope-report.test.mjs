@@ -48,9 +48,11 @@ test('report model recomputes all supported facts at one server instant', () => 
   for (const prediction of model.predictions) {
     assert.equal(prediction.asOf, '2026-10-08');
     assert.ok(prediction.method.length && prediction.limitations.length);
+    assert.ok(prediction.support.label && prediction.support.explanation);
     for (const window of prediction.windows) {
       assert.ok(window.start >= '2026-10-08' && window.end >= window.start);
       assert.ok(window.reasons.length);
+      assert.ok(window.support.label && window.support.explanation);
     }
   }
   assert.equal(model.chart.dasha.periods.length, 18);

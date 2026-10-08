@@ -225,6 +225,16 @@ body { background: var(--astral-night); color: #eee5d7; }
 .app-shell .window-number { color: #865a33; border-color: #c7aa7e; }
 .app-shell .marriage-window h3 { color: #3d5f51; }
 .app-shell .marriage-window h3 > span { color: #78644f; }
+.app-shell .prediction-support-note { margin: 0 0 22px; padding: 13px 16px; border-left: 3px solid #588575; border-radius: 0 12px 12px 0; background: #dbe4d78c; color: #3d5c4f; }
+.app-shell .prediction-support-note > strong { font-size: 12px; font-weight: 600; }
+.app-shell .prediction-support-note > p { margin: 5px 0 0; color: #566757; font-size: 12px; line-height: 1.7; }
+.app-shell .prediction-support-badge { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; margin: 1px 0 7px; padding: 5px 9px; border: 1px solid #b1bda7; border-radius: 12px; background: #e3e7d9; color: #3d5c4f; font-size: 12px; font-weight: 600; line-height: 1.4; }
+.app-shell .prediction-support-badge::before { content: ''; flex: 0 0 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.app-shell .prediction-support-badge.is-leading { color: #fbf5e8; background: #355f50; border-color: #355f50; }
+.app-shell .prediction-support-interpretation, .app-shell .prediction-support-calculated-phase { color: #785537; background: #f1e2cc; border-color: #cbb18d; }
+.app-shell .marriage-window.window-most-supported { border-color: #588575; box-shadow: inset 3px 0 #588575; background: linear-gradient(135deg, #f4f2e5, #fcf2e2 72%); }
+.app-shell .compact .prediction-support-note { margin-bottom: 15px; padding: 10px 12px; }
+.app-shell .compact .prediction-support-badge { font-size: 12px; }
 .app-shell :is(.window-dates, .window-reasons, .window-themes) { color: #6b6068; }
 .app-shell .no-window { background: #f6ebd9; border-color: #ccb697; }
 .app-shell .no-window h3 { color: #3f6150; }
@@ -405,6 +415,17 @@ body { background: var(--astral-night); color: #eee5d7; }
 .app-shell .yogi-read-button { color: #e8bc7d; }
 .app-shell .yogi-calculations { color: #c9bdcc; }
 .app-shell .yogi-calculations summary { color: #e0b97d; }
+.app-shell .yogi-calculations .prediction-support-note { margin-top: 8px; background: #78d0b710; border-left-color: #78d0b7; color: #c6eadb; }
+.app-shell .yogi-calculations .prediction-support-note > p { color: #c2d6cc; font-size: 12px; }
+.app-shell .yogi-calculations .prediction-support-badge { margin: 5px 0 7px; color: #c6eadb; border-color: #78d0b744; background: #78d0b710; }
+.app-shell .yogi-calculations .prediction-support-badge.is-leading { color: #213d32; border-color: #9fd4bd; background: #9fd4bd; }
+.app-shell .yogi-calculations :is(.prediction-support-interpretation, .prediction-support-calculated-phase) { color: #e8c393; border-color: #dda95b55; background: #dda95b14; }
+.app-shell .yogi-calculations .yogi-prediction-windows { padding: 0; list-style: none; }
+.app-shell .yogi-prediction-windows > li { padding: 11px 12px; margin-top: 10px; border: 1px solid #b7a0ce30; border-radius: 3px 12px 3px 12px; }
+.app-shell .yogi-prediction-windows > li.window-most-supported { border-color: #78d0b766; box-shadow: inset 2px 0 #78d0b7; }
+.app-shell .yogi-prediction-windows > li > strong { display: block; }
+.app-shell .yogi-prediction-age { font-size: 17px; font-weight: 600; color: #f1e3d1; }
+.app-shell .yogi-prediction-windows .yogi-window-dates { margin: 4px 0; color: #c7bbcd; font-size: 12px; line-height: 1.6; }
 .app-shell .yogi-compose { background: #161128cc; border-color: #dda95b57; border-radius: 3px 17px 3px 17px; }
 .app-shell .yogi-compose textarea { color: #f1e3d1; }
 .app-shell .yogi-compose textarea::placeholder { color: #b7a7bf; }

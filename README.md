@@ -6,13 +6,14 @@ A Vedic birth-chart and astrology chat app built with React, TypeScript, Vite, a
 
 ![Astral with an example birth profile](docs/preview.png)
 
-The visual theme combines an indigo planetarium with ivory reading panels, copper and jade accents, and orbital linework across desktop and mobile. The screenshot uses an example profile. New tab sessions open with [“Welcome to a world moved by the cosmos.”](docs/welcome.png), with visibly revolving and rotating planets. Choose Enter Astral, Skip intro, or Escape to continue immediately. AI Yogi then holds a small invitation to personalize your astrology: choose **Personalize my astrology** to enter your recorded birth details, or **Skip for now** to explore. Both the intro and a dismissed invitation stay out of the way on reload in that tab. Visitors with a complete saved birth profile go straight into the app after the intro. Render creates a live URL after deployment; the cloud-onboarding screen does not provide an app preview.
+The visual theme combines an indigo planetarium with ivory reading panels, copper and jade accents, and orbital linework across desktop and mobile. The screenshot uses an example profile. New tab sessions open with [“Welcome to a world moved by the cosmos.”](docs/welcome.png), with visibly revolving and rotating planets. Desktop planets move along tilted orbits with perspective depth. **Pause planets** stops the welcome animation; **Animate planets** starts it, including when your system prefers reduced motion. The background honors the system preference again after entry. Choose Enter Astral, Skip intro, or Escape to continue immediately. AI Yogi then holds a small invitation to personalize your astrology: choose **Personalize my astrology** to enter your recorded birth details, or **Skip for now** to explore. Both the intro and a dismissed invitation stay out of the way on reload in that tab. Visitors with a complete saved birth profile go straight into the app after the intro. Render creates a live URL after deployment; the cloud-onboarding screen does not provide an app preview.
 
 ## What it does
 
 - Calculates approximate Lahiri sidereal D1 and D9/Navamsa placements, whole-sign houses, Moon rashi, nakshatra and pada, ascendant, mean Rahu/Ketu, and planetary motion.
 - Shows Vimshottari birth balance, mahadasha/antardasha timelines, and current transits.
 - Estimates traditional marriage windows with dates, completed-age ranges, and calculation reasons. It returns no window when the rules find none.
+- Labels calculated marriage and career periods **Most supported**, **Joint most supported**, or **Supported**, with the same guidance in chat, AI Yogi and the English PDF.
 - Finds conditional career opportunity periods and tracks changes in Saturn's traditional Moon-relative phases.
 - Explains married life, education, finances, family, travel, wellbeing, and general life themes using the relevant houses, rulers, and dasha periods.
 - Opens chat in **Vedic AI** when a server key is configured, with **Local** beside it for the calculated guide.
@@ -27,6 +28,8 @@ The visual theme combines an indigo planetarium with ivory reading panels, coppe
 - Saves profiles in the current browser, with controls to edit or remove them.
 
 These are traditional chart interpretations and limited timing rules, not validated forecasts. A window does not promise a marriage, job, financial result, or an end to hardship. The [method notes](docs/VEDIC.md) explain each method.
+
+Support labels compare the shown timing windows using the existing dasha and transit rules. They are not measured percentage chances, and a single qualifying window is labeled **Supported** without claiming it is the strongest. Other readings identify traditional themes or calculated Saturn phases; career preparation dates remain planning suggestions.
 
 ## Run it
 
@@ -166,6 +169,7 @@ The hosted service has no account authentication or per-user AI quotas. POST req
 - `server/astrology.mjs`: profiles, Western signs, and daily reflections.
 - `server/vedic-chart.mjs`: sidereal charts, D9, periods, and transits.
 - `server/vedic-timing.mjs`: marriage-window rules.
+- `server/prediction-support.mjs`: relative timing support and distinct interpretation, phase and planning labels.
 - `server/vedic-forecast.mjs`: career windows and Saturn phase changes.
 - `server/vedic-life.mjs`: house-based life topics and dasha themes.
 - `server/vedic-knowledge.mjs`: original notes and grounded chat context.

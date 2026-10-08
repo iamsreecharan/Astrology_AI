@@ -259,6 +259,10 @@ export function estimateCareerWindows(profile, chart, {
     start: dateOnly(candidate.start), end: dateOnly(candidate.end - 1),
     ageRange: { min: age(profile.birthDate, candidate.start), max: age(profile.birthDate, candidate.end - 1) },
     label: 'Traditional career opportunity window', reasons: [...candidate.reasons],
+    supportFactors: {
+      dashaWeight: candidate.dashaPoints,
+      jupiterTargetAverage: candidate.jupiterTotal / candidate.duration,
+    },
   }));
   const searchEnd = Math.min(horizonEnd, calendarMonthsAfter(now, 6));
   const searchWindows = careerSearchWindows(profile, ascendantSign, earliest, searchEnd, transitProvider);
@@ -285,7 +289,8 @@ export function estimateCareerWindows(profile, chart, {
       'D1 whole-sign tenth house and its traditional ruler, using the calculated approximate Lahiri sidereal chart.',
       'Qualifying Vimshottari periods require the tenth-house ruler, Mercury, or Saturn as mahadasha or antardasha lord; preserve their actual interval boundaries.',
       'A qualifying period also requires monthly future Jupiter occupation or traditional 5th, 7th, or 9th sign aspect to the natal tenth-house sign or its ruler’s sign.',
-      'Return the first three qualifying combined dasha/Jupiter windows in chronological order, so a stronger later period does not hide a nearer supported interval. Support weights break same-start ties only and are not probabilities.',
+      'Dasha support adds 4 for the tenth-house ruler as antardasha lord and 3 as mahadasha lord; Mercury and Saturn each add 2 as antardasha lord or 1 as mahadasha lord when they are not already that ruler. Compare this sum first, then the duration-weighted mean number of Jupiter target signs; these weights are not outcome probabilities.',
+      'Return the first three qualifying combined dasha/Jupiter windows in chronological order, so a stronger later period does not hide a nearer supported interval. Display-order support weights break same-start ties only; the separate support labels compare shown windows without moving them and are not probabilities.',
       'Merge contiguous supported calendar-month samples within each antardasha. Ages below 18 are excluded; February 29 birthdays use March 1 in non-leap years.',
       'Separately sample Mercury weekly across the next six calendar months. Occupation of the natal whole-sign sixth, tenth, or eleventh house is a limited traditional planning heuristic for applications, interviews, and networking; it does not require or imply the combined dasha/Jupiter rule.',
       'Return up to three chronological application/interview planning windows. Merge contiguous supported weekly samples and preserve unsupported gaps; these are approximate periods rather than exact transit ingress dates or auspicious-day selections.',

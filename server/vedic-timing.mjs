@@ -202,6 +202,11 @@ export function estimateMarriageWindows(profile, chart, {
     end: dateOnly(candidate.end - 1),
     ageRange: { min: completedAge(profile.birthDate, candidate.start), max: completedAge(profile.birthDate, candidate.end - 1) },
     reasons: [...candidate.reasons],
+    supportFactors: {
+      dashaWeight: candidate.dashaPoints,
+      jupiterTargetAverage: candidate.jupiterTotal / candidate.duration,
+      saturnTargetAverage: candidate.saturnTotal / candidate.duration,
+    },
   }));
   return {
     topic: 'marriage', status: windows.length ? 'estimated' : 'no-window',
@@ -212,7 +217,8 @@ export function estimateMarriageWindows(profile, chart, {
       'Qualifying Vimshottari mahadasha/antardasha: either lord is the seventh-house ruler or Venus; the actual period boundaries are preserved.',
       'Monthly future Jupiter sign sampling requires occupation or traditional 5th, 7th, or 9th aspect to the seventh-house sign, its ruler’s sign, or Venus’s sign.',
       'Saturn occupation or traditional 3rd, 7th, or 10th aspect adds corroboration; Saturn alone cannot create a window.',
-      'Dasha ranking weights the seventh-house ruler as antardasha lord first, then as mahadasha lord, then Venus as antardasha lord, then Venus as mahadasha lord; simultaneous support is combined.',
+      'Dasha ranking adds 4 for the seventh-house ruler as antardasha lord, 3 as mahadasha lord, 2 for Venus as antardasha lord, and 1 as mahadasha lord. Venus receives no separate significator points when it is the seventh-house ruler; simultaneous support is combined.',
+      'Jupiter and Saturn comparisons use duration-weighted mean counts of distinct occupied or aspected natal target signs. A sign shared by several natal roles counts once.',
       'At most three windows, ranked by seventh-ruler/Venus dasha support, then Jupiter target support, then Saturn corroboration; earlier windows break ties. The ranking is not a probability.',
       'Completed calendar ages; February 29 birthdays use March 1 in non-leap years. Ages below 18 are excluded.',
     ],

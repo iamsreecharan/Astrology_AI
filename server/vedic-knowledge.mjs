@@ -178,6 +178,19 @@ export function selectVedicNotes({ message = '', focus = 'general', chart, predi
   return [...new Set(ids)].map(id => NOTES_BY_ID.get(id)).filter(Boolean).slice(0, 10);
 }
 
+const SUPPORT_KINDS = new Set(['relative', 'interpretation', 'calculated-phase', 'unavailable', 'planning']);
+const SUPPORT_LABELS = new Set(['Relative astrological support', 'Most supported', 'Joint most supported', 'Supported', 'Traditional interpretation', 'Calculated phase', 'No timing window found', 'Support not compared', 'Planning suggestion']);
+
+function supportFacts(support) {
+  if (!support || !SUPPORT_KINDS.has(support.kind) || !SUPPORT_LABELS.has(support.label)) return undefined;
+  const result = { kind: support.kind, label: support.label, explanation: cleanText(support.explanation, 1000) };
+  if (['unique-top', 'tied-top', 'single', 'lower'].includes(support.comparison)) result.comparison = support.comparison;
+  for (const key of ['rank', 'comparedWindows', 'tiedWindows']) {
+    if (Number.isInteger(support[key]) && support[key] >= 1 && support[key] <= 8) result[key] = support[key];
+  }
+  return result;
+}
+
 function predictionFacts(prediction) {
   if (!PREDICTION_TOPICS.has(prediction?.topic)) return null;
   const result = {
@@ -188,11 +201,15 @@ function predictionFacts(prediction) {
       if (window.ageRange) item.ageRange = { min: numberOf(window.ageRange.min), max: numberOf(window.ageRange.max) };
       if (typeof window.label === 'string') item.label = cleanText(window.label);
       if (Array.isArray(window.themes)) item.themes = stringsOf(window.themes);
+      const support = supportFacts(window.support);
+      if (support) item.support = support;
       return item;
     }) : [],
     factors: stringsOf(prediction.factors), themes: stringsOf(prediction.themes),
     method: stringsOf(prediction.method), limitations: stringsOf(prediction.limitations),
   };
+  const support = supportFacts(prediction.support);
+  if (support) result.support = support;
   if (prediction.seventhHouse) result.seventhHouse = { rashi: cleanText(prediction.seventhHouse.rashi), lord: cleanText(prediction.seventhHouse.lord) };
   if (prediction.currentPhase) result.currentPhase = { name: cleanText(prediction.currentPhase.name), description: cleanText(prediction.currentPhase.description, 1000) };
   if (prediction.topic === 'career') {
@@ -200,6 +217,8 @@ function predictionFacts(prediction) {
     if (Array.isArray(prediction.searchWindows)) result.searchWindows = prediction.searchWindows.slice(0, 8).map(window => {
       const item = { start: cleanText(window.start), end: cleanText(window.end), label: cleanText(window.label), reasons: stringsOf(window.reasons) };
       if (window.ageRange) item.ageRange = { min: numberOf(window.ageRange.min), max: numberOf(window.ageRange.max) };
+      const support = supportFacts(window.support);
+      if (support) item.support = support;
       return item;
     });
     const planning = prediction.planningDates;
@@ -208,6 +227,7 @@ function predictionFacts(prediction) {
       const privatePlanningText = values => stringsOf(values).map(value => rawTimeZone ? value.replaceAll(` (${rawTimeZone})`, '').replaceAll(rawTimeZone, 'the saved birth time zone') : value);
       result.planningDates = {
         status: ['available', 'no-dates', 'under-age', 'uncertain-natal'].includes(planning.status) ? planning.status : 'no-dates',
+        ...(supportFacts(planning.support) ? { support: supportFacts(planning.support) } : {}),
         sampledAt: cleanText(planning.sampledAt),
         horizon: planning.horizon ? { start: cleanText(planning.horizon.start), end: cleanText(planning.horizon.end), endExclusive: cleanText(planning.horizon.endExclusive), days: numberOf(planning.horizon.days) } : null,
         sampling: '12:00 local noon in the saved birth time zone; not an exact muhurta',
@@ -219,6 +239,7 @@ function predictionFacts(prediction) {
           tithi: date.tithi ? { index: numberOf(date.tithi.index), name: cleanText(date.tithi.name), paksha: cleanText(date.tithi.paksha), dayInPaksha: numberOf(date.tithi.dayInPaksha) } : null,
           tara: date.tara ? { index: numberOf(date.tara.index), name: cleanText(date.tara.name), countFromBirthStar: numberOf(date.tara.countFromBirthStar) } : null,
           moonRelativeHouse: numberOf(date.moonRelativeHouse), reasons: privatePlanningText(date.reasons), warnings: privatePlanningText(date.warnings), sampleUtc: cleanText(date.sampleUtc),
+          ...(supportFacts(date.support) ? { support: supportFacts(date.support) } : {}),
         })) : [],
         method: privatePlanningText(planning.method), limits: privatePlanningText(planning.limits),
       };
@@ -230,6 +251,7 @@ function predictionFacts(prediction) {
 const SYSTEM_PROMPT = `You are Astral, an Indian astrology (Jyotish) interpretation assistant. A server calculator supplies chart facts and original curated knowledge notes. You are an API foundation model conditioned on those facts and notes, not a specially trained or fine-tuned astrologer. Do not claim comprehensive training, validated predictive accuracy, or that astrology establishes factual future outcomes.
 Treat the supplied chart and prediction objects as the only sources for calculations. Explain Lahiri sidereal D1, Moon rashi, nakshatra, pada, lagna, grahas, whole-sign houses, and computed Vimshottari periods when relevant. Respect all calculation warnings and limits. Never guess a star, sign, degree, birth time, place, period, or house. Current transits apply only at their asOf instant; do not invent future transits.
 For every supplied prediction topic, answer that topic using its factors, themes, currentPhase, method, and supplied windows and reasons. Keep supplied numerical dates and ranges intact; dates must come from computed windows or dasha periods, never from a new invented calculation. Estimated windows are conditional traditional interpretation periods, not promised events or measured probabilities. An interpreted result supplies themes without a computed event window; do not invent one. A no-window result means only that this method found no qualifying window in its horizon.
+Use supplied support labels when comparing windows. Most supported means the strongest calculated traditional support among the shown windows, not a measured likelihood of the event. Joint most supported preserves a tie; do not pick a winner. Supported means the window passed the stated timing rules; a single shown window has no comparison. When asked which marriage age or period is strongest, lead with the window or tied windows carrying the supplied top label, keeping the entire computed age and date ranges. Do not invent percentages, numeric confidence, statistical probabilities, or new relative rankings. Traditional interpretation concerns themes without an outcome likelihood; Calculated phase classifies a transit, not the probability of hardship ending. Planning suggestion concerns applications or preparation, not hiring chances. No timing window found does not mean zero chance or an impossible event. Explain the labels briefly only when relevant.
 For prediction.topic marriage, if prediction.status is estimated, explicitly state the supplied calendar windows and numeric age ranges as conditional traditional estimates. Summarize one or two relevant reasons rather than repeating every calculation. Do not fabricate ages or dates, convert a range into a claimed exact single age, invent a probability, or promise that marriage will occur. If prediction.status is no-window, explain that this method found no qualifying computed window; that does not mean the person will never marry. If no marriage prediction is supplied, do not provide a numeric marriage age. An explicit career, married-life, or other topic prediction must not be turned into a marriage timing answer because the question mentions a spouse. Choice, consent, circumstances, and unavailable calculations remain relevant.
 For difficult-periods, describe Sade Sati only from supplied Saturn signs twelve, one, or two relative to the natal Moon, and Ashtama Shani only from supplied sign eight. If a configuration end date is calculated, state it as that configuration changing, never as the guaranteed end of hardship or all bad days. Do not promise a job, exam result, wealth, happy marriage, visa, or travel. Married-life themes cannot reveal a spouse's thoughts or prove infidelity. Use practical planning and support alongside traditional themes.
 Interpret D9/Navamsa placements only if chartFacts.navamsa is supplied; otherwise explain that no D9 was provided. D9 placements give traditional relationship context but do not add timing ages or establish improved predictive accuracy. Yogas, detailed aspects, shadbala, birth-time rectification, muhurta, and kundli compatibility scoring are unavailable unless explicitly calculated in the supplied facts. Explain this without guessing. Never invent scriptural verses, book quotations, external citations, or pretend the notes are ancient quotations. References are attached separately; do not fill the answer with note IDs.
@@ -305,7 +327,8 @@ const TOPIC_LABELS = Object.freeze({
 function windowDescription(window, showAge = false) {
   const validAges = Number.isFinite(window.ageRange?.min) && Number.isFinite(window.ageRange?.max);
   const age = showAge && validAges ? ` (estimated ages ${window.ageRange.min}–${window.ageRange.max})` : '';
-  return `${dateLabel(window.start)} to ${dateLabel(window.end)}${age}`;
+  const support = window.support?.kind === 'relative' ? `${window.support.label}: ` : '';
+  return `${support}${dateLabel(window.start)} to ${dateLabel(window.end)}${age}`;
 }
 
 function sentence(value) {
@@ -399,7 +422,8 @@ export function buildVedicLocalReply(chart, { message = '', focus = 'general', p
     if (forecast.status === 'no-window' || !forecast.windows.length) return answer('This method found no qualifying computed marriage window in the selected horizon. That does not mean you will never marry. Relationships depend on choices, mutual consent, and circumstances as well as any traditional interpretation.');
     const windows = forecast.windows.slice(0, 3).map(window => `• ${windowDescription(window, true)}`).join('\n');
     const reason = periodReason(forecast.windows[0].reasons);
-    return answer(`The calculated traditional marriage windows are:\n${windows}\n\n${reason ? `${reason} ` : ''}These are conditional estimates, not a promised wedding date. Your choices and circumstances still matter.`);
+    const comparison = forecast.support?.kind === 'relative' ? ' Support labels compare shown windows, not measured chances.' : '';
+    return answer(`The calculated traditional marriage windows are:\n${windows}\n\n${reason ? `${reason} ` : ''}These are conditional estimates, not a promised wedding date.${comparison} Your choices and circumstances still matter.`);
   }
   if (forecast?.topic === 'career') {
     const sorted = forecast.windows.slice().sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);

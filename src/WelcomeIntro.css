@@ -78,6 +78,10 @@
 }
 .welcome-intro-enter > svg { width: 20px; height: 20px; }
 .welcome-intro-enter:hover { transform: translateY(-2px); box-shadow: 0 10px 30px #dfb87630; }
+.welcome-intro-motion-control { margin-top: 18px; }
+.welcome-intro-motion { display: inline-flex; min-height: 36px; align-items: center; gap: 7px; padding: 5px 0; border: 0; color: #d7c6ab; background: transparent; font-size: 11px; }
+.welcome-intro-motion > svg { width: 17px; height: 17px; color: #dda95b; }
+.welcome-intro-motion:hover { color: #f6ebda; }
 .welcome-intro button:focus-visible { outline: 2px solid #f2dfb4; outline-offset: 5px; }
 
 .welcome-intro-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 17px; color: #aeb4c2; }

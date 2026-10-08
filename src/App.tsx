@@ -22,7 +22,8 @@ type Reading = { date: string; focus: Focus; headline: string; overview: string;
 type Compatibility = { signA: Sign; signB: Sign; headline: string; summary: string; strengths: string[]; challenges: string[]; conversationStarter: string };
 type Reference = { id: string; title: string };
 type PredictionTopic = 'marriage' | 'career' | 'difficult-periods' | 'married-life' | 'general' | 'education' | 'finances' | 'family' | 'travel' | 'wellbeing';
-type Prediction = { topic: PredictionTopic; status: 'estimated' | 'no-window' | 'interpreted'; asOf: string; horizonEnd: string; seventhHouse?: { rashi: string; lord: string }; windows: { start: string; end: string; ageRange?: { min: number; max: number }; label?: string; reasons: string[]; themes?: string[] }[]; searchWindows?: CareerSearchWindow[]; searchHorizonEnd?: string; planningDates?: CareerPlanningDates; factors?: string[]; themes?: string[]; currentPhase?: { name: string; description: string }; method: string[]; limitations: string[] };
+type PredictionSupport = { kind: 'relative' | 'interpretation' | 'calculated-phase' | 'unavailable' | 'planning'; label: string; explanation: string; comparison?: 'unique-top' | 'tied-top' | 'single' | 'lower' };
+type Prediction = { topic: PredictionTopic; status: 'estimated' | 'no-window' | 'interpreted'; asOf: string; horizonEnd: string; support?: PredictionSupport; seventhHouse?: { rashi: string; lord: string }; windows: { start: string; end: string; ageRange?: { min: number; max: number }; label?: string; reasons: string[]; themes?: string[]; support?: PredictionSupport }[]; searchWindows?: CareerSearchWindow[]; searchHorizonEnd?: string; planningDates?: CareerPlanningDates; factors?: string[]; themes?: string[]; currentPhase?: { name: string; description: string }; method: string[]; limitations: string[] };
 type Planet = { name: string; rashi: string; signIndex: number; longitude: number; degreeInSign: number; house: number; retrograde: boolean | null };
 type DashaPeriod = { lord: string; start: string; end: string };
 type VedicChart = { calculation: { system: string; ayanamsha: string; ayanamshaDegrees: number; ephemeris: string; houses: string; nodeType: string; warnings: string[] }; moon: { rashi: string; nakshatra: { name: string; lord: string; index: number }; pada: number; longitude: number }; ascendant: { rashi: string; longitude: number }; planets: Planet[]; dasha: { birthBalance: { lord: string; years: number }; currentMahadasha: DashaPeriod | null; currentAntardasha: DashaPeriod | null; periods: (DashaPeriod & { antardashas: DashaPeriod[] })[] }; transits: { asOf: string; planets: Planet[] }; navamsa?: { ascendant: { rashi: string; longitude: number }; planets: Planet[] }; limits: string[] };
@@ -179,8 +180,9 @@ function PredictionResults({ prediction, compact = false, insideDetails = false 
         ? 'These themes interpret calculated placements and life periods. They offer a lens for reflection rather than a fixed outcome.'
         : 'These conditional windows combine chart factors and period timing. They describe traditional opportunities, not a promised event.';
   return <div className={`marriage-results prediction-results ${compact ? 'compact' : ''}`}>
-    <p className="forecast-context">{isInterpretation ? 'Calculated chart interpretation' : prediction.topic === 'difficult-periods' ? 'Traditional period themes' : 'Calculated timing estimate'} · {topic?.label || prediction.topic}</p>
+    <p className="forecast-context">{prediction.support?.label || (isInterpretation ? 'Calculated chart interpretation' : prediction.topic === 'difficult-periods' ? 'Traditional period themes' : 'Calculated timing estimate')} · {topic?.label || prediction.topic}</p>
     <p className="forecast-intro">{introduction}</p>
+    {prediction.support?.kind === 'relative' && prediction.windows.length > 0 && <div className="prediction-support-note"><strong>{prediction.support.label}</strong><p>{prediction.support.explanation}</p></div>}
     {prediction.topic === 'career' && <CareerTiming planningDates={prediction.planningDates} searchWindows={prediction.searchWindows} searchHorizonEnd={prediction.searchHorizonEnd} compact={compact} />}
     {prediction.currentPhase && <section className="current-phase-card"><span className="eyebrow">CURRENT TRADITIONAL PHASE</span><h3>{prediction.currentPhase.name}</h3><p>{prediction.currentPhase.description}</p></section>}
     {Boolean(prediction.themes?.length) && <section className="prediction-themes"><h3>What this brings into focus</h3><ul>{prediction.themes?.map((theme, index) => <li key={index}>{theme}</li>)}</ul></section>}
@@ -188,7 +190,20 @@ function PredictionResults({ prediction, compact = false, insideDetails = false 
       ? <section className="prediction-factors"><h3>Chart factors behind these themes</h3><ul>{prediction.factors?.map((factor, index) => <li key={index}>{factor}</li>)}</ul></section>
       : <details className="prediction-factors"><summary>Chart factors behind these themes</summary><ul>{prediction.factors?.map((factor, index) => <li key={index}>{factor}</li>)}</ul></details>)}
     {prediction.topic === 'career' && prediction.windows.length > 0 && <h3 className="career-period-heading">Broader career periods, in date order</h3>}
-    {prediction.windows.length ? <div className="marriage-windows">{prediction.windows.map((window, index) => <section className={`marriage-window ${isMarriage && window.ageRange ? '' : 'theme-window'}`} key={`${window.start}-${index}`}><div className="window-number">{String(index + 1).padStart(2, '0')}</div><div><span className="eyebrow">{isMarriage && window.ageRange ? 'ESTIMATED AGE WINDOW' : prediction.topic === 'career' ? 'BROADER CAREER PERIOD' : prediction.topic === 'difficult-periods' ? 'TRADITIONAL PHASE DATES' : isInterpretation ? 'PERIOD THEMES' : 'CONDITIONAL TIMING WINDOW'}</span>{isMarriage && window.ageRange ? <h3>{formatAge(window.ageRange.min)}{window.ageRange.min !== window.ageRange.max && <>–{formatAge(window.ageRange.max)}</>} <span>years</span></h3> : <h3>{prediction.topic === 'career' ? `${formatMonth(window.start)} – ${formatMonth(window.end)}` : window.label || `Period ${index + 1}`}</h3>}<p className="window-dates">{formatDate(window.start)} – {formatDate(window.end)}</p>{Boolean(window.themes?.length) && <ul className="window-themes">{window.themes?.map((theme, themeIndex) => <li key={themeIndex}>{theme}</li>)}</ul>}{(!compact || insideDetails) && <ul className="window-reasons">{window.reasons.map((reason, reasonIndex) => <li key={reasonIndex}>{reason}</li>)}</ul>}</div></section>)}</div> : prediction.status === 'no-window' ? <div className="no-window"><h3>{prediction.topic === 'career' ? 'No broader career window found.' : 'No qualifying window in this horizon.'}</h3><p>The combined rules did not identify a timing window through {formatDate(prediction.horizonEnd)}. {isMarriage ? 'This is not a prediction that marriage will not happen.' : prediction.topic === 'career' ? 'Keep applying and following actual openings; these periods do not set an employment deadline.' : 'This does not rule out real-life opportunities or change.'}</p></div> : null}
+    {prediction.windows.length ? <div className="marriage-windows">{prediction.windows.map((window, index) => {
+      const leading = window.support?.comparison === 'unique-top' || window.support?.comparison === 'tied-top';
+      return <section className={`marriage-window ${isMarriage && window.ageRange ? '' : 'theme-window'} ${leading ? 'window-most-supported' : ''}`} key={`${window.start}-${index}`}>
+        <div className="window-number">{String(index + 1).padStart(2, '0')}</div>
+        <div>
+          <span className="eyebrow">{isMarriage && window.ageRange ? 'ESTIMATED AGE WINDOW' : prediction.topic === 'career' ? 'BROADER CAREER PERIOD' : prediction.topic === 'difficult-periods' ? 'TRADITIONAL PHASE DATES' : isInterpretation ? 'PERIOD THEMES' : 'CONDITIONAL TIMING WINDOW'}</span>
+          {isMarriage && window.ageRange ? <h3>{formatAge(window.ageRange.min)}{window.ageRange.min !== window.ageRange.max && <>–{formatAge(window.ageRange.max)}</>} <span>years</span></h3> : <h3>{prediction.topic === 'career' ? `${formatMonth(window.start)} – ${formatMonth(window.end)}` : window.label || `Period ${index + 1}`}</h3>}
+          {window.support && <span className={`prediction-support-badge prediction-support-${window.support.kind} ${leading ? 'is-leading' : ''}`}>{window.support.label}</span>}
+          <p className="window-dates">{formatDate(window.start)} – {formatDate(window.end)}</p>
+          {Boolean(window.themes?.length) && <ul className="window-themes">{window.themes?.map((theme, themeIndex) => <li key={themeIndex}>{theme}</li>)}</ul>}
+          {(!compact || insideDetails) && <ul className="window-reasons">{window.reasons.map((reason, reasonIndex) => <li key={reasonIndex}>{reason}</li>)}</ul>}
+        </div>
+      </section>;
+    })}</div> : prediction.status === 'no-window' ? <div className="no-window"><h3>{prediction.topic === 'career' ? 'No broader career window found.' : 'No qualifying window in this horizon.'}</h3><p>The combined rules did not identify a timing window through {formatDate(prediction.horizonEnd)}. {isMarriage ? 'This is not a prediction that marriage will not happen.' : prediction.topic === 'career' ? 'Keep applying and following actual openings; these periods do not set an employment deadline.' : 'This does not rule out real-life opportunities or change.'}</p></div> : null}
     {(!compact || insideDetails) && (insideDetails
       ? <section className="method-details"><h3>Method and interpretation limits</h3><p>{prediction.seventhHouse && <>Seventh house: {prediction.seventhHouse.rashi} · lord: {prediction.seventhHouse.lord}. </>}Calculated as of {formatDate(prediction.asOf)}.</p><ul>{prediction.method.map((item, index) => <li key={`method-${index}`}>{item}</li>)}{prediction.limitations.map((item, index) => <li key={`limit-${index}`}>{item}</li>)}</ul></section>
       : <details className="method-details"><summary>Method and interpretation limits</summary><p>{prediction.seventhHouse && <>Seventh house: {prediction.seventhHouse.rashi} · lord: {prediction.seventhHouse.lord}. </>}Calculated as of {formatDate(prediction.asOf)}.</p><ul>{prediction.method.map((item, index) => <li key={`method-${index}`}>{item}</li>)}{prediction.limitations.map((item, index) => <li key={`limit-${index}`}>{item}</li>)}</ul></details>)}
@@ -196,6 +211,7 @@ function PredictionResults({ prediction, compact = false, insideDetails = false 
 }
 
 export default function App() {
+  const [introMotion, setIntroMotion] = useState<boolean | null>(null);
   const [showWelcome, setShowWelcome] = useState(() => {
     try { return sessionStorage.getItem('astral-welcome') !== 'seen'; }
     catch { return true; }
@@ -620,8 +636,8 @@ export default function App() {
   const navigation: { page: Page; label: string; icon: string }[] = [{ page: 'today', label: 'Today', icon: 'sun' }, { page: 'chart', label: 'Birth chart', icon: 'compass' }, { page: 'compatibility', label: 'Compatibility', icon: 'heart' }, { page: 'chat', label: 'Ask Astral', icon: 'star' }, { page: 'about', label: 'About', icon: 'book' }];
 
   return <div className={`app-shell${showWelcome ? ' is-welcoming' : ''}`}>
-    <Suspense fallback={null}><CelestialScene intro={showWelcome} /></Suspense>
-    {showWelcome && <WelcomeIntro onEnter={enterAstral} />}
+    <Suspense fallback={null}><CelestialScene intro={showWelcome} motionOverride={introMotion} /></Suspense>
+    {showWelcome && <WelcomeIntro onEnter={enterAstral} motionOverride={introMotion} onMotionChange={setIntroMotion} />}
     {!showWelcome && showPersonalization && <PersonalizationPrompt onPersonalize={personalizeAstrology} onSkip={dismissPersonalization} />}
     <a className="skip-link" href="#main-content">Skip to content</a>
     <header className="site-header">

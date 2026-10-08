@@ -1,13 +1,24 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './WelcomeIntro.css';
 
 type WelcomeIntroProps = {
   onEnter: () => void;
+  motionOverride: boolean | null;
+  onMotionChange: (enabled: boolean) => void;
 };
 
-export default function WelcomeIntro({ onEnter }: WelcomeIntroProps) {
+export default function WelcomeIntro({ onEnter, motionOverride, onMotionChange }: WelcomeIntroProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const enterRef = useRef<HTMLButtonElement>(null);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const planetsMoving = motionOverride ?? !reducedMotion;
+
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(preference.matches);
+    preference.addEventListener('change', update);
+    return () => preference.removeEventListener('change', update);
+  }, []);
 
   function enterAstral() {
     dialogRef.current?.close();
@@ -77,6 +88,14 @@ export default function WelcomeIntro({ onEnter }: WelcomeIntroProps) {
               <path d="M4 12h15M13 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+          <div className="welcome-intro-motion-control">
+            <button type="button" className="welcome-intro-motion" aria-pressed={planetsMoving} onClick={() => onMotionChange(!planetsMoving)}>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                {planetsMoving ? <path d="M7 5v10M13 5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /> : <path d="m7 4 9 6-9 6V4Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />}
+              </svg>
+              {planetsMoving ? 'Pause planets' : 'Animate planets'}
+            </button>
+          </div>
         </section>
 
         <div className="welcome-intro-bottom">

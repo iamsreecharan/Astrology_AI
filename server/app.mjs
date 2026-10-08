@@ -12,6 +12,7 @@ import { searchPlaces, PLACE_ATTRIBUTION } from './places.mjs';
 import { installVoiceRoutes, languageOf } from './voice.mjs';
 import { buildHoroscopeReport } from './horoscope-report.mjs';
 import { replyMatchesLanguage, retryLanguageInstruction } from './chat-language.mjs';
+import { attachPredictionSupport } from './prediction-support.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const FOCUSES = new Set(['general', 'love', 'career', 'wellbeing']);
@@ -73,10 +74,11 @@ function forecastTopic(message, history) {
   return 'general';
 }
 function predictionFor(profile, chart, topic, asOf) {
-  if (topic === 'marriage') return estimateMarriageWindows(profile, chart, { asOf });
-  if (topic === 'career') return estimateCareerWindows(profile, chart, { asOf });
-  if (topic === 'difficult-periods') return describeDifficultPeriods(profile, chart, { asOf });
-  return analyzeLifeArea(profile, chart, topic, { asOf });
+  const prediction = topic === 'marriage' ? estimateMarriageWindows(profile, chart, { asOf })
+    : topic === 'career' ? estimateCareerWindows(profile, chart, { asOf })
+      : topic === 'difficult-periods' ? describeDifficultPeriods(profile, chart, { asOf })
+        : analyzeLifeArea(profile, chart, topic, { asOf });
+  return attachPredictionSupport(prediction);
 }
 const missingBirthDetails = 'Add your recorded birth time, birth place, coordinates, and time zone in your birth profile to calculate a Vedic chart. A birth date alone cannot determine your lagna or birth star.';
 

@@ -7,6 +7,7 @@ import { calculateBirthPanchanga } from './birth-panchanga.mjs';
 import { estimateMarriageWindows } from './vedic-timing.mjs';
 import { estimateCareerWindows, describeDifficultPeriods } from './vedic-forecast.mjs';
 import { analyzeLifeArea } from './vedic-life.mjs';
+import { attachPredictionSupport } from './prediction-support.mjs';
 
 const TOPICS = [
   ['marriage', 'Marriage timing'], ['married-life', 'Married life and relationships'],
@@ -50,7 +51,7 @@ export function buildHoroscopeReportModel(input, { asOf = new Date() } = {}) {
       : topic === 'career' ? estimateCareerWindows(profile, chart, options)
         : topic === 'difficult-periods' ? describeDifficultPeriods(profile, chart, options)
           : analyzeLifeArea(profile, chart, topic, options);
-    return { title, ...calculation };
+    return { title, ...attachPredictionSupport(calculation) };
   });
   return {
     profile, asOf: asOf.toISOString(), chart, panchanga, predictions,
@@ -291,6 +292,10 @@ export function renderHoroscopeReport(model) {
     for (const prediction of model.predictions) {
       heading(prediction.title, { page: true });
       text(`As of ${prediction.asOf} · Horizon through ${prediction.horizonEnd} · ${prediction.status === 'estimated' ? 'Conditional estimated windows' : prediction.status === 'no-window' ? 'No qualifying window found' : 'Traditional period themes'}`, { size: 8, color: COLORS.muted, gap: 12 });
+      if (prediction.support) {
+        text(prediction.support.label, { bold: true, color: COLORS.gold });
+        text(prediction.support.explanation, { size: 8, color: COLORS.muted, gap: 10 });
+      }
       if (prediction.topic === 'career') {
         const planning = prediction.planningDates;
         if (planning) {
@@ -345,6 +350,10 @@ export function renderHoroscopeReport(model) {
       for (const [index, window] of prediction.windows.entries()) {
         subheading(`${index + 1}. ${window.label || 'Conditional window'} · ${window.start} to ${window.end}`);
         if (window.ageRange) text(`Completed age range: ${window.ageRange.min}–${window.ageRange.max} years.`);
+        if (window.support) {
+          text(window.support.label, { bold: true, color: COLORS.gold });
+          text(window.support.explanation, { size: 8, color: COLORS.muted });
+        }
         list(window.reasons);
         if (window.themes?.length) list(window.themes, { color: COLORS.muted });
       }

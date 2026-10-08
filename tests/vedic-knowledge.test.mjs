@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { KNOWLEDGE_NOTES, compactChartFacts, selectVedicNotes, buildVedicMessages, buildVedicLocalReply } from '../server/vedic-knowledge.mjs';
 import { calculateVedicChart, moonNakshatra } from '../server/vedic-chart.mjs';
+import { attachPredictionSupport } from '../server/prediction-support.mjs';
 
 const chart = {
   name: 'PRIVATE NAME', birthDate: 'PRIVATE BIRTH DATE', birthTime: 'PRIVATE TIME', latitude: 'PRIVATE LATITUDE', longitude: 'PRIVATE LONGITUDE',
@@ -23,6 +24,7 @@ const prediction = {
   method: ['Adult Vimshottari rule score'], limitations: ['No Navamsa verification'], rawBirthDate: 'PRIVATE PREDICTION EXTRA',
 };
 const wordCount = reply => reply.trim().split(/\s+/).length;
+const dateOnly = value => value.slice(0, 10);
 
 test('chart prompt whitelists derived facts and omits identity and raw birth fields', () => {
   const result = buildVedicMessages(chart, { message: 'What is my birth star?' });
@@ -433,4 +435,70 @@ test('model guidance calls for brief answers while keeping full calculation evid
   assert.deepEqual(context.prediction.windows[0].reasons, ['Computed career period link']);
   assert.deepEqual(context.prediction.method, ['Supplied calculation rule']);
   assert.deepEqual(context.prediction.limitations, ['Conditional traditional interpretation']);
+});
+
+test('relative support reaches the model without raw weights, probabilities, or private extras', () => {
+  const supported = attachPredictionSupport({ ...prediction, windows: [
+    { ...prediction.windows[0], supportFactors: { dashaWeight: 4, jupiterTargetAverage: 2, saturnTargetAverage: 1 } },
+    { ...prediction.windows[0], start: '2030-02-01', end: '2031-03-01', ageRange: { min: 32.4, max: 33.5 }, supportFactors: { dashaWeight: 3, jupiterTargetAverage: 3, saturnTargetAverage: 2 } },
+  ] });
+  supported.support.identity = 'PRIVATE SUPPORT';
+  supported.windows[0].support.probability = 97;
+  supported.windows[0].support.confidence = 'PRIVATE CONFIDENCE';
+  const result = buildVedicMessages(chart, { message: 'Which marriage age is most probable?', prediction: supported });
+  const context = JSON.parse(result.messages.at(-1).content).prediction;
+  assert.equal(context.support.kind, 'relative');
+  assert.equal(context.windows[0].support.label, 'Most supported');
+  assert.equal(context.windows[1].support.label, 'Supported');
+  assert.equal(context.windows[0].support.rank, 1);
+  assert.deepEqual(context.windows.map(window => [window.start, window.end, window.ageRange]), supported.windows.map(window => [window.start, window.end, window.ageRange]));
+  assert.doesNotMatch(JSON.stringify(context), /PRIVATE|supportFactors|"probability"|"confidence"|dashaWeight/);
+  assert.match(result.messages[0].content, /Do not invent percentages, numeric confidence, statistical probabilities/);
+  assert.match(result.messages[0].content, /keeping the entire computed age and date ranges/);
+});
+
+test('local marriage replies retain tied support labels and the full calculated ranges', () => {
+  const supported = attachPredictionSupport({ ...prediction, windows: [
+    { ...prediction.windows[0], supportFactors: { dashaWeight: 4, jupiterTargetAverage: 2, saturnTargetAverage: 1 } },
+    { ...prediction.windows[0], start: '2030-02-01', end: '2031-03-01', ageRange: { min: 32.4, max: 33.5 }, supportFactors: { dashaWeight: 4, jupiterTargetAverage: 2, saturnTargetAverage: 1 } },
+  ] });
+  const result = buildVedicLocalReply(chart, { message: 'Which marriage age is strongest?', prediction: supported });
+  assert.equal(result.reply.match(/Joint most supported/g)?.length, 2);
+  for (const window of supported.windows) {
+    assert.ok(result.reply.includes(`${dateOnly(window.start)} to ${dateOnly(window.end)}`));
+    assert.ok(result.reply.includes(`ages ${window.ageRange.min}–${window.ageRange.max}`));
+  }
+  assert.match(result.reply, /not measured chances/);
+  assert.doesNotMatch(result.reply, /\d+%|will marry at|probability of/);
+  assert.ok(wordCount(result.reply) <= 120);
+});
+
+test('stronger later career support keeps near-term preparation first and planning labels distinct', () => {
+  const supported = attachPredictionSupport({ ...forecastFor('career'), windows: [
+    { start: '2026-11-01', end: '2026-12-01', reasons: ['Computed tenth-house ruler period'], supportFactors: { dashaWeight: 3, jupiterTargetAverage: 1 } },
+    { start: '2028-02-01', end: '2028-04-01', reasons: ['Computed tenth-house ruler period'], supportFactors: { dashaWeight: 4, jupiterTargetAverage: 2 } },
+  ], searchWindows: [{ start: '2026-10-15', end: '2026-10-28', label: 'Application and interview planning', reasons: ['Mercury transits the natal tenth house.'] }] });
+  const result = buildVedicMessages(chart, { message: 'When might I get a job?', prediction: supported });
+  const context = JSON.parse(result.messages.at(-1).content).prediction;
+  assert.equal(context.windows[0].support.label, 'Supported');
+  assert.equal(context.windows[1].support.label, 'Most supported');
+  assert.equal(context.searchWindows[0].support.kind, 'planning');
+  assert.equal(context.searchWindows[0].support.label, 'Planning suggestion');
+  assert.match(result.messages[0].content, /nearest calculated periods first/);
+  const reply = buildVedicLocalReply(chart, { message: 'When might I get a job?', prediction: supported }).reply;
+  assert.ok(reply.indexOf('2026-10-15') < reply.indexOf('2028-02-01'));
+  assert.match(reply, /Most supported: 2028-02-01 to 2028-04-01/);
+  assert.match(reply, /Keep applying now; a later window does not mean waiting/);
+});
+
+test('unsupported support metadata is omitted rather than treated as an outcome likelihood', () => {
+  const result = buildVedicMessages(chart, { message: 'Marriage age?', prediction: {
+    ...prediction, support: { kind: 'statistical', label: '99% probable', explanation: 'PRIVATE UNKNOWN' },
+    windows: [{ ...prediction.windows[0], support: { kind: 'relative', label: 'Very likely', probability: 99 } }],
+  } });
+  const context = JSON.parse(result.messages.at(-1).content).prediction;
+  assert.equal(context.support, undefined);
+  assert.equal(context.windows[0].support, undefined);
+  assert.deepEqual(context.windows[0].ageRange, prediction.windows[0].ageRange);
+  assert.doesNotMatch(JSON.stringify(context), /PRIVATE|99%|Very likely|probability/);
 });

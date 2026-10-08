@@ -22,6 +22,14 @@ Vimshottari follows Ketu 7, Venus 20, Sun 6, Moon 10, Mars 7, Rahu 18, Jupiter 1
 
 Current transits use the stated server as-of instant and natal whole-sign houses.
 
+## Birth Panchanga and reports
+
+The English report derives tithi from the Sun–Moon elongation in 12° divisions and karana in 6° half-divisions. It names the waxing or waning paksha. Yoga uses the sum of sidereal Sun and Moon longitudes divided into 27 equal parts. Values near a 0.05° boundary carry an additional warning. These are approximate classifications at the birth instant, not exact panchang event timings.
+
+Weekday uses the recorded local civil date, rather than the traditional sunrise-to-sunrise vara convention. Astronomy Engine calculates sunrise and sunset within that local civil day, allowing historical offsets and daylight-saving transitions. A location with no such event returns no clock time. Traditional lunar month/year names, exact tithi/yoga/karana ending times, and a full regional panchang are not calculated.
+
+The PDF recomputes the birth chart and every supported life topic. South Indian diagrams keep signs in fixed positions and place the computed grahas and ascendant in their actual D1/D9 signs. Period tables retain the true mahadasha start even when it precedes birth. The file includes the as-of instant, calculation methods, warnings and limitations, with no language-model generation or server-side report storage.
+
 ## Marriage windows
 
 The public endpoint searches ten calendar years ahead and returns up to three ranked adult windows:
@@ -42,7 +50,19 @@ This method does not assess D9 strength, yogas, afflictions, shadbala, or birth-
 
 Career timing looks three calendar years ahead. It combines the D1 tenth house and its ruler with qualifying Vimshottari periods involving that ruler, Mercury, or Saturn. Monthly midpoint Jupiter samples must occupy or traditionally aspect the natal tenth-house sign or its ruler's sign. Actual period boundaries are preserved, with ages below 18 excluded.
 
-Up to three windows are ranked by dasha links, Jupiter support, and earlier start. They describe conditional opportunity periods, not a probability or a job offer, promotion, salary, or hiring date. D10/Dashamsa and planetary strength are not calculated.
+Up to three qualifying windows are shown in date order, so a stronger later interval does not hide a nearer one. They describe conditional opportunity periods, not a probability or a job offer, promotion, salary, or hiring date. D10/Dashamsa and planetary strength are not calculated. A later window does not require waiting for it; employment can begin outside the highlighted periods.
+
+A separate six-month guide samples actual Mercury positions weekly. Mercury occupying the natal whole-sign sixth, tenth, or eleventh house supplies a limited application, interview-preparation, or networking planning signal. Contiguous samples are joined into up to three chronological windows while unsupported gaps stay separate. These do not replace the combined dasha/Jupiter criteria or calculate a hiring deadline.
+
+## Individual planning dates
+
+The career guide and English PDF include up to eight dates over the next 90 local civil dates, written as DD-MM-YYYY. Each uses approximate Lahiri Sun and Moon positions at noon in the saved birth time zone. Today is skipped when that noon sample has already passed. The user's current location is not known, so the time zone and sampling assumption stay visible.
+
+Tarabala counts inclusively from the natal nakshatra to the day's sampled nakshatra around the 27-star cycle. The nine-Tara cycle accepts Sampat (2), Kshema (4), Sadhana (6), Mitra (8), and Parama Mitra (9). Chandrabala requires Moon-relative signs 1, 3, 6, 7, 10, or 11. Both conditions must hold, with Rikta tithis 4, 9, and 14 in either paksha and Amavasya excluded. Wednesday and Thursday can add context but cannot create a qualifying date by themselves.
+
+Samples within 0.05° of a relevant sign, star, or tithi boundary are excluded. Uncertain natal Moon classifications return no dates until verified; empty calendars are kept empty. Career dates before age 18 are excluded. Each selected date retains its star, tithi, Tara relationship, Moon-relative sign, local/UTC sample instant, and reasons.
+
+These are traditional planning suggestions for applications, preparation, and interviews. A noon sample does not certify the whole day, predict an offer, or provide a complete muhurta. Exact transitions, local appointment ascendants, sunrise-based vara, Rahu Kalam, Yamaganda, Gulika, daily yoga/karana, Bhadra, eclipses, and regional rules are outside this selection. Actual opportunities and appointment availability remain the basis for action.
 
 ## Difficult periods and Saturn phases
 

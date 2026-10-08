@@ -7,6 +7,7 @@ export type AiYogiState = 'idle' | 'listening' | 'thinking' | 'speaking';
 type AvatarProps = {
   state: AiYogiState;
   audioLevel?: number;
+  pose?: 'seated' | 'holding-card';
 };
 
 function curvedLine(points: number[][], radius: number, material: THREE.Material) {
@@ -35,7 +36,7 @@ function disposeScene(scene: THREE.Scene) {
   materials.forEach((material) => material.dispose());
 }
 
-function makeYogi(scene: THREE.Scene) {
+function makeYogi(scene: THREE.Scene, holdingCard: boolean) {
   const figure = new THREE.Group();
   const upperBody = new THREE.Group();
   const head = new THREE.Group();
@@ -112,18 +113,32 @@ function makeYogi(scene: THREE.Scene) {
   for (const side of [-1, 1]) {
     const shoulder = oval(upperBody, robe, [side * 0.42, 0.04, -0.025], [0.23, 0.26, 0.21]);
     shoulder.rotation.z = side * 0.34;
-    const arm = oval(upperBody, robe, [side * 0.53, -0.29, 0.045], [0.18, 0.39, 0.19]);
-    arm.rotation.z = side * 0.25;
-    const forearm = oval(upperBody, skin, [side * 0.59, -0.63, 0.27], [0.16, 0.23, 0.14]);
-    forearm.rotation.x = -0.54;
-    forearm.rotation.z = side * 0.38;
-    const hand = oval(upperBody, skinLight, [side * 0.64, -0.76, 0.48], [0.155, 0.075, 0.135]);
-    hand.rotation.z = side * 0.15;
-    for (let finger = 0; finger < 4; finger += 1) {
-      const fingerMesh = oval(upperBody, skin, [side * (0.58 + finger * 0.041), -0.765 + finger * 0.003, 0.573], [0.024, 0.036, 0.073 - Math.abs(finger - 1.5) * 0.009]);
-      fingerMesh.rotation.y = side * 0.1;
+    if (holdingCard) {
+      const arm = oval(upperBody, robe, [side * 0.7, -0.2, 0.045], [0.18, 0.39, 0.19]);
+      arm.rotation.z = side * 0.95;
+      const forearm = oval(upperBody, skin, [side * 1.03, -0.43, 0.3], [0.105, 0.255, 0.11]);
+      forearm.rotation.z = side * 1.35;
+      forearm.rotation.x = -0.37;
+      const hand = oval(upperBody, skinLight, [side * 1.27, -0.51, 0.55], [0.12, 0.075, 0.11]);
+      hand.rotation.z = side * 0.08;
+      for (let finger = 0; finger < 4; finger += 1) {
+        oval(upperBody, skin, [side * (1.19 + finger * 0.045), -0.579 + finger * 0.003, 0.63], [0.027, 0.079 - Math.abs(finger - 1.5) * 0.008, 0.038]);
+      }
+      upperBody.add(curvedLine([[side * 1.18, -0.49, 0.6], [side * 1.14, -0.445, 0.65], [side * 1.13, -0.485, 0.675]], 0.025, skinLight));
+    } else {
+      const arm = oval(upperBody, robe, [side * 0.53, -0.29, 0.045], [0.18, 0.39, 0.19]);
+      arm.rotation.z = side * 0.25;
+      const forearm = oval(upperBody, skin, [side * 0.59, -0.63, 0.27], [0.16, 0.23, 0.14]);
+      forearm.rotation.x = -0.54;
+      forearm.rotation.z = side * 0.38;
+      const hand = oval(upperBody, skinLight, [side * 0.64, -0.76, 0.48], [0.155, 0.075, 0.135]);
+      hand.rotation.z = side * 0.15;
+      for (let finger = 0; finger < 4; finger += 1) {
+        const fingerMesh = oval(upperBody, skin, [side * (0.58 + finger * 0.041), -0.765 + finger * 0.003, 0.573], [0.024, 0.036, 0.073 - Math.abs(finger - 1.5) * 0.009]);
+        fingerMesh.rotation.y = side * 0.1;
+      }
+      upperBody.add(curvedLine([[side * 0.54, -0.74, 0.54], [side * 0.55, -0.69, 0.58], [side * 0.59, -0.715, 0.61]], 0.023, skinLight));
     }
-    upperBody.add(curvedLine([[side * 0.54, -0.74, 0.54], [side * 0.55, -0.69, 0.58], [side * 0.59, -0.715, 0.61]], 0.023, skinLight));
     for (let fold = 0; fold < 3; fold += 1) {
       figure.add(curvedLine([[side * 0.25, -0.78 - fold * 0.07, 0.49], [side * 0.51, -0.86 - fold * 0.055, 0.5], [side * 0.77, -0.98 - fold * 0.025, 0.42]], 0.012, robeShade));
     }
@@ -261,7 +276,7 @@ function makeYogi(scene: THREE.Scene) {
   return { figure, upperBody, head, jaw, eyes, mouth, lowerLip, halo, haloMaterial, listeningRing, particles };
 }
 
-function YogiFallback() {
+function YogiFallback({ holdingCard }: { holdingCard: boolean }) {
   return (
     <svg className="ai-yogi-avatar__fallback" viewBox="0 0 260 260" focusable="false">
       <defs>
@@ -276,10 +291,22 @@ function YogiFallback() {
       <path d="M126 174C90 172 62 183 49 207C44 220 71 229 117 225L130 210L150 225C190 227 216 218 208 206C193 184 174 174 145 174Z" fill="url(#yogi-fallback-robe)" />
       <path d="M103 125C84 131 87 159 80 191L107 207H154L179 192C169 173 171 134 155 126Z" fill="url(#yogi-fallback-robe)" />
       <path d="M101 127C109 122 117 126 122 139C134 166 147 168 165 187L150 202C126 176 109 171 103 146Z" fill="#efa654" />
-      <path d="M92 155L78 190L70 200" fill="none" stroke="#c98b5c" strokeWidth="15" strokeLinecap="round" />
-      <path d="M169 155L181 190L189 200" fill="none" stroke="#c98b5c" strokeWidth="15" strokeLinecap="round" />
-      <ellipse cx="75" cy="202" rx="16" ry="6" fill="#c9956c" />
-      <ellipse cx="186" cy="202" rx="16" ry="6" fill="#c9956c" />
+      {holdingCard ? (
+        <g>
+          <path d="M93 150Q79 169 23 181M167 150Q181 169 237 181" fill="none" stroke="#c98b5c" strokeWidth="15" strokeLinecap="round" />
+          <path d="M95 145L74 164M165 145L186 164" fill="none" stroke="#ce6a29" strokeWidth="21" strokeLinecap="round" />
+          <ellipse cx="17" cy="183" rx="12" ry="8" fill="#c9956c" />
+          <ellipse cx="243" cy="183" rx="12" ry="8" fill="#c9956c" />
+          <path d="M10 183V193M15 183V195M20 183V195M25 183V193M235 183V193M240 183V195M245 183V195M250 183V193" fill="none" stroke="#c9956c" strokeWidth="3.8" strokeLinecap="round" />
+        </g>
+      ) : (
+        <g>
+          <path d="M92 155L78 190L70 200" fill="none" stroke="#c98b5c" strokeWidth="15" strokeLinecap="round" />
+          <path d="M169 155L181 190L189 200" fill="none" stroke="#c98b5c" strokeWidth="15" strokeLinecap="round" />
+          <ellipse cx="75" cy="202" rx="16" ry="6" fill="#c9956c" />
+          <ellipse cx="186" cy="202" rx="16" ry="6" fill="#c9956c" />
+        </g>
+      )}
       <path d="M104 43C100 66 96 89 103 107H155C165 84 160 49 146 43Z" fill="#d6d0bb" />
       <ellipse cx="130" cy="37" rx="17" ry="11" fill="#e7dfc9" />
       <ellipse cx="130" cy="77" rx="32" ry="39" fill="url(#yogi-fallback-skin)" />
@@ -298,11 +325,12 @@ function YogiFallback() {
   );
 }
 
-export default function AiYogiAvatar({ state, audioLevel = 0 }: AvatarProps) {
+export default function AiYogiAvatar({ state, audioLevel = 0, pose = 'seated' }: AvatarProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef({ state, audioLevel });
   const renderRef = useRef<(() => void) | null>(null);
+  const contextReleaseRef = useRef<number | null>(null);
   const [fallback, setFallback] = useState(false);
   inputRef.current = { state, audioLevel: Math.max(0, Math.min(1, Number.isFinite(audioLevel) ? audioLevel : 0)) };
 
@@ -314,6 +342,10 @@ export default function AiYogiAvatar({ state, audioLevel = 0 }: AvatarProps) {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return;
+    if (contextReleaseRef.current !== null) {
+      window.clearTimeout(contextReleaseRef.current);
+      contextReleaseRef.current = null;
+    }
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
@@ -321,6 +353,7 @@ export default function AiYogiAvatar({ state, audioLevel = 0 }: AvatarProps) {
       setFallback(true);
       return;
     }
+    setFallback(false);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -340,7 +373,7 @@ export default function AiYogiAvatar({ state, audioLevel = 0 }: AvatarProps) {
     const rimLight = new THREE.DirectionalLight('#eec17c', 2);
     rimLight.position.set(2, 3, -2);
     scene.add(rimLight);
-    const yogi = makeYogi(scene);
+    const yogi = makeYogi(scene, pose === 'holding-card');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
     let previousTime = -Infinity;
@@ -447,15 +480,19 @@ export default function AiYogiAvatar({ state, audioLevel = 0 }: AvatarProps) {
       canvas.removeEventListener('webglcontextrestored', onContextRestored);
       disposeScene(scene);
       renderer.dispose();
-      renderer.forceContextLoss();
+      // Let an immediate effect restart reuse the canvas before releasing its context.
+      contextReleaseRef.current = window.setTimeout(() => {
+        renderer.forceContextLoss();
+        contextReleaseRef.current = null;
+      }, 0);
     };
-  }, []);
+  }, [pose]);
 
   return (
-    <div ref={stageRef} className={`ai-yogi-avatar ai-yogi-avatar--${state}`} aria-hidden="true" data-renderer={fallback ? 'svg' : 'webgl'}>
+    <div ref={stageRef} className={`ai-yogi-avatar ai-yogi-avatar--${state} ai-yogi-avatar--${pose}`} aria-hidden="true" data-renderer={fallback ? 'svg' : 'webgl'}>
       <div className="ai-yogi-avatar__aura" />
       <canvas ref={canvasRef} className="ai-yogi-avatar__canvas" hidden={fallback} />
-      {fallback && <YogiFallback />}
+      {fallback && <YogiFallback holdingCard={pose === 'holding-card'} />}
     </div>
   );
 }

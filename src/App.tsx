@@ -3,12 +3,17 @@ import type { FormEvent, ReactNode } from 'react';
 import BirthplaceAutocomplete from './BirthplaceAutocomplete';
 import type { Birthplace } from './BirthplaceAutocomplete';
 import WelcomeIntro from './WelcomeIntro';
+import PersonalizationPrompt from './PersonalizationPrompt';
+import CareerTiming from './CareerTiming';
+import type { CareerPlanningDates, CareerSearchWindow } from './CareerTiming';
 import './App.css';
+import './AstralTheme.css';
 
 const CelestialScene = lazy(() => import('./CelestialScene'));
 const AiYogi = lazy(() => import('./AiYogi'));
+const About = lazy(() => import('./About'));
 
-type Page = 'today' | 'chart' | 'compatibility' | 'chat';
+type Page = 'today' | 'chart' | 'compatibility' | 'chat' | 'about';
 type Focus = 'general' | 'love' | 'career' | 'wellbeing';
 type Sign = { id: string; name: string; symbol: string; element: string; modality: string; dates: string; traits: string[]; description: string };
 type ProfileInput = { name: string; birthDate: string; birthTime?: string; birthPlace?: string; latitude?: number; longitude?: number; timeZone?: string };
@@ -17,7 +22,7 @@ type Reading = { date: string; focus: Focus; headline: string; overview: string;
 type Compatibility = { signA: Sign; signB: Sign; headline: string; summary: string; strengths: string[]; challenges: string[]; conversationStarter: string };
 type Reference = { id: string; title: string };
 type PredictionTopic = 'marriage' | 'career' | 'difficult-periods' | 'married-life' | 'general' | 'education' | 'finances' | 'family' | 'travel' | 'wellbeing';
-type Prediction = { topic: PredictionTopic; status: 'estimated' | 'no-window' | 'interpreted'; asOf: string; horizonEnd: string; seventhHouse?: { rashi: string; lord: string }; windows: { start: string; end: string; ageRange?: { min: number; max: number }; label?: string; reasons: string[]; themes?: string[] }[]; factors?: string[]; themes?: string[]; currentPhase?: { name: string; description: string }; method: string[]; limitations: string[] };
+type Prediction = { topic: PredictionTopic; status: 'estimated' | 'no-window' | 'interpreted'; asOf: string; horizonEnd: string; seventhHouse?: { rashi: string; lord: string }; windows: { start: string; end: string; ageRange?: { min: number; max: number }; label?: string; reasons: string[]; themes?: string[] }[]; searchWindows?: CareerSearchWindow[]; searchHorizonEnd?: string; planningDates?: CareerPlanningDates; factors?: string[]; themes?: string[]; currentPhase?: { name: string; description: string }; method: string[]; limitations: string[] };
 type Planet = { name: string; rashi: string; signIndex: number; longitude: number; degreeInSign: number; house: number; retrograde: boolean | null };
 type DashaPeriod = { lord: string; start: string; end: string };
 type VedicChart = { calculation: { system: string; ayanamsha: string; ayanamshaDegrees: number; ephemeris: string; houses: string; nodeType: string; warnings: string[] }; moon: { rashi: string; nakshatra: { name: string; lord: string; index: number }; pada: number; longitude: number }; ascendant: { rashi: string; longitude: number }; planets: Planet[]; dasha: { birthBalance: { lord: string; years: number }; currentMahadasha: DashaPeriod | null; currentAntardasha: DashaPeriod | null; periods: (DashaPeriod & { antardashas: DashaPeriod[] })[] }; transits: { asOf: string; planets: Planet[] }; navamsa?: { ascendant: { rashi: string; longitude: number }; planets: Planet[] }; limits: string[] };
@@ -53,6 +58,10 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 function formatAge(value: number): string { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
+function formatMonth(value: string): string {
+  const date = new Date(`${value}T12:00:00Z`);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-IN', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
 function degrees(value: number): string { return `${value.toFixed(2)}°`; }
 const focusOptions: { id: Focus; label: string; icon: string }[] = [
   { id: 'general', label: 'Your day', icon: 'sun' },
@@ -115,6 +124,8 @@ function Icon({ name, size = 20, className = '' }: { name: string; size?: number
     check: <path d="m5 12 4 4L19 6" />,
     moon: <path d="M20.8 13a9 9 0 0 1-9.8-9.8A9 9 0 1 0 20.8 13Z" />,
     lock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V6a4 4 0 0 1 8 0v4" /></>,
+    download: <><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4" /></>,
+    book: <><path d="M12 5C8 2 3 3 2 4v15c3-2 7-1 10 1 3-2 7-3 10-1V4c-1-1-6-2-10 1Z" /><path d="M12 5v15" /></>,
   };
   return <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.star}</svg>;
 }
@@ -160,6 +171,8 @@ function PredictionResults({ prediction, compact = false, insideDetails = false 
   const isInterpretation = prediction.status === 'interpreted';
   const introduction = isMarriage
     ? 'These conditional windows combine chart factors and period timing. They estimate possible ages; they do not promise a marriage event.'
+    : prediction.topic === 'career'
+      ? 'Start with the upcoming dates and months for applications, interviews, and preparation. Broader career periods add context while you keep pursuing real opportunities.'
     : prediction.topic === 'difficult-periods'
       ? 'These are traditional transit and dasha themes. A phase date does not determine when real-life difficulties or bad days will end.'
       : isInterpretation
@@ -168,12 +181,14 @@ function PredictionResults({ prediction, compact = false, insideDetails = false 
   return <div className={`marriage-results prediction-results ${compact ? 'compact' : ''}`}>
     <p className="forecast-context">{isInterpretation ? 'Calculated chart interpretation' : prediction.topic === 'difficult-periods' ? 'Traditional period themes' : 'Calculated timing estimate'} · {topic?.label || prediction.topic}</p>
     <p className="forecast-intro">{introduction}</p>
+    {prediction.topic === 'career' && <CareerTiming planningDates={prediction.planningDates} searchWindows={prediction.searchWindows} searchHorizonEnd={prediction.searchHorizonEnd} compact={compact} />}
     {prediction.currentPhase && <section className="current-phase-card"><span className="eyebrow">CURRENT TRADITIONAL PHASE</span><h3>{prediction.currentPhase.name}</h3><p>{prediction.currentPhase.description}</p></section>}
     {Boolean(prediction.themes?.length) && <section className="prediction-themes"><h3>What this brings into focus</h3><ul>{prediction.themes?.map((theme, index) => <li key={index}>{theme}</li>)}</ul></section>}
     {Boolean(prediction.factors?.length) && (insideDetails
       ? <section className="prediction-factors"><h3>Chart factors behind these themes</h3><ul>{prediction.factors?.map((factor, index) => <li key={index}>{factor}</li>)}</ul></section>
       : <details className="prediction-factors"><summary>Chart factors behind these themes</summary><ul>{prediction.factors?.map((factor, index) => <li key={index}>{factor}</li>)}</ul></details>)}
-    {prediction.windows.length ? <div className="marriage-windows">{prediction.windows.map((window, index) => <section className={`marriage-window ${window.ageRange ? '' : 'theme-window'}`} key={`${window.start}-${index}`}><div className="window-number">{String(index + 1).padStart(2, '0')}</div><div><span className="eyebrow">{window.ageRange ? 'ESTIMATED AGE WINDOW' : prediction.topic === 'difficult-periods' ? 'TRADITIONAL PHASE DATES' : isInterpretation ? 'PERIOD THEMES' : 'CONDITIONAL TIMING WINDOW'}</span>{window.ageRange ? <h3>{formatAge(window.ageRange.min)}{window.ageRange.min !== window.ageRange.max && <>–{formatAge(window.ageRange.max)}</>} <span>years</span></h3> : <h3>{window.label || `Period ${index + 1}`}</h3>}<p className="window-dates">{formatDate(window.start)} – {formatDate(window.end)}</p>{Boolean(window.themes?.length) && <ul className="window-themes">{window.themes?.map((theme, themeIndex) => <li key={themeIndex}>{theme}</li>)}</ul>}{(!compact || insideDetails) && <ul className="window-reasons">{window.reasons.map((reason, reasonIndex) => <li key={reasonIndex}>{reason}</li>)}</ul>}</div></section>)}</div> : prediction.status === 'no-window' ? <div className="no-window"><h3>No qualifying window in this horizon.</h3><p>The current rules did not identify a timing window through {formatDate(prediction.horizonEnd)}. {isMarriage ? 'This is not a prediction that marriage will not happen.' : 'This does not rule out real-life opportunities or change.'}</p></div> : null}
+    {prediction.topic === 'career' && prediction.windows.length > 0 && <h3 className="career-period-heading">Broader career periods, in date order</h3>}
+    {prediction.windows.length ? <div className="marriage-windows">{prediction.windows.map((window, index) => <section className={`marriage-window ${isMarriage && window.ageRange ? '' : 'theme-window'}`} key={`${window.start}-${index}`}><div className="window-number">{String(index + 1).padStart(2, '0')}</div><div><span className="eyebrow">{isMarriage && window.ageRange ? 'ESTIMATED AGE WINDOW' : prediction.topic === 'career' ? 'BROADER CAREER PERIOD' : prediction.topic === 'difficult-periods' ? 'TRADITIONAL PHASE DATES' : isInterpretation ? 'PERIOD THEMES' : 'CONDITIONAL TIMING WINDOW'}</span>{isMarriage && window.ageRange ? <h3>{formatAge(window.ageRange.min)}{window.ageRange.min !== window.ageRange.max && <>–{formatAge(window.ageRange.max)}</>} <span>years</span></h3> : <h3>{prediction.topic === 'career' ? `${formatMonth(window.start)} – ${formatMonth(window.end)}` : window.label || `Period ${index + 1}`}</h3>}<p className="window-dates">{formatDate(window.start)} – {formatDate(window.end)}</p>{Boolean(window.themes?.length) && <ul className="window-themes">{window.themes?.map((theme, themeIndex) => <li key={themeIndex}>{theme}</li>)}</ul>}{(!compact || insideDetails) && <ul className="window-reasons">{window.reasons.map((reason, reasonIndex) => <li key={reasonIndex}>{reason}</li>)}</ul>}</div></section>)}</div> : prediction.status === 'no-window' ? <div className="no-window"><h3>{prediction.topic === 'career' ? 'No broader career window found.' : 'No qualifying window in this horizon.'}</h3><p>The combined rules did not identify a timing window through {formatDate(prediction.horizonEnd)}. {isMarriage ? 'This is not a prediction that marriage will not happen.' : prediction.topic === 'career' ? 'Keep applying and following actual openings; these periods do not set an employment deadline.' : 'This does not rule out real-life opportunities or change.'}</p></div> : null}
     {(!compact || insideDetails) && (insideDetails
       ? <section className="method-details"><h3>Method and interpretation limits</h3><p>{prediction.seventhHouse && <>Seventh house: {prediction.seventhHouse.rashi} · lord: {prediction.seventhHouse.lord}. </>}Calculated as of {formatDate(prediction.asOf)}.</p><ul>{prediction.method.map((item, index) => <li key={`method-${index}`}>{item}</li>)}{prediction.limitations.map((item, index) => <li key={`limit-${index}`}>{item}</li>)}</ul></section>
       : <details className="method-details"><summary>Method and interpretation limits</summary><p>{prediction.seventhHouse && <>Seventh house: {prediction.seventhHouse.rashi} · lord: {prediction.seventhHouse.lord}. </>}Calculated as of {formatDate(prediction.asOf)}.</p><ul>{prediction.method.map((item, index) => <li key={`method-${index}`}>{item}</li>)}{prediction.limitations.map((item, index) => <li key={`limit-${index}`}>{item}</li>)}</ul></details>)}
@@ -187,6 +202,11 @@ export default function App() {
   });
   const welcomeExitedRef = useRef(false);
   const [initialProfile] = useState(() => savedProfile());
+  const [showPersonalization, setShowPersonalization] = useState(() => {
+    if (showWelcome || hasBirthDetails(initialProfile)) return false;
+    try { return sessionStorage.getItem('astral-personalization') !== 'seen'; }
+    catch { return true; }
+  });
   const profileInputRef = useRef<ProfileInput>(initialProfile || sampleProfile);
   const [page, setPage] = useState<Page>('today');
   const [config, setConfig] = useState<Config | null>(null);
@@ -218,6 +238,10 @@ export default function App() {
   const [chartLoading, setChartLoading] = useState(false);
   const [chartError, setChartError] = useState('');
   const [chartRetry, setChartRetry] = useState(0);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState('');
+  const reportRequestRef = useRef<AbortController | null>(null);
+  const reportIdRef = useRef(0);
   const [predictionTopic, setPredictionTopic] = useState<PredictionTopic>('marriage');
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(false);
@@ -254,16 +278,37 @@ export default function App() {
   function enterAstral() {
     try { sessionStorage.setItem('astral-welcome', 'seen'); } catch { /* Entry still works if browser storage is unavailable. */ }
     welcomeExitedRef.current = true;
+    if (!isPersonalProfile || !hasBirthDetails(profile || profileInputRef.current)) {
+      let alreadySeen = false;
+      try { alreadySeen = sessionStorage.getItem('astral-personalization') === 'seen'; } catch { /* The invitation still works without browser storage. */ }
+      if (!alreadySeen) setShowPersonalization(true);
+    }
     setShowWelcome(false);
   }
 
+  function dismissPersonalization() {
+    try { sessionStorage.setItem('astral-personalization', 'seen'); } catch { /* Keep the choice for this visit even if storage is blocked. */ }
+    welcomeExitedRef.current = true;
+    setShowPersonalization(false);
+  }
+
+  function personalizeAstrology() {
+    dismissPersonalization();
+    openProfileEditor();
+    setIncludeBirthDetails(true);
+    if (!isPersonalProfile) {
+      setNameInput('');
+      setDateInput('');
+    }
+  }
+
   useEffect(() => {
-    if (showWelcome || !welcomeExitedRef.current) return;
+    if (showWelcome || showPersonalization || editorOpen || !welcomeExitedRef.current) return;
     let frame = 0;
     let attempts = 0;
     const restoreFocus = () => {
       const active = document.activeElement;
-      if (active && active !== document.body && active !== document.documentElement) {
+      if (active instanceof HTMLElement && active !== document.body && active !== document.documentElement && active.getClientRects().length && !active.closest('dialog:not([open])')) {
         welcomeExitedRef.current = false;
         return;
       }
@@ -280,7 +325,7 @@ export default function App() {
     };
     frame = requestAnimationFrame(restoreFocus);
     return () => cancelAnimationFrame(frame);
-  }, [showWelcome]);
+  }, [showWelcome, showPersonalization, editorOpen]);
 
   useEffect(() => {
     let active = true;
@@ -335,6 +380,19 @@ export default function App() {
   }, [profile, chartRetry]);
 
   useEffect(() => {
+    ++reportIdRef.current;
+    reportRequestRef.current?.abort();
+    reportRequestRef.current = null;
+    setReportLoading(false);
+    setReportError('');
+    return () => {
+      ++reportIdRef.current;
+      reportRequestRef.current?.abort();
+      reportRequestRef.current = null;
+    };
+  }, [profile]);
+
+  useEffect(() => {
     let active = true;
     setPrediction(null);
     setPredictionError('');
@@ -346,7 +404,10 @@ export default function App() {
   }, [profile, predictionRetry, predictionTopic]);
 
   useEffect(() => {
-    if (editorOpen && !dialogRef.current?.open) dialogRef.current?.showModal();
+    if (editorOpen && !dialogRef.current?.open) {
+      dialogRef.current?.showModal();
+      document.getElementById('profile-name')?.focus({ preventScroll: true });
+    }
     if (!editorOpen && dialogRef.current?.open) dialogRef.current?.close();
   }, [editorOpen]);
 
@@ -436,6 +497,49 @@ export default function App() {
     api<Profile>('/api/profile', sampleProfile).then(data => { setProfile(data); setSignA(data.sign.id); }).catch(error => setProfileError(error.message));
   }
 
+  async function downloadReport() {
+    if (!profile || !isPersonalProfile || !hasBirthDetails(profile) || reportRequestRef.current) return;
+    const requestId = ++reportIdRef.current;
+    const controller = new AbortController();
+    reportRequestRef.current = controller;
+    setReportLoading(true);
+    setReportError('');
+    const timeout = window.setTimeout(() => controller.abort(), 60_000);
+    try {
+      const response = await fetch('/api/report', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: profilePayload(profile) }), signal: controller.signal,
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Your report couldn’t be created. Please try again.');
+      }
+      if (response.headers.get('content-type')?.split(';')[0] !== 'application/pdf') throw new Error('An unexpected report was returned. Please try again.');
+      const blob = await response.blob();
+      if (!blob.size || blob.size > 16 * 1024 * 1024 || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('The PDF couldn’t be downloaded. Please try again.');
+      if (requestId !== reportIdRef.current || controller.signal.aborted) return;
+      const disposition = response.headers.get('content-disposition') || '';
+      const rawName = /filename="([^"]+)"/i.exec(disposition)?.[1] || 'astral-vedic-report.pdf';
+      const filename = rawName.replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, '-').slice(0, 160);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+      document.body.append(link);
+      try { link.click(); } finally {
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (cause) {
+      if (requestId !== reportIdRef.current) return;
+      setReportError(controller.signal.aborted ? 'Your report took too long to create. Please try again.' : cause instanceof Error ? cause.message : 'Your report couldn’t be downloaded. Please try again.');
+    } finally {
+      window.clearTimeout(timeout);
+      if (reportRequestRef.current === controller) reportRequestRef.current = null;
+      if (requestId === reportIdRef.current) setReportLoading(false);
+    }
+  }
+
   async function findCompatibility(event?: FormEvent) {
     event?.preventDefault();
     const requestId = ++compatibilityRequestRef.current;
@@ -513,11 +617,12 @@ export default function App() {
   const signOptions = signs.length ? signs.map(sign => ({ id: sign.id, name: sign.name, symbol: sign.symbol })) : allSigns.map(([id, name, symbol]) => ({ id, name, symbol }));
   const signALabel = signOptions.find(sign => sign.id === signA);
   const signBLabel = signOptions.find(sign => sign.id === signB);
-  const navigation: { page: Page; label: string; icon: string }[] = [{ page: 'today', label: 'Today', icon: 'sun' }, { page: 'chart', label: 'Birth chart', icon: 'compass' }, { page: 'compatibility', label: 'Compatibility', icon: 'heart' }, { page: 'chat', label: 'Ask Astral', icon: 'star' }];
+  const navigation: { page: Page; label: string; icon: string }[] = [{ page: 'today', label: 'Today', icon: 'sun' }, { page: 'chart', label: 'Birth chart', icon: 'compass' }, { page: 'compatibility', label: 'Compatibility', icon: 'heart' }, { page: 'chat', label: 'Ask Astral', icon: 'star' }, { page: 'about', label: 'About', icon: 'book' }];
 
   return <div className={`app-shell${showWelcome ? ' is-welcoming' : ''}`}>
     <Suspense fallback={null}><CelestialScene intro={showWelcome} /></Suspense>
     {showWelcome && <WelcomeIntro onEnter={enterAstral} />}
+    {!showWelcome && showPersonalization && <PersonalizationPrompt onPersonalize={personalizeAstrology} onSkip={dismissPersonalization} />}
     <a className="skip-link" href="#main-content">Skip to content</a>
     <header className="site-header">
       <div className="header-inner">
@@ -568,7 +673,9 @@ export default function App() {
       </>}
 
       {page === 'chart' && <>
-        <section className="page-heading"><div><p className="eyebrow"><span className="tiny-star">✦</span> YOUR CALCULATED VEDIC BLUEPRINT</p><h1>A fuller view of <em>you.</em></h1><p className="heading-description">Sidereal placements, life periods, and thoughtfully estimated timing.</p></div><button className="chart-edit-button" onClick={openProfileEditor}><Icon name="edit" size={16} />Edit birth details</button></section>
+        <section className="page-heading"><div><p className="eyebrow"><span className="tiny-star">✦</span> YOUR CALCULATED VEDIC BLUEPRINT</p><h1>A fuller view of <em>you.</em></h1><p className="heading-description">Sidereal placements, life periods, and thoughtfully estimated timing.</p></div><div className="chart-heading-actions"><button className="chart-edit-button" onClick={openProfileEditor}><Icon name="edit" size={16} />Edit birth details</button><button type="button" className="chart-download-button" onClick={() => void downloadReport()} disabled={!isPersonalProfile || !fullBirthProfile || !chart || reportLoading} aria-busy={reportLoading}><Icon name="download" size={17} />{reportLoading ? 'Creating your PDF…' : 'Download English PDF'}</button></div></section>
+        {!isPersonalProfile || !fullBirthProfile ? <p className="report-profile-note">Your English report includes your birth record, charts, periods and life topics. <button type="button" className="text-button" onClick={() => { openProfileEditor(); setIncludeBirthDetails(true); if (!isPersonalProfile) { setNameInput(''); setDateInput(''); } }}>Add your birth details</button> to download it.</p> : <p className="report-profile-note">Download your birth record, charts, periods and life topics as an English PDF.</p>}
+        {reportError && <ErrorNotice message={reportError} onRetry={() => void downloadReport()} />}
         {!isPersonalProfile && fullBirthProfile && <div className="demo-chart-notice"><Icon name="compass" size={19} /><div><strong>You’re exploring Alex’s demo chart.</strong><span>21 May 1995 · 10:30 · Hyderabad, India · Asia/Kolkata. Replace these example details to calculate your own chart.</span></div><button className="text-button" onClick={openProfileEditor}>Make it yours <Icon name="arrow" size={15} /></button></div>}
         {!fullBirthProfile ? <section className="chart-onboarding"><SunWheel symbol="✧" compact /><span className="eyebrow">YOUR RECORDED DETAILS MATTER</span><h2>More than a sun sign.</h2><p>A Vedic birth chart needs your recorded birth time and place as well as your date of birth. We’ll use them to calculate your Moon rashi, nakshatra, ascendant, and Vimshottari periods.</p><button className="primary-button" onClick={() => { openProfileEditor(); setIncludeBirthDetails(true); }}>Add birth time &amp; place <Icon name="arrow" size={17} /></button><p className="chart-onboarding-note">Don’t know your birth time? Keep your basic profile and explore daily reflections. We won’t guess it.</p></section> : <div className="birth-chart-content">
           <div className="birth-record-bar"><span><Icon name="lock" size={14} />{isSaved ? 'Birth profile saved only in this browser' : isPersonalProfile ? 'Birth profile for this visit' : 'Example birth record · not saved'}</span><span>{profile?.birthPlace} · {profile?.birthTime} · {profile?.timeZone}</span></div>
@@ -603,9 +710,10 @@ export default function App() {
           </section>
         </div>
       </>}
+      {page === 'about' && <Suspense fallback={<div className="reading-loading" role="status">Opening the story of Astral…</div>}><About onExplore={() => { setPage('chart'); window.scrollTo({ top: 0 }); }} /></Suspense>}
     </main>
 
-    {!showWelcome && <Suspense fallback={null}><AiYogi profile={isPersonalProfile ? profile : null} aiEnabled={Boolean(config?.aiEnabled)} onEditProfile={openProfileEditor} /></Suspense>}
+    {!showWelcome && !showPersonalization && <Suspense fallback={null}><AiYogi profile={isPersonalProfile ? profile : null} aiEnabled={Boolean(config?.aiEnabled)} onEditProfile={openProfileEditor} /></Suspense>}
     <footer className="site-footer"><div><span className="footer-brand"><Icon name="star" size={15} /> astral.</span><p>A little perspective. A little possibility.</p></div><p>Approximate Western sun signs &amp; calculated Vedic charts. For entertainment &amp; self-reflection.</p><span className="footer-copyright">© {today.getFullYear()} Sree Charan Reddy Kailasam</span></footer>
 
     <dialog ref={dialogRef} className="profile-dialog" onCancel={() => setEditorOpen(false)} onClose={() => setEditorOpen(false)} aria-labelledby="profile-title"><div className="dialog-heading"><Icon name="star" size={27} /><button type="button" className="icon-button" onClick={() => setEditorOpen(false)} aria-label="Close profile editor"><Icon name="close" size={22} /></button></div><span className="eyebrow">A LITTLE MORE YOU</span><h2 id="profile-title">Make it <em>personal.</em></h2><p className="dialog-description">Start with your date of birth, or add your recorded time and place for a calculated Vedic chart.</p><form onSubmit={saveProfile}><div className="form-field"><label htmlFor="profile-name">What should we call you?</label><input id="profile-name" value={nameInput} onChange={event => setNameInput(event.target.value)} placeholder="Your first name" maxLength={60} required autoComplete="given-name" autoFocus /></div><div className="form-field"><label htmlFor="profile-date">Date of birth</label><input id="profile-date" type="date" value={dateInput} onChange={event => setDateInput(event.target.value)} required max={todayISO} min="1900-01-01" /></div><div className="birth-details-opt-in"><label className="checkbox-label"><input type="checkbox" checked={includeBirthDetails} onChange={event => setIncludeBirthDetails(event.target.checked)} /><span>Add birth time and place for a Vedic chart</span></label><p>Use your recorded birth time. If it’s unknown, leave this off — we won’t guess.</p></div>{includeBirthDetails && <fieldset className="birth-details-fields"><legend>Vedic birth details</legend><div className="form-field"><label htmlFor="profile-time">Recorded birth time (local)</label><input id="profile-time" type="time" step={60} value={timeInput} onChange={event => setTimeInput(event.target.value)} required /><small>Enter the time recorded at your birth place, not today’s time zone.</small></div>{!manualLocation && <BirthplaceAutocomplete value={placeInput} selected={placeSelected} onQueryChange={changeBirthPlace} onSelect={chooseBirthPlace} />}

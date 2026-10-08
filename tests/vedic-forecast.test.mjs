@@ -8,8 +8,8 @@ const profile = {
   birthPlace: 'Hyderabad, India', latitude: 17.385, longitude: 78.4867, timeZone: 'Asia/Kolkata',
 };
 const status400 = (error) => error.status === 400;
-const careerSupport = () => [{ name: 'Jupiter', signIndex: 3 }];
-const careerUnsupported = () => [{ name: 'Jupiter', signIndex: 0 }];
+const careerSupport = () => [{ name: 'Jupiter', signIndex: 3 }, { name: 'Mercury', signIndex: 0 }];
+const careerUnsupported = () => [{ name: 'Jupiter', signIndex: 0 }, { name: 'Mercury', signIndex: 0 }];
 
 function period(start, end, lord = 'Venus') {
   return { start, end, lord };
@@ -62,7 +62,8 @@ test('career windows retain exact dasha cutoffs and future starts, with complete
   assert.deepEqual(result.windows.map(({ start, end, ageRange }) => ({ start, end, ageRange })), [
     { start: '2026-05-10', end: '2026-07-12', ageRange: { min: 25, max: 26 } },
   ]);
-  assert.ok(samples.every((date) => date >= asOf && date < new Date('2026-07-13')));
+  assert.ok(samples.every((date) => date >= asOf && date < new Date(result.searchHorizonEnd)));
+  assert.ok(samples.some((date) => date >= asOf && date < new Date('2026-07-13')));
   assert.match(result.windows[0].reasons.join(' '), /Saturn, the tenth-house ruler/);
   assert.match(result.limitations.join(' '), /cannot promise a job offer/);
 });
@@ -73,7 +74,7 @@ test('career uses the actual tenth house/ruler for a Cancer ascendant and suppor
   chart.planets.push({ name: 'Mars', signIndex: 5 });
   const result = estimateCareerWindows(profile, chart, {
     asOf: new Date('2026-01-01'), horizonYears: 1,
-    transitProvider: () => [{ name: 'Jupiter', signIndex: 5 }],
+    transitProvider: () => [{ name: 'Jupiter', signIndex: 5 }, { name: 'Mercury', signIndex: 3 }],
   });
   assert.equal(result.status, 'estimated');
   assert.match(result.factors.join(' '), /tenth house: Mesha \(Aries\); traditional ruler: Mars/);
@@ -90,7 +91,8 @@ test('career does not fabricate dates when no dasha lord qualifies or Jupiter of
   });
   assert.equal(result.status, 'no-window');
   assert.deepEqual(result.windows, []);
-  assert.equal(calls, 0);
+  assert.ok(calls > 0, 'the independent search-planning scan still examines real transit samples');
+  assert.deepEqual(result.searchWindows, []);
   const noJupiter = estimateCareerWindows(profile, chartWith([period('2026-01-01', '2027-01-01')]), {
     asOf: new Date('2026-01-01'), horizonYears: 1, transitProvider: careerUnsupported,
   });
@@ -129,7 +131,7 @@ test('career bounds are adult-only and February 29 births turn eighteen on March
   assert.deepEqual(noAdultDate.windows, []);
 });
 
-test('career ranks at most three supported periods by the declared rule without likelihood scores', () => {
+test('career returns the first three supported periods even when a later period has stronger dasha support', () => {
   const chart = chartWith([
     period('2026-01-01', '2026-02-01', 'Mercury'),
     period('2026-02-01', '2026-03-01', 'Saturn'),
@@ -140,12 +142,64 @@ test('career ranks at most three supported periods by the declared rule without 
   const result = estimateCareerWindows(profile, chart, {
     asOf: new Date('2026-01-01'), horizonYears: 1, transitProvider: careerSupport,
   });
-  assert.deepEqual(result.windows.map((window) => window.start), ['2026-02-01', '2026-01-01', '2026-03-01']);
+  assert.deepEqual(result.windows.map((window) => window.start), ['2026-01-01', '2026-02-01', '2026-03-01']);
+  assert.match(result.method.join(' '), /stronger later period does not hide a nearer supported interval/);
   for (const window of result.windows) {
     assert.equal('probability' in window, false);
     assert.equal('confidence' in window, false);
     assert.equal('score' in window, false);
   }
+});
+
+test('career provides nearer search-planning intervals independently of the stricter dasha and Jupiter gate', () => {
+  const chart = chartWith([period('2026-01-01', '2027-01-01', 'Moon')], { lord: 'Venus' });
+  const start = Date.parse('2026-01-01');
+  const result = estimateCareerWindows(profile, chart, {
+    asOf: new Date(start), horizonYears: 1,
+    transitProvider: date => {
+      const week = Math.floor((date.getTime() - start) / (7 * 86_400_000));
+      return [{ name: 'Mercury', signIndex: ({ 0: 5, 2: 9, 3: 10, 24: 10, 25: 10 })[week] ?? 0 }];
+    },
+  });
+  assert.equal(result.status, 'no-window');
+  assert.deepEqual(result.windows, []);
+  assert.equal('planningDates' in result, false, 'do not infer a birth star from an incomplete synthetic Moon placement');
+  assert.equal(result.searchHorizonEnd, '2026-07-01');
+  assert.deepEqual(result.searchWindows.map(({ start, end }) => ({ start, end })), [
+    { start: '2026-01-01', end: '2026-01-07' },
+    { start: '2026-01-15', end: '2026-01-28' },
+    { start: '2026-06-18', end: '2026-06-30' },
+  ]);
+  assert.match(result.searchWindows[0].reasons.join(' '), /natal 6th whole-sign house.*applications/);
+  assert.match(result.searchWindows[1].reasons.join(' '), /10th whole-sign house.*interviews.*11th whole-sign house.*networking/);
+  assert.deepEqual(result.searchWindows[2].ageRange, { min: 26, max: 26 });
+  assert.match(result.searchWindows[0].label, /planning window/);
+  assert.match(result.limitations.join(' '), /not calculated offer dates.*job within six months/);
+  assert.match(result.themes.join(' '), /Continue searching now/);
+});
+
+test('career search planning uses the natal ascendant and clips six calendar months at month end', () => {
+  const chart = chartWith([period('2026-01-01', '2027-01-01', 'Moon')], { lord: 'Venus' });
+  chart.ascendant = { signIndex: 3, longitude: 105 };
+  chart.planets.push({ name: 'Mars', signIndex: 5 });
+  const samples = [];
+  const result = estimateCareerWindows(profile, chart, {
+    asOf: new Date('2026-08-31T12:30:00Z'), horizonYears: 1,
+    transitProvider: (date, sign) => {
+      samples.push(date);
+      assert.equal(sign, 3);
+      return [{ name: 'Mercury', signIndex: 0 }];
+    },
+  });
+  assert.equal(result.searchHorizonEnd, '2027-02-28');
+  assert.deepEqual(result.searchWindows.map(({ start, end }) => ({ start, end })), [
+    { start: '2026-08-31', end: '2027-02-28' },
+  ]);
+  assert.match(result.searchWindows[0].reasons.join(' '), /natal 10th whole-sign house/);
+  assert.ok(samples.every(date => date >= new Date('2026-08-31T12:30:00Z') && date < new Date('2027-02-28T12:30:00Z')));
+  assert.throws(() => estimateCareerWindows(profile, chart, {
+    asOf: new Date('2026-08-31'), horizonYears: 1, transitProvider: () => [{ name: 'Mercury', signIndex: 12 }],
+  }), /valid Mercury transit sign/);
 });
 
 test('career clips long periods to the calendar horizon and handles a leap-day assessment', () => {
@@ -291,5 +345,17 @@ test('production career and Saturn interpretation use actual ephemeris positions
     }
   }
   assert.ok(career.windows.every((window) => window.ageRange.min >= 18));
+  assert.ok(career.searchWindows.length, 'the independent weekly scan finds nearer planning support for this chart');
+  assert.equal(career.searchHorizonEnd, '2027-04-07');
+  assert.ok(career.searchWindows.every(window => window.start >= career.asOf && window.end <= career.searchHorizonEnd));
+  assert.ok(career.searchWindows[0].start < career.windows[0].start, 'nearer planning support must not be hidden by the stricter later window');
+  assert.match(career.searchWindows[0].reasons.join(' '), /Mercury.*natal 6th whole-sign house/);
+  assert.ok(career.planningDates.dates.length, 'the daily calendar is included for a complete computed natal Moon');
+  assert.equal(career.planningDates.sampledAt, asOf.toISOString());
+  assert.equal(career.planningDates.horizon.timeZone, profile.timeZone);
+  assert.equal(career.planningDates.horizon.days, 90);
+  assert.ok(career.planningDates.dates.every(day => day.date >= career.planningDates.horizon.start && day.date <= career.planningDates.horizon.end));
+  assert.ok(career.planningDates.dates.every(day => day.sampleLocal.includes('T12:00') && day.timeZone === profile.timeZone));
+  assert.match(career.planningDates.limits.join(' '), /noon sample.*one instant.*not a full muhurta/);
   assert.ok(phases.currentPhase.name);
 });

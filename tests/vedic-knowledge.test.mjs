@@ -202,6 +202,121 @@ test('all forecast topics preserve only their computed fields and answer the sup
   }
 });
 
+test('career answers lead with near-term search planning and nearest combined periods without a fixed employment date', () => {
+  const forecast = {
+    ...forecastFor('career'), searchHorizonEnd: '2027-04-08',
+    searchWindows: [{ start: '2026-10-15', end: '2026-10-28', label: 'Application and interview planning', reasons: ['Mercury transits the natal tenth house.'], identity: 'PRIVATE SEARCH DETAIL' }],
+    windows: [
+      { start: '2028-02-01', end: '2028-05-31', reasons: ['Later strong computed period'] },
+      { start: '2026-11-01', end: '2026-11-30', reasons: ['Nearest computed period link'] },
+    ],
+  };
+  const question = 'I am actively looking for work. When can I get a job?';
+  const result = buildVedicMessages(chart, { message: question, prediction: forecast });
+  const context = JSON.parse(result.messages.at(-1).content);
+  assert.equal(context.prediction.searchHorizonEnd, forecast.searchHorizonEnd);
+  assert.deepEqual(context.prediction.searchWindows, [{ start: '2026-10-15', end: '2026-10-28', label: 'Application and interview planning', reasons: ['Mercury transits the natal tenth house.'] }]);
+  assert.equal(JSON.stringify(context).includes('PRIVATE SEARCH'), false);
+  const system = result.messages[0].content;
+  assert.match(system, /nearest calculated periods first/);
+  assert.match(system, /limited Mercury-transit heuristic, not a calculated offer date/);
+  assert.match(system, /rather than leading with a stronger later period/);
+  assert.match(system, /advice to wait for that date/);
+  assert.match(system, /without inventing favorable months/);
+  const reply = buildVedicLocalReply(chart, { message: question, prediction: forecast }).reply;
+  assert.match(reply, /2026-10-15 to 2026-10-28/);
+  assert.match(reply, /does not predict an offer/);
+  assert.ok(reply.indexOf('2026-10-15') < reply.indexOf('2026-11-01'));
+  assert.ok(reply.indexOf('2026-11-01') < reply.indexOf('2028-02-01'));
+  assert.match(reply, /Keep applying now; a later window does not mean waiting/);
+  assert.doesNotMatch(reply, /PRIVATE|will get a job|not before/);
+  assert.ok(wordCount(reply) <= 120);
+});
+
+test('short-term search planning remains distinct when no combined career window qualifies', () => {
+  const forecast = {
+    ...forecastFor('career', 'no-window'), searchHorizonEnd: '2027-04-08',
+    searchWindows: [{ start: '2026-11-05', end: '2026-11-18', label: 'Networking and application planning', reasons: ['Computed Mercury transit in house eleven.'] }],
+  };
+  const reply = buildVedicLocalReply(chart, { message: 'Will I get a job soon?', prediction: forecast }).reply;
+  assert.match(reply, /2026-11-05 to 2026-11-18/);
+  assert.match(reply, /limited Mercury-transit signal does not predict an offer/);
+  assert.match(reply, /No qualifying combined dasha\/Jupiter career window/);
+  assert.match(reply, /does not rule out getting a job/);
+  assert.doesNotMatch(reply, /2027-02-01|job offer in November|will be hired/);
+  const missing = buildVedicLocalReply(chart, { message: 'Give me a date this month', prediction: { ...forecast, searchWindows: [] } }).reply;
+  assert.doesNotMatch(missing, /2026-11-05|planning period is/);
+  assert.match(missing, /Keep applying now/);
+});
+
+test('before and after career questions use actual nearest period boundaries without inventing a hiring deadline', () => {
+  const forecast = { ...forecastFor('career'), windows: [
+    { start: '2028-02-01', end: '2028-05-31', reasons: ['Later computed career period.'] },
+    { start: '2026-10-20', end: '2026-11-10', reasons: ['Earlier computed career period.'] },
+  ] };
+  const question = 'Could I get a job before December, or only after 2028?';
+  const reply = buildVedicLocalReply(chart, { message: question, prediction: forecast }).reply;
+  assert.match(reply, /nearest conditional career support runs from 2026-10-20 until 2026-11-10/);
+  assert.ok(reply.indexOf('2026-10-20') < reply.indexOf('2028-02-01'));
+  assert.match(reply, /not a promised job date/);
+  assert.match(reply, /a later window does not mean waiting/);
+  const current = buildVedicLocalReply(chart, { message: 'When does current support end?', prediction: { ...forecast, windows: [{ start: '2026-10-08', end: '2026-11-15', reasons: ['Current computed career period.'] }] } }).reply;
+  assert.match(current, /current computed career period continues until 2026-11-15/);
+  const prompt = buildVedicMessages(chart, { message: question, prediction: forecast }).messages[0].content;
+  assert.match(prompt, /For a before\/after\/by-date question, use its actual boundaries plainly/);
+  assert.match(prompt, /not a promise of an offer before the end/);
+  assert.match(prompt, /Individual planningDates also concern preparation and applications, not hiring deadlines/);
+});
+
+test('career search fields cannot leak into another topic or carry unknown private fields', () => {
+  const search = { start: '2026-11-05', end: '2026-11-18', label: 'Planning', reasons: ['Computed reason'], birthDate: 'PRIVATE SEARCH BIRTH', arbitrary: 'PRIVATE SEARCH OBJECT' };
+  const result = buildVedicMessages(chart, { message: 'Education', prediction: { ...forecastFor('education'), searchWindows: [search], searchHorizonEnd: '2099-01-01' } });
+  const context = JSON.parse(result.messages.at(-1).content);
+  assert.equal('searchWindows' in context.prediction, false);
+  assert.equal('searchHorizonEnd' in context.prediction, false);
+  assert.doesNotMatch(result.messages[0].content, /limited Mercury-transit heuristic/);
+});
+
+test('individual career dates preserve calculated star and lunar factors while excluding the birth time zone from AI context', () => {
+  const day = { date: '2026-11-24', displayDate: '24-11-2026', weekday: 'Tuesday', timeZone: 'Asia/Kolkata',
+    nakshatra: { index: 7, name: 'Punarvasu', private: 'PRIVATE STAR' },
+    tithi: { index: 15, name: 'Purnima', paksha: 'Shukla', dayInPaksha: 15 },
+    tara: { index: 6, name: 'Sadhana', countFromBirthStar: 15 }, moonRelativeHouse: 7,
+    reasons: ['Sadhana Tara qualifies under the stated traditional rule.', 'Moon is in the seventh sign from the natal Moon.'], warnings: [],
+    sampleLocal: '2026-11-24T12:00+05:30[Asia/Kolkata]', sampleUtc: '2026-11-24T06:30:00.000Z', name: 'PRIVATE PLANNING NAME',
+  };
+  const planningDates = { status: 'available', sampledAt: '2026-10-08T12:00:00.000Z',
+    horizon: { start: '2026-10-08', end: '2027-01-05', endExclusive: '2027-01-06', days: 90, timeZone: 'Asia/Kolkata', birthDate: 'PRIVATE HORIZON' },
+    natal: { nakshatra: { index: 23, name: 'Dhanishta' }, moonSignIndex: 10, name: 'PRIVATE NATAL' },
+    dates: [day], evaluatedDays: 89, qualifyingDays: 20, excludedBoundaryDays: 1,
+    method: ['Use the supplied birth-star and Moon-sign counts.'], limits: ['Dates use the saved birth time zone (Asia/Kolkata) because the current location is unknown.'], birthTime: 'PRIVATE PLANNING TIME',
+  };
+  const forecast = { ...forecastFor('career'), planningDates };
+  const result = buildVedicMessages(chart, { message: 'Give me individual good dates for job interviews', prediction: forecast });
+  const context = JSON.parse(result.messages.at(-1).content);
+  assert.equal(context.prediction.planningDates.status, 'available');
+  assert.equal(context.prediction.planningDates.dates[0].displayDate, '24-11-2026');
+  assert.deepEqual(context.prediction.planningDates.dates[0].tara, day.tara);
+  assert.deepEqual(context.prediction.planningDates.dates[0].reasons, day.reasons);
+  assert.equal(context.prediction.planningDates.dates[0].sampleUtc, day.sampleUtc);
+  assert.match(context.prediction.planningDates.sampling, /12:00 local noon/);
+  assert.equal('timeZone' in context.prediction.planningDates.horizon, false);
+  assert.equal('timeZone' in context.prediction.planningDates.dates[0], false);
+  assert.equal('sampleLocal' in context.prediction.planningDates.dates[0], false);
+  assert.equal(JSON.stringify(context).includes('Asia/Kolkata'), false);
+  assert.equal(JSON.stringify(context).includes('PRIVATE'), false);
+  const reply = buildVedicLocalReply(chart, { message: 'Give me individual good dates for interviews', prediction: forecast }).reply;
+  assert.match(reply, /24-11-2026 \(Tuesday\)/);
+  assert.match(reply, /Tarabala/);
+  assert.match(reply, /Chandrabala/);
+  assert.match(reply, /12:00 samples in Asia\/Kolkata/);
+  assert.match(reply, /not exact muhurta times or promised offer dates/);
+  const empty = buildVedicLocalReply(chart, { message: 'Give me individual good dates', prediction: { ...forecast, planningDates: { ...planningDates, status: 'uncertain-natal', dates: [] } } }).reply;
+  assert.doesNotMatch(empty, /24-11-2026/);
+  assert.match(empty, /withholds individual planning dates/);
+  assert.match(empty, /cannot fill the calendar with invented good days/);
+});
+
 test('interpreted and no-window forecasts preserve themes without invented dates or ages', () => {
   for (const status of ['interpreted', 'no-window']) {
     const result = buildVedicLocalReply(chart, { message: 'Tell me about education', prediction: forecastFor('education', status) });

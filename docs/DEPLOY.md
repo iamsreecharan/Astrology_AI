@@ -6,7 +6,7 @@
 2. Connect GitHub if asked, then select `iamsreecharan/Astrology_AI`.
 3. Render reads `render.yaml`. Check that `astral-astrology-ai` uses the **Free** plan, then deploy.
 4. Wait for the build and health check, then open the service URL Render provides. The cloud-onboarding screen does not provide a live preview.
-5. Open **Birth chart** to inspect the labeled example, then save your own recorded birth details. Type the birthplace and select the correct country and region to fill its coordinates and time zone. Check the chart and periods, choose a topic, and try marriage, job, or married-life questions in **Ask Astral**.
+5. Enter the planetary welcome. AI Yogi offers **Personalize my astrology** to open your birth details, with **Skip for now** if you want to explore first. Type the birthplace and select the correct country and region to fill its coordinates and time zone. Open **Birth chart**, check the chart and periods, choose a topic, and try marriage, job, or married-life questions in **Ask Astral**. The example stays labeled until you supply your own profile.
 
 For a direct readiness check, `/api/health` should return `{"status":"ok","service":"astral"}`.
 
@@ -15,6 +15,8 @@ The Blueprint installs locked dependencies including build tools, builds the Rea
 Birthplace search reads the committed GeoNames SQLite snapshot with Node 24's built-in SQLite support. It needs no separate database, Python runtime, geocoding account, or external search request. Queries read the file on disk rather than loading the full catalogue into JavaScript memory, which keeps place search practical on the free service's 512 MB plan. See the [coverage and license](../server/data/README.md). The 3D welcome appears once per tab session, with immediate entry and skip controls. The planetary background runs in the browser, becomes static for reduced-motion preferences, pauses while the page is hidden, and has a fallback when WebGL is unavailable.
 
 For an existing service, deploy the latest `main` commit from the dashboard, or check that automatic deployment picked it up.
+
+After saving a complete birth profile, **Birth chart → Download English PDF** creates the English birth record, Panchanga basics, chart diagrams, period tables, transits and life-topic assessments. Career planning includes individual DD-MM-YYYY dates with birth-star/Moon/tithi factors and near-term application/interview periods. PDF generation uses bundled fonts and the calculation engine, so it needs no AI key, external document service, or writable server storage. The downloaded file includes personal birth details.
 
 ## Enable Vedic AI
 
@@ -26,7 +28,7 @@ The existing model receives calculated chart facts, selected original notes, the
 
 **AI Yogi** uses that same key for general or chart-based conversation, transcription, and natural speech. The audio defaults are `gpt-4o-mini-transcribe` and `gpt-4o-mini-tts`; optional overrides are `ASTROLOGY_AI_TRANSCRIBE_MODEL` and `ASTROLOGY_AI_TTS_MODEL`. Confirm that your provider account has access to all three models. General questions work without a profile; personal readings use the saved birth profile, never the demonstration chart.
 
-Open the deployed HTTPS URL, choose **AI Yogi → Start conversation**, and allow microphone access. It listens, transcribes, answers in your language, speaks the visible answer, and listens again. **End conversation** or Close stops the session. The microphone pauses while answers are generated and played. Hiding the page stops the session until you resume. Audio is forwarded to OpenAI without being saved by the app. If the browser blocks autoplay, use **Play voice**; typed questions remain available when microphone or audio access fails.
+Open the deployed HTTPS URL, choose **AI Yogi → Start conversation**, and allow microphone access. Starting the conversation enables sound for later replies. It listens, transcribes, automatically speaks the visible answer, and listens again. Auto uses English by default and matches a clearly recognized question in another language; a selected language takes precedence. **End conversation** or Close stops the session. The microphone pauses while answers are generated and played. Hiding the page stops the session until you resume. Audio is forwarded to OpenAI without being saved by the app. Typed questions and written answers remain available when microphone or audio access fails.
 
 If the setup notice remains after adding a key, confirm that it was added to the Render service serving the page and that the service restarted. `/api/config` should report `"aiEnabled":true`; this checks whether the running server has a key, not whether the provider accepts it. If a live request fails, check model access and billing, or switch to **Local**. Codex cloud secrets and local `.env` files are separate from Render settings and do not transfer automatically. Keep keys out of Git, browser code, and chat; troubleshoot names and status without sharing values.
 

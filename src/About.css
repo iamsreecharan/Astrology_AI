@@ -1,0 +1,27 @@
+.about-page { padding: 32px 0 12px; }
+.about-opening { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(240px, .8fr); align-items: center; gap: 45px; padding: 22px 0 45px; }
+.about-opening .eyebrow { color: #a18450; }
+.about-opening h1 { color: #243b35; font-family: var(--serif); font-size: clamp(36px, 4.5vw, 59px); font-weight: 400; line-height: 1.15; letter-spacing: -1.4px; margin: 22px 0; }
+.about-opening h1 em { color: #9c7b44; font-weight: 400; }
+.about-lead { color: #727d6c; font-size: 14px; line-height: 1.95; max-width: 610px; }
+.about-sky { width: 100%; max-width: 380px; color: #aa8d57; justify-self: center; }
+.about-sky-orbit { transform-origin: 220px 220px; animation: about-orbit 55s linear infinite; }
+@keyframes about-orbit { to { transform: rotate(360deg); } }
+.about-chapters { max-width: 940px; margin: 0 auto; border-top: 1px solid #e1dac8; }
+.about-chapter { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 30px; padding: 38px 0; border-bottom: 1px solid #e1dac8; }
+.about-chapter-number { color: #b3996d; font-family: var(--serif); font-size: 35px; line-height: 1.2; }
+.about-chapter .eyebrow { color: #a18758; font-size: 9px; }
+.about-chapter h2 { font-family: var(--serif); color: #41573f; font-size: 31px; font-weight: 400; line-height: 1.25; margin: 14px 0 18px; }
+.about-chapter p:not(.eyebrow) { color: #747e6c; font-size: 13px; line-height: 1.95; margin: 13px 0 0; max-width: 760px; }
+.about-invitation { text-align: center; padding: 48px 15px 35px; }
+.about-invitation p { color: #455b42; font-family: var(--serif); font-size: 33px; line-height: 1.35; margin: 0 0 25px; }
+.about-invitation em { color: #a08450; }
+.about-invitation .primary-button { margin: auto; }
+.about-sources { max-width: 940px; margin: 0 auto; color: #7b826d; font-size: 11px; line-height: 1.9; padding: 18px 0; border-top: 1px solid #e1dac8; }
+.about-sources summary { color: #887348; cursor: pointer; }
+.about-sources a { color: #6d785e; text-underline-offset: 3px; }
+.about-sources ul { padding-left: 20px; }
+.about-sources li { margin: 8px 0; }
+@media (max-width: 760px) { .about-page { padding-top: 18px; } .about-opening { grid-template-columns: 1fr; gap: 10px; padding: 13px 0 25px; } .about-opening h1 { font-size: 42px; } .about-sky { max-width: 245px; } .about-chapter { gap: 15px; grid-template-columns: 40px minmax(0, 1fr); padding: 28px 0; } .about-chapter-number { font-size: 28px; } .about-chapter h2 { font-size: 27px; } .about-lead, .about-chapter p:not(.eyebrow) { font-size: 12px; } .about-invitation p { font-size: 29px; } }
+@media (max-width: 460px) { .about-opening h1 { font-size: 35px; letter-spacing: -.7px; } .about-chapter { grid-template-columns: 1fr; gap: 9px; } .about-chapter h2 { font-size: 26px; } .about-chapter .eyebrow { font-size: 8px; letter-spacing: 1px; } .about-invitation { padding: 36px 0 24px; } .about-invitation p { font-size: 27px; } }
+@media (prefers-reduced-motion: reduce) { .about-sky-orbit { animation: none; } }

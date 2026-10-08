@@ -10,6 +10,7 @@ import { analyzeLifeArea } from './vedic-life.mjs';
 import { buildVedicMessages, buildVedicLocalReply, buildYogiLocalReply } from './vedic-knowledge.mjs';
 import { searchPlaces, PLACE_ATTRIBUTION } from './places.mjs';
 import { installVoiceRoutes, languageOf } from './voice.mjs';
+import { buildHoroscopeReport } from './horoscope-report.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const FOCUSES = new Set(['general', 'love', 'career', 'wellbeing']);
@@ -44,11 +45,11 @@ function historyOf(value = []) {
   });
 }
 const marriageTerms = /\b(marr(?:y\w*|ied|iage)|wedding|sha?adi|vivah\w*|pelli|kalyanam)\b|शादी|विवाह|పెళ్లి|వివాహం|திருமணம்|கல்யாணம்|ಮದುವೆ/iu;
-const timingTerms = /\b(ages?|when|years?|months?|windows?|earlier|later|timing|reasons?|predict\w*|future|estimate\w*|will|soon|change\w*|ease|end)\b|उम्र|कब|ఎప్పుడు|எப்போது/iu;
+const timingTerms = /\b(ages?|when|years?|months?|dates?|windows?|earlier|later|timing|reasons?|predict\w*|future|estimate\w*|will|soon|change\w*|ease|end)\b|उम्र|कब|ఎప్పుడు|எப்போது/iu;
 function explicitTopic(message) {
   if (/\b(married life|marriage life|marital|after marriage|love life|relationship\w*|spouse|husband|wife|partner|divorce|separat\w*)\b|वैवाहिक|दांपत्य|దాంపత్య/iu.test(message)) return 'married-life';
   if (marriageTerms.test(message)) return timingTerms.test(message) ? 'marriage' : 'married-life';
-  if (/\b(jobs?|career|work|profession\w*|promotion|business|employment|hired|hiring|job offer)\b|नौकरी|करियर|ఉద్యోగం|வேலை|ಕೆಲಸ/iu.test(message)) return 'career';
+  if (/\b(jobs?|career|work|profession\w*|promotion|business|employment|hired|hiring|job offer|interview\w*|job[ -]?search|jobseek\w*)\b|\bapplications?\s+for\s+(?:a\s+)?(?:role|position|employment)\b|नौकरी|करियर|ఇంటర్వ్యూ|ఉద్యోగం|வேலை|ಕೆಲಸ/iu.test(message)) return 'career';
   if (/\b(bad days?|difficult\w*|hardship\w*|struggl\w*|pressure|setbacks?|obstacles?|unlucky|sade[ -]?sati|ashtama)\b|बुरे दिन|कठिन|కష్టాలు|கஷ்டம்/iu.test(message)) return 'difficult-periods';
   if (/\b(education|stud\w*|exams?|learning|college|university|school)\b|पढ़ाई|शिक्षा|చదువు/iu.test(message)) return 'education';
   if (/\b(financ\w*|money|wealth|income|invest\w*|stock\w*|crypto\w*|lottery|gambl\w*)\b|पैसा|धन|డబ్బు/iu.test(message)) return 'finances';
@@ -172,6 +173,12 @@ export async function createApp({
     const chart = calculateVedicChart(profile, { asOf: today() });
     if (!chart) throw badRequest(missingBirthDetails);
     res.json(chart);
+  });
+  app.post('/api/report', async (req, res) => {
+    const { model, pdf } = await buildHoroscopeReport(req.body?.profile, { asOf: today() });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${model.filename}"`);
+    res.send(pdf);
   });
   app.post('/api/prediction', (req, res) => {
     if (!PREDICTION_TOPICS.has(req.body?.topic)) throw badRequest('Choose a supported life topic: marriage, married-life, career, difficult-periods, general, education, finances, family, travel, or wellbeing.');

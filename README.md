@@ -6,7 +6,7 @@ A Vedic birth-chart and astrology chat app built with React, TypeScript, Vite, a
 
 ![Astral with an example birth profile](docs/preview.png)
 
-The screenshot uses an example profile. New tab sessions open with [“Welcome to a world moved by the cosmos.”](docs/welcome.png) Choose Enter Astral, Skip intro, or Escape to continue immediately; the welcome does not repeat when you reload that tab. Render creates a live URL after deployment; the cloud-onboarding screen does not provide an app preview.
+The visual theme combines an indigo planetarium with ivory reading panels, copper and jade accents, and orbital linework across desktop and mobile. The screenshot uses an example profile. New tab sessions open with [“Welcome to a world moved by the cosmos.”](docs/welcome.png), with visibly revolving and rotating planets. Choose Enter Astral, Skip intro, or Escape to continue immediately. AI Yogi then holds a small invitation to personalize your astrology: choose **Personalize my astrology** to enter your recorded birth details, or **Skip for now** to explore. Both the intro and a dismissed invitation stay out of the way on reload in that tab. Visitors with a complete saved birth profile go straight into the app after the intro. Render creates a live URL after deployment; the cloud-onboarding screen does not provide an app preview.
 
 ## What it does
 
@@ -19,7 +19,10 @@ The screenshot uses an example profile. New tab sessions open with [“Welcome t
 - Suggests birthplaces worldwide as you type, with coordinates and time zones filled from the selected place.
 - Gives short, question-first chat replies, with supporting calculations available in **Calculation details**.
 - Adds **AI Yogi**, an animated 3D guide with multilingual text and natural speech. Start a conversation once and it listens again after each answer until you end or close it.
-- Opens with a 3D planetary welcome and keeps animated Saturn, Earth, Jupiter, Mars, the Moon, and twinkling stars behind the app. Reduced-motion preferences get a static scene; WebGL has a visual fallback.
+- Downloads an English horoscope PDF with your birth record, Panchanga basics, D1 and D9 chart diagrams, planetary positions, Vimshottari periods, transits, and all ten life-topic assessments.
+- Shows nearer career periods first, with six-month application/interview planning windows and individual star-based dates in DD-MM-YYYY.
+- Tells the story behind Indian sky-watching, timekeeping, and chart interpretation in **About**, with historical references and calculation notes.
+- Opens with a moving 3D planetary welcome and a skippable profile invitation held by AI Yogi, then keeps animated Saturn, Earth, Jupiter, Mars, the Moon, and twinkling stars behind the app. Reduced-motion preferences get a static scene; WebGL has an animated SVG fallback.
 - Keeps Western calendar sun-sign daily reflections and compatibility available for date-only profiles.
 - Saves profiles in the current browser, with controls to edit or remove them.
 
@@ -55,6 +58,16 @@ Birth dates are supported from 1900 through today, and transits through 2100. Pa
 
 Open **Birth chart** for placements, periods, and the topic selector. In **Ask Astral**, try “When might I get married?”, “When could I find a job?”, “How does my chart describe married life?”, or “When does my current Saturn phase change?” Chat puts the answer first; expand **Calculation details** to inspect the chart factors, periods, and references. Results from the labeled example profile are demonstrations.
 
+## Download your horoscope
+
+Save your recorded birth date, time and place, then open **Birth chart → Download English PDF**. The report follows a traditional birth-record layout in English, with South Indian fixed-sign D1 and D9 diagrams, birth star and pada, rashi and lagna, all planetary positions, birth dasha balance, the full computed mahadasha/antardasha sequence, and current transits. Marriage, career, married life, challenging periods, education, finances, family, travel, wellbeing, and life direction each include their calculated factors and dates where available.
+
+Birth Panchanga basics include civil weekday, tithi and paksha, yoga, karana, and sunrise/sunset at the selected place. They use the app's approximate astronomical model. The report distinguishes civil weekday from traditional sunrise-based vara; lunar calendar years, months, and exact tithi/yoga ending times are not supplied. Polar days without a sunrise or sunset are identified rather than assigned a clock time.
+
+The career section also lists individual dates to consider for applications and interviews, in **DD-MM-YYYY**, with nakshatra, Tarabala, Chandrabala, tithi and reasons. These use a noon sample in your saved birth time zone; check your current location before scheduling. They are limited traditional planning suggestions, rather than exact appointment times or promised job dates. Nearer periods come first, and a stronger later career period is not a reason to delay applying now.
+
+PDF generation works without an AI key and recalculates the chart on the server. The report contains your entered birth details and stays in your own downloads; the app does not save a copy or send it to a language model. A date-only or demonstration profile cannot download a personal report. Bundled licensed fonts keep English text searchable and support common Indian and world scripts in entered names. Calculation methods and warnings are included, and timing windows remain conditional traditional estimates.
+
 ## Enable Vedic AI
 
 The calculated local guide works without credentials and does not use a language model. Live chat uses an existing OpenAI model grounded in the computed chart and selected original Jyotish notes. It is not custom-trained on all Vedic astrology.
@@ -73,9 +86,9 @@ The key stays on the server. Node's `--use-env-proxy` supports the cloud platfor
 
 ## Talk with AI Yogi
 
-Open **AI Yogi** and choose **Start conversation**. Allow microphone access, speak, and pause briefly when you finish. The guide transcribes your question, shows its answer, speaks those same words, and listens for your next question. The microphone is off while it thinks and speaks. **Send now** submits the current recording; **Stop voice** moves on to listening. **End conversation**, Close, Escape, or hiding the page stops the microphone and playback. Returning to the page requires an explicit resume.
+Open **AI Yogi** and choose **Start conversation**. This enables sound for the session. Allow microphone access, speak, and pause briefly when you finish. The guide transcribes your question, shows its answer, automatically speaks those same words, and listens for your next question. The microphone is off while it thinks and speaks. **Send now** submits the current recording; **Stop voice** moves on to listening. **End conversation**, Close, Escape, or hiding the page stops the microphone and playback. Returning to the page requires an explicit resume.
 
-**Auto** matches your current question's language; the language picker provides Indian and other world languages. You can always type, edit a transcription that exceeds the question limit, or replay an answer. Voice quality and transcription accuracy vary by language, pronunciation, and background noise. The animated guide is fictional and its voice is AI-generated.
+**Auto** starts in English and matches another language when your current question clearly uses it, including recognized speech. Short or unclear greetings and Vedic names alone use English. Choosing a language explicitly takes precedence over detection; the picker provides Indian and other world languages. You can always type, edit a transcription that exceeds the question limit, or replay an answer. Voice quality and transcription accuracy vary by language, pronunciation, and background noise. The animated guide is fictional and its voice is AI-generated.
 
 Voice uses the same server key as chat. Defaults are `gpt-4o-mini-transcribe` for recognition and `gpt-4o-mini-tts` with the `sage` voice for speech. `ASTROLOGY_AI_TRANSCRIBE_MODEL` and `ASTROLOGY_AI_TTS_MODEL` are optional server overrides. Provider access and billing must cover these models as well as chat. A personal-chart Yogi turn first classifies the question, then generates an answer grounded in the corresponding calculated topic; a general turn without a profile needs only the answer request.
 
@@ -101,6 +114,7 @@ Provider tests use controlled responses to check grounding, multilingual convers
 | `POST /api/profile` | Validate a profile |
 | `POST /api/chart` | Calculate a chart from `{ profile }` |
 | `POST /api/prediction` | Calculate a topic assessment from `{ profile, topic }` |
+| `POST /api/report` | Download a calculated English PDF from `{ profile }`; complete birth details required |
 | `POST /api/chat` | Answer `{ profile, message, focus, mode, history, assistant, language }` |
 | `POST /api/transcribe?language=auto` | Transcribe a raw audio body, up to 8 MiB |
 | `POST /api/voice` | Speak `{ text, language }` as MP3, up to 2,000 characters per request |
@@ -142,7 +156,7 @@ This workspace needs the writable npm cache. Install and startup instructions ar
 
 ## Privacy and hosting
 
-The application server does not persist profiles or conversations. Saved profiles stay in browser local storage until removed or cleared. Chat stays in page state and disappears on reload. Birth inputs reach the server for calculation; AI mode also sends derived context and conversation to OpenAI.
+The application server does not persist profiles, conversations, audio, or generated reports. Saved profiles stay in browser local storage until removed or cleared. Chat stays in page state and disappears on reload. Birth inputs reach the server for calculation; AI mode also sends derived context and conversation to OpenAI. PDF reports are generated in memory and contain the personal birth record you choose to download.
 
 The hosted service has no account authentication or per-user AI quotas. POST requests have an in-memory limit of sixty per minute per connection IP; a hosting proxy may make visitors share that budget. Add suitable access and usage controls before enabling a paid key for a wider audience.
 

@@ -267,7 +267,7 @@ function CelestialFallback() {
       <clipPath id="celestial-earth-clip"><circle cx="128" cy="239" r="38" /></clipPath>
       <clipPath id="celestial-jupiter-clip"><circle cx="534" cy="459" r="49" /></clipPath>
     </defs>
-    <g stroke="#ac946f" strokeOpacity=".3">
+    <g className="celestial-fallback-zodiac" stroke="#ac946f" strokeOpacity=".3">
       <circle cx="320" cy="320" r="265" />
       <circle cx="320" cy="320" r="237" strokeDasharray="2 9" />
       <circle cx="320" cy="320" r="215" />
@@ -276,20 +276,26 @@ function CelestialFallback() {
         return <path key={symbol} d={ZODIAC_PATHS[index]} transform={`translate(${320 + Math.cos(angle) * 252 - 10} ${320 + Math.sin(angle) * 252 - 10}) scale(.15625)`} stroke="#9d7b48" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />;
       })}
     </g>
-    <ellipse cx="320" cy="320" rx="200" ry="64" transform="rotate(-24 320 320)" stroke="url(#celestial-ring)" strokeWidth="28" />
-    <circle cx="320" cy="320" r="96" fill="url(#celestial-planet)" />
-    <path d="M 153 383 C 211 393 400 350 493 247" stroke="url(#celestial-ring)" strokeWidth="25" />
-    <circle cx="531" cy="177" r="14" fill="#d4ccba" />
-    <circle cx="128" cy="239" r="38" fill="url(#celestial-earth)" />
-    <g clipPath="url(#celestial-earth-clip)" fill="#a7b292" opacity=".85">
-      <path d="M100 207L111 215L106 226L116 238L110 250L99 243L92 227ZM124 242L137 245L139 261L131 275L126 264ZM136 205L155 213L149 228L132 229L130 222ZM148 240L160 246L157 259L145 253Z" />
+    <g className="celestial-fallback-saturn">
+      <ellipse cx="320" cy="320" rx="200" ry="64" transform="rotate(-24 320 320)" stroke="url(#celestial-ring)" strokeWidth="28" />
+      <circle cx="320" cy="320" r="96" fill="url(#celestial-planet)" />
+      <path d="M 153 383 C 211 393 400 350 493 247" stroke="url(#celestial-ring)" strokeWidth="25" />
     </g>
-    <circle cx="534" cy="459" r="49" fill="url(#celestial-jupiter)" />
-    <g clipPath="url(#celestial-jupiter-clip)" stroke="#ad8059" strokeWidth="7" strokeOpacity=".35">
-      <path d="M480 433Q533 441 586 432M480 452Q533 461 586 451M480 473Q533 483 586 472" />
-      <ellipse cx="553" cy="474" rx="13" ry="5" fill="#b87d56" stroke="none" />
+    <g className="celestial-fallback-moon"><circle cx="531" cy="177" r="14" fill="#d4ccba" /></g>
+    <g className="celestial-fallback-earth">
+      <circle cx="128" cy="239" r="38" fill="url(#celestial-earth)" />
+      <g clipPath="url(#celestial-earth-clip)" fill="#a7b292" opacity=".85">
+        <path d="M100 207L111 215L106 226L116 238L110 250L99 243L92 227ZM124 242L137 245L139 261L131 275L126 264ZM136 205L155 213L149 228L132 229L130 222ZM148 240L160 246L157 259L145 253Z" />
+      </g>
     </g>
-    <circle cx="207" cy="447" r="24" fill="url(#celestial-mars)" />
+    <g className="celestial-fallback-jupiter">
+      <circle cx="534" cy="459" r="49" fill="url(#celestial-jupiter)" />
+      <g clipPath="url(#celestial-jupiter-clip)" stroke="#ad8059" strokeWidth="7" strokeOpacity=".35">
+        <path d="M480 433Q533 441 586 432M480 452Q533 461 586 451M480 473Q533 483 586 472" />
+        <ellipse cx="553" cy="474" rx="13" ry="5" fill="#b87d56" stroke="none" />
+      </g>
+    </g>
+    <g className="celestial-fallback-mars"><circle cx="207" cy="447" r="24" fill="url(#celestial-mars)" /></g>
     <g fill="#b39865" opacity=".55">
       <path d="M77 318L80 330L92 333L80 336L77 348L74 336L62 333L74 330Z" />
       <path d="M430 83L432 92L441 94L432 96L430 105L428 96L419 94L428 92Z" />
@@ -301,6 +307,7 @@ function CelestialFallback() {
 export default function CelestialScene({ intro = false }: { intro?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const [pageHidden, setPageHidden] = useState(false);
   const introMode = useRef(intro);
   const refreshLayout = useRef<(() => void) | null>(null);
 
@@ -308,6 +315,13 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
     introMode.current = intro;
     refreshLayout.current?.();
   }, [intro]);
+
+  useEffect(() => {
+    const syncFallbackVisibility = () => setPageHidden(document.hidden);
+    syncFallbackVisibility();
+    document.addEventListener('visibilitychange', syncFallbackVisibility);
+    return () => document.removeEventListener('visibilitychange', syncFallbackVisibility);
+  }, []);
 
   useEffect(() => {
     const element = host.current;
@@ -484,25 +498,28 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
       lastTime = time;
       previousFrame = time;
       drift.lerp(pointer, 0.025);
-      planet.rotation.y = elapsed * 0.05;
-      planetarySystem.rotation.y = Math.sin(elapsed * 0.06) * 0.12 + drift.x;
-      planetarySystem.rotation.x = 0.27 + drift.y;
+      const welcoming = introMode.current;
+      planet.rotation.y = elapsed * (welcoming ? 0.22 : 0.05);
+      planetarySystem.rotation.y = Math.sin(elapsed * (welcoming ? 0.36 : 0.06)) * 0.12 + drift.x;
+      planetarySystem.rotation.x = 0.27 + (welcoming ? Math.sin(elapsed * 0.3) * 0.08 : 0) + drift.y;
+      planetarySystem.rotation.z = 0.38 + (welcoming ? Math.sin(elapsed * 0.28) * 0.06 : 0);
       neighboringPlanets.rotation.y = drift.x * 0.4;
-      earth.rotation.y = -1.55 + elapsed * 0.095;
-      earthClouds.rotation.y = elapsed * 0.025;
-      jupiter.rotation.y = -0.65 + elapsed * 0.058;
-      mars.rotation.y = 0.8 + elapsed * 0.078;
-      if (introMode.current) {
-        moveAlongOrbit(earth, earthHome, 0.042);
-        moveAlongOrbit(jupiter, jupiterHome, 0.026);
-        moveAlongOrbit(mars, marsHome, 0.055);
+      earth.rotation.y = -1.55 + elapsed * (welcoming ? 0.3 : 0.095);
+      earthClouds.rotation.y = elapsed * (welcoming ? 0.075 : 0.025);
+      jupiter.rotation.y = -0.65 + elapsed * (welcoming ? 0.18 : 0.058);
+      mars.rotation.y = 0.8 + elapsed * (welcoming ? 0.25 : 0.078);
+      if (welcoming) {
+        moveAlongOrbit(earth, earthHome, 0.16);
+        moveAlongOrbit(jupiter, jupiterHome, 0.12);
+        moveAlongOrbit(mars, marsHome, 0.21);
       } else {
         earth.position.set(earthHome.x + Math.cos(elapsed * 0.13) * 0.08, earthHome.y + Math.sin(elapsed * 0.15) * 0.1, earthHome.z);
         jupiter.position.set(jupiterHome.x + Math.sin(elapsed * 0.09) * 0.07, jupiterHome.y + Math.sin(elapsed * 0.12 + 2) * 0.07, jupiterHome.z);
         mars.position.set(marsHome.x + Math.sin(elapsed * 0.17) * 0.1, marsHome.y + Math.sin(elapsed * 0.14 + 1) * 0.07, marsHome.z);
       }
-      zodiacWheel.rotation.z = -0.14 + elapsed * 0.009;
-      moon.position.set(Math.cos(elapsed * 0.075 + 0.8) * 2.35, Math.sin(elapsed * 0.075 + 0.8) * 0.58, Math.sin(elapsed * 0.075 + 0.8) * 1.6);
+      zodiacWheel.rotation.z = -0.14 + elapsed * (welcoming ? 0.025 : 0.009);
+      const moonAngle = elapsed * (welcoming ? 0.38 : 0.075) + 0.8;
+      moon.position.set(Math.cos(moonAngle) * 2.35, Math.sin(moonAngle) * 0.58, Math.sin(moonAngle) * 1.6);
       sun.rotation.y = elapsed * 0.025;
       starMaterial.opacity = (introMode.current ? 0.75 : 0.39) + Math.sin(elapsed * 0.48) * 0.07;
       sparkleMaterials.forEach((material, index) => {
@@ -609,7 +626,7 @@ export default function CelestialScene({ intro = false }: { intro?: boolean }) {
     };
   }, []);
 
-  return <div ref={host} className={`celestial-scene${ready ? ' is-ready' : ''}${intro ? ' is-intro' : ''}`} aria-hidden="true">
+  return <div ref={host} className={`celestial-scene${ready ? ' is-ready' : ''}${intro ? ' is-intro' : ''}${pageHidden ? ' is-paused' : ''}`} aria-hidden="true">
     <div className="celestial-wash" />
     <CelestialFallback />
   </div>;

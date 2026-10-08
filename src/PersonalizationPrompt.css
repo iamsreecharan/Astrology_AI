@@ -1,0 +1,110 @@
+.personalization-prompt {
+  position: fixed;
+  inset: 0;
+  width: min(380px, calc(100vw - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: var(--ink);
+  background: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: #c9ac76 transparent;
+}
+
+.personalization-prompt::backdrop { background: #080e21b8; backdrop-filter: blur(4px); }
+
+.personalization-prompt-layout {
+  --portrait-size: min(310px, calc(100vw - 44px));
+  position: relative;
+  padding: 0 10px 10px;
+  isolation: isolate;
+}
+
+.personalization-prompt-portrait {
+  position: relative;
+  z-index: 2;
+  width: var(--portrait-size);
+  height: calc(var(--portrait-size) * .7);
+  margin-inline: auto;
+  pointer-events: none;
+}
+
+.personalization-prompt-portrait > .ai-yogi-avatar,
+.personalization-prompt-loading {
+  max-width: none;
+  width: 100%;
+  clip-path: polygon(0 0, 100% 0, 100% 76%, 80% 76%, 80% 70%, 20% 70%, 20% 76%, 0 76%);
+}
+.personalization-prompt-loading { aspect-ratio: 1; pointer-events: none; }
+.personalization-prompt-loading > svg { display: block; width: 100%; height: 100%; }
+
+.personalization-prompt-card {
+  position: relative;
+  z-index: 1;
+  padding: 28px 24px 20px;
+  border: 1px solid #e4cd9f;
+  border-radius: 17px;
+  background: linear-gradient(140deg, #fffdf7, #f6eee0);
+  box-shadow: 0 16px 55px #03091966;
+  text-align: center;
+  animation: personalization-card-arrive .35s ease-out both;
+}
+
+.personalization-prompt-eyebrow { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 0 10px; color: #85613b; font-size: 9px; font-weight: 600; line-height: 1.6; letter-spacing: .8px; text-transform: uppercase; }
+.personalization-prompt-eyebrow > span { font-size: 15px; }
+.personalization-prompt-card h2 { margin: 0; color: #203139; font-family: var(--serif); font-size: 31px; font-weight: 400; line-height: 1.13; letter-spacing: -.6px; }
+#personalization-prompt-description { margin: 13px auto 20px; max-width: 275px; color: #666b70; font-size: 13px; line-height: 1.65; }
+
+.personalization-prompt-primary {
+  display: flex;
+  width: 100%;
+  min-height: 47px;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px 15px;
+  border: 1px solid #1c323b;
+  border-radius: 7px;
+  color: #f8efdd;
+  background: #1c323b;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background .2s;
+}
+.personalization-prompt-primary > svg { width: 18px; height: 18px; flex: 0 0 auto; color: #dbc49c; }
+.personalization-prompt-primary:hover { background: #294651; }
+.personalization-prompt-skip { min-height: 44px; margin-top: 3px; padding: 11px 15px; border: 0; border-radius: 5px; color: #785838; background: transparent; font-size: 12px; }
+.personalization-prompt-skip:hover { background: #d4b9821c; }
+.personalization-prompt-note { margin: 1px 0 0; color: #797a7c; font-size: 10px; line-height: 1.6; }
+
+.personalization-prompt-close { position: absolute; top: 11px; right: 10px; z-index: 3; display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid #d8c39755; border-radius: 50%; color: #eadcc2; background: #0b172a66; }
+.personalization-prompt-close > svg { width: 19px; height: 19px; }
+.personalization-prompt-close:hover { background: #283748; }
+.personalization-prompt button:focus-visible { outline: 2px solid #ba8c4b; outline-offset: 3px; }
+.personalization-prompt-close:focus-visible { outline-color: #eadcc2; }
+
+@keyframes personalization-card-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 380px) {
+  .personalization-prompt-card { padding: 26px 20px 18px; }
+  .personalization-prompt-card h2 { font-size: 28px; }
+  .personalization-prompt-eyebrow { font-size: 8px; letter-spacing: .6px; }
+}
+
+@media (max-height: 520px) {
+  .personalization-prompt-layout { --portrait-size: min(255px, calc(100vw - 44px)); }
+  .personalization-prompt-card { padding-top: 24px; padding-bottom: 15px; }
+  #personalization-prompt-description { margin-bottom: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .personalization-prompt-card { animation: none; }
+  .personalization-prompt-primary { transition: none; }
+}

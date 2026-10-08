@@ -1,0 +1,501 @@
+/* An observatory at night, with the reading laid out like an open manuscript. */
+:root {
+  --astral-night: #151329;
+  --astral-night-raised: #211e37;
+  --astral-paper: #f6eddf;
+  --astral-paper-shade: #ede2d1;
+  --astral-ink: #302c42;
+  --astral-muted: #696071;
+  --astral-copper: #dda95b;
+  --astral-copper-ink: #8b5b32;
+  --astral-jade: #78d0b7;
+  --astral-jade-ink: #326b60;
+  --navy: #29263f;
+  --ink: #302c42;
+  --muted: #beb3ca;
+  --gold: #dda95b;
+  --gold-light: #eed2a2;
+  --cream: #f6eddf;
+  background: var(--astral-night);
+  color: #eee5d7;
+}
+
+body { background: var(--astral-night); color: #eee5d7; }
+::selection { background: #dda95b; color: #211c2e; }
+.app-shell { color: #eee5d7; }
+.app-shell::before {
+  content: '';
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 4% 14%, #82615014, transparent 36%), radial-gradient(ellipse at 96% 74%, #5ca7950c, transparent 35%);
+}
+.app-shell .celestial-wash {
+  background: radial-gradient(ellipse at 85% 17%, #8864401e 0, transparent 48%), radial-gradient(ellipse at 4% 83%, #567d8219 0, transparent 40%);
+}
+.app-shell .celestial-canvas { opacity: .5; }
+.app-shell .celestial-fallback { color: #c3a776; opacity: .27; }
+.app-shell .celestial-scene.is-intro { background: #151329; }
+.app-shell .celestial-scene.is-intro .celestial-canvas { opacity: 1; }
+.app-shell .celestial-scene.is-intro .celestial-wash { background: radial-gradient(ellipse at 82% 40%, #53637435, transparent 56%), radial-gradient(ellipse at 43% 0, #9a74451b, transparent 48%); }
+.app-shell .celestial-scene.is-intro .celestial-fallback { opacity: .9; }
+.app-shell :is(button, a, summary, input, select, textarea):focus-visible { outline: 2px solid var(--astral-copper); outline-offset: 4px; }
+.app-shell :is(input, select, textarea):focus-visible { outline-color: #986536; }
+.app-shell .skip-link { background: #ead1a6; color: #211d32; box-shadow: 0 8px 25px #0004; }
+
+/* The brass rail carries the navigation through every room. */
+.app-shell .site-header { background: #18152cf2; border-bottom: 1px solid #dda95b35; }
+.app-shell .header-inner { max-width: 1290px; }
+.app-shell .wordmark { color: #f8ecdc; }
+.app-shell .wordmark > svg, .app-shell .wordmark-period { color: #dda95b; }
+.app-shell .wordmark > span { letter-spacing: -1.7px; }
+.app-shell .main-nav { align-items: center; gap: 8px; }
+.app-shell .nav-link {
+  min-height: 41px;
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: 24px;
+  color: #c6bbd0;
+  font-size: 12px;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.app-shell .nav-link svg { color: #aaa0b8; }
+.app-shell .nav-link:hover { color: #f9eddb; background: #ffffff07; }
+.app-shell .nav-link.active { color: #f4d5a4; background: #dda95b10; border-color: #dda95b40; }
+.app-shell .nav-link.active svg { color: #dda95b; }
+.app-shell .nav-link.active::after { width: 4px; height: 4px; left: calc(50% - 2px); right: auto; bottom: -9px; border-radius: 50%; background: #78d0b7; }
+.app-shell .header-profile { color: #e7ddcc; }
+.app-shell .avatar { background: #302a41; border: 1px solid #dda95b45; color: #edc68d; }
+.app-shell .header-profile > svg { color: #b5a6bd; }
+
+.app-shell .main-container { position: relative; }
+.app-shell .page-heading { position: relative; padding-top: 58px; padding-bottom: 35px; }
+.app-shell .page-heading > div:first-child { position: relative; }
+.app-shell .page-heading > div:first-child::before { content: ''; position: absolute; width: 50px; height: 1px; background: linear-gradient(90deg, #78d0b7, #78d0b700); top: -16px; left: 0; }
+.app-shell :is(.page-heading h1, .about-opening h1) { color: #f6ebda; }
+.app-shell :is(.page-heading h1 em, .about-opening h1 em) { color: #dda95b; }
+.app-shell .heading-description { color: #c0b6ca; }
+.app-shell .page-heading p.eyebrow { color: #e4b777; }
+.app-shell .date-stamp { color: #d4c4ae; }
+.app-shell .date-stamp > span:last-child { color: #ad9cb8; }
+.app-shell .date-stamp-line { background: #dda95b; }
+.app-shell .heading-decoration { color: #dda95b; opacity: .62; }
+.app-shell .brand-note { color: #cfbb9b; max-width: 840px; }
+.app-shell .brand-note > span:first-child { color: #78d0b7; }
+.app-shell .focus-label { color: #bcafc6; }
+.app-shell .focus-button { color: #c8becf; border-radius: 22px; border-color: #bfa8d21a; padding-inline: 15px; }
+.app-shell .focus-button:hover { color: #f9eedf; background: #ffffff0a; }
+.app-shell .focus-button.selected { color: #d6f0e6; background: #78d0b717; border-color: #78d0b74a; }
+.app-shell .focus-button.selected svg { color: #78d0b7; }
+
+/* Paper panels keep long readings quiet against the moving sky. */
+.app-shell :is(.daily-card, .compatibility-result, .chat-panel, .chart-section, .chart-loading-card, .chart-onboarding) {
+  color: var(--astral-ink);
+  background: var(--astral-paper);
+  border: 1px solid #dbc8aa;
+  border-radius: 3px 26px 3px 26px;
+  box-shadow: 0 12px 38px #07061126, inset 0 1px #fff6;
+}
+.app-shell .daily-card { border-top: 3px solid #c79457; }
+.app-shell .daily-card-top > .eyebrow { color: #8b5b32; font-size: 10px; }
+.app-shell .small-tag { color: #796247; background: #ebe0ce; border-color: #dac8a9; border-radius: 12px; font-size: 8px; }
+.app-shell .reading-headline { color: #322b42; }
+.app-shell :is(.reading-overview, .reading-section p) { color: #68616b; }
+.app-shell .reading-sections { border-color: #d9cdbb; }
+.app-shell .reading-section h3 { color: #3b5f55; font-size: 13px; }
+.app-shell .section-symbol { border: 1px solid #b8c6b4; color: #426f61; background: #e2e6d6; }
+.app-shell .affirmation { border-top-color: #d8c4a5; background: #eadecb; }
+.app-shell .affirmation > svg { color: #976736; }
+.app-shell .affirmation .eyebrow { color: #775833; font-size: 9px; }
+.app-shell .affirmation blockquote { color: #494054; }
+.app-shell .ask-teaser { background: #242139; border-color: #dda95b36; border-radius: 4px 20px 4px 20px; }
+.app-shell .ask-teaser:hover { background: #2e2945; border-color: #dda95b80; }
+.app-shell .teaser-icon { color: #78d0b7; background: #78d0b70c; border: 1px solid #78d0b734; }
+.app-shell .ask-teaser strong { color: #eee0cf; }
+.app-shell .ask-teaser > span:nth-child(2) > span { color: #bdb1c8; }
+.app-shell .teaser-action { color: #e4b573; }
+
+.app-shell .signature-card {
+  border: 1px solid #b88b565e;
+  border-radius: 26px 3px 26px 3px;
+  background: radial-gradient(ellipse at 50% 38%, #51415466, transparent 65%), #252037;
+  box-shadow: 0 10px 30px #08061435;
+}
+.app-shell .signature-card::before { width: 280px; height: 280px; right: -155px; top: 40px; background: transparent; opacity: 1; filter: none; border: 1px solid #dda95b14; box-shadow: 0 0 0 24px #dda95b08, 0 0 0 49px #dda95b04; }
+.app-shell .signature-top .eyebrow { color: #d1b797; font-size: 9px; }
+.app-shell .signature-top .icon-button { color: #e6cba6; border-color: #dda95b40; }
+.app-shell .sun-wheel { color: #d6a96d; }
+.app-shell .sun-wheel > span { color: #eed0a0; }
+.app-shell .signature-name h2 { color: #f6e5cf; }
+.app-shell .signature-name > span { color: #ccba9f; font-size: 8px; }
+.app-shell .signature-description { color: #c6b8cb; }
+.app-shell .signature-details > span { color: #e8dac3; }
+.app-shell .signature-details small { color: #bfb0c9; font-size: 8px; }
+.app-shell .signature-bottom { background: #110f2245; border-color: #dda95b25; }
+.app-shell .signature-bottom > span { color: #bdb1c8; }
+.app-shell .signature-bottom > button { color: #e4b777; }
+.app-shell .ritual-card { background: #252538; border-color: #78d0b733; border-radius: 3px 20px 3px 20px; }
+.app-shell .ritual-heading h3 { color: #dfebdc; }
+.app-shell .ritual-icon { color: #78d0b7; background: #78d0b712; border: 1px solid #78d0b72e; }
+.app-shell .ritual-card > p { color: #babdbe; }
+.app-shell .daily-symbols { border-color: #78d0b72c; }
+.app-shell .daily-symbols > span + span { border-color: #78d0b72c; }
+.app-shell .daily-symbols small { color: #b3c0b8; font-size: 8px; }
+.app-shell .daily-symbols strong { color: #e0e2d2; font-size: 11px; }
+.app-shell .color-dot { background: #dda95b; border-color: #5d4d42; }
+.app-shell .number-symbol { color: #e7c48e; }
+.app-shell .quiet-note { color: #dda95b; }
+.app-shell .quiet-note p { color: #cabfae; }
+.app-shell .site-footer { border-color: #dda95b2e; color: #b9aec4; }
+.app-shell .footer-brand { color: #e4d6bf; }
+.app-shell .footer-brand svg { color: #dda95b; }
+.app-shell .footer-copyright { color: #c6b8cb; }
+
+.app-shell .primary-button { color: #f6ead8; background: #2d2943; border-color: #2d2943; border-radius: 4px 14px 4px 14px; box-shadow: 0 4px 12px #21182912; }
+.app-shell .primary-button:hover:not(:disabled) { background: #453753; border-color: #453753; }
+.app-shell .chart-edit-button { color: #d8c7ab; background: #252139; border-color: #dda95b45; border-radius: 18px; }
+.app-shell .chart-edit-button:hover { background: #30283f; }
+.app-shell .chart-download-button { color: #242133; background: #dda95b; border-color: #dda95b; border-radius: 4px 16px 4px 16px; }
+.app-shell .chart-download-button:hover:not(:disabled) { background: #edc489; }
+.app-shell .chart-download-button:disabled { color: #bbb1c4; background: #30283f; border-color: #4b3c54; opacity: .7; }
+.app-shell .report-profile-note { color: #c7b9cd; }
+.app-shell .report-profile-note .text-button { color: #e4b777; }
+.app-shell .demo-chart-notice { color: #d9d6ce; background: #292c36; border-color: #78d0b73a; border-radius: 3px 18px 3px 18px; }
+.app-shell .demo-chart-notice > svg { color: #78d0b7; }
+.app-shell .demo-chart-notice strong { color: #e3eadf; }
+.app-shell .demo-chart-notice span { color: #bdc6c0; }
+.app-shell .demo-chart-notice button { color: #b2e5d1; }
+.app-shell :is(.birth-record-bar, .chart-method-label) { color: #c5b4c9; }
+.app-shell .chart-summary-card { color: #302c42; background: #eee0cc; border-color: #ccb695; border-radius: 3px 23px 3px 23px; box-shadow: 0 8px 25px #08061120; }
+.app-shell .chart-summary-card > svg { color: #94612f; }
+.app-shell .chart-summary-card > .eyebrow { color: #8b5b32; font-size: 9px; }
+.app-shell .chart-summary-card h2 { color: #41354c; }
+.app-shell .chart-stat-detail { color: #685e69; font-size: 11px; }
+.app-shell .chart-summary-card.moon-summary { color: #f6ecd9; background: #30253e; border-color: #b88b5666; }
+.app-shell .moon-summary > svg { color: #dda95b; }
+.app-shell .moon-summary > .eyebrow { color: #deb983; }
+.app-shell .moon-summary h2 { color: #f2e3ce; }
+.app-shell .moon-summary .chart-stat-detail { color: #c9b9d0; }
+.app-shell .chart-section-heading .eyebrow { color: #8b5b32; font-size: 9px; }
+.app-shell .chart-section-heading h2 { color: #403449; }
+.app-shell .chart-section-heading > .small-tag { font-size: 8px; }
+.app-shell .dasha-grid { border-color: #d9cdbb; }
+.app-shell .dasha-grid > div + div { border-color: #d9cdbb; }
+.app-shell .dasha-grid .eyebrow { color: #8b5b32; font-size: 9px; }
+.app-shell .dasha-grid h3 { color: #3e675a; }
+.app-shell .dasha-grid p { color: #69616c; font-size: 11px; }
+.app-shell .method-details { color: #685e6b; border-color: #d7c9b5; }
+.app-shell .method-details summary { color: #875a34; }
+.app-shell .calculation-details dt { color: #786345; }
+.app-shell .calculation-details dd { color: #4e6256; }
+.app-shell .dasha-timeline > details { border-color: #d9cbb6; }
+.app-shell .dasha-timeline > details > summary strong { color: #3e675a; }
+.app-shell .dasha-timeline > details > summary span { color: #6f6570; }
+.app-shell .dasha-timeline > details > summary::before { color: #8b5b32; }
+.app-shell .planet-table th, .app-shell .planet-table td { border-color: #dacdb8; }
+.app-shell .planet-table thead th { color: #775733; background: #eaddc8; }
+.app-shell .planet-table tbody th { color: #3b6358; }
+.app-shell .planet-table td { color: #655c6a; }
+.app-shell .motion-tag { color: #4b6954; }
+.app-shell .motion-tag.retrograde { color: #87582d; background: #e7d5b8; }
+.app-shell .navamsa-note { color: #6c616e; }
+.app-shell .navamsa-note strong { color: #3b6358; }
+.app-shell .transit-section > summary { color: #3b6358; }
+.app-shell .transit-section > summary > span { color: #7b674f; }
+
+.app-shell .forecast-section { background: #eee1cc; border-color: #c5aa83; }
+.app-shell :is(.forecast-context, .forecast-topic-control label, .marriage-window .eyebrow) { color: #845833; }
+.app-shell .forecast-intro { color: #675d68; }
+.app-shell .forecast-topic-control select { background: #fcf4e7; border-color: #c9b18c; color: #514451; border-radius: 14px; }
+.app-shell .current-phase-card { background: #dbe4d7; border-color: #a3bfae; border-radius: 3px 16px 3px 16px; }
+.app-shell .current-phase-card > .eyebrow { color: #486b57; }
+.app-shell .current-phase-card h3 { color: #315b50; }
+.app-shell .current-phase-card p { color: #4f6155; }
+.app-shell .prediction-themes { color: #675c68; }
+.app-shell .prediction-themes h3 { color: #426757; }
+.app-shell .prediction-factors { color: #695d68; background: #f8eddc; border-color: #d2bb94; }
+.app-shell .prediction-factors summary { color: #865a33; }
+.app-shell .marriage-window { background: #fcf2e2; border-color: #d3ba91; border-radius: 3px 18px 3px 18px; }
+.app-shell .window-number { color: #865a33; border-color: #c7aa7e; }
+.app-shell .marriage-window h3 { color: #3d5f51; }
+.app-shell .marriage-window h3 > span { color: #78644f; }
+.app-shell :is(.window-dates, .window-reasons, .window-themes) { color: #6b6068; }
+.app-shell .no-window { background: #f6ebd9; border-color: #ccb697; }
+.app-shell .no-window h3 { color: #3f6150; }
+.app-shell .no-window p { color: #70616b; }
+.app-shell .forecast-chat-link { color: #87582d; }
+.app-shell .prediction-loading { color: #675c68; }
+.app-shell .chart-onboarding h2 { color: #3c334b; }
+.app-shell .chart-onboarding p { color: #685f69; }
+.app-shell .chart-onboarding > .eyebrow { color: #865a33; }
+.app-shell .chart-onboarding .chart-onboarding-note { color: #756671; }
+.app-shell .chart-onboarding .sun-wheel, .app-shell .chart-onboarding .sun-wheel > span { color: #936637; }
+
+.app-shell .career-timing { color: #665c67; }
+.app-shell .career-timing-action { color: #3c6050; border-color: #588575; background: #5885750c; }
+.app-shell .career-timing section + section { border-color: #cbb89b; }
+.app-shell .career-timing h3, .app-shell .career-period-heading { color: #3a5e50; }
+.app-shell :is(.career-timing-context, .career-date-heading > span, .career-date-star) { color: #805d3c; }
+.app-shell .career-timing-empty { color: #665c67; }
+.app-shell :is(.career-search-list > li, .career-date-list > li) { color: #655b66; background: #fcf2e2; border-color: #cdb38c; border-radius: 3px 16px 3px 16px; }
+.app-shell :is(.career-search-range, .career-date-heading > time) { color: #365b4c; }
+.app-shell .career-search-label { color: #685d68; }
+.app-shell .career-date-star > span { color: #8b5b32; }
+.app-shell .career-timing-disclosure { color: #665c67; }
+.app-shell .career-timing-disclosure > summary { color: #865a33; }
+.app-shell .career-date-facts { border-color: #d5c4aa; }
+.app-shell .career-date-facts dt { color: #795b3d; }
+.app-shell .career-date-facts dd { color: #5b6356; }
+.app-shell .career-date-warning, .app-shell .career-timing-sample { color: #7c5936; }
+.app-shell .career-timing-sample > span { color: #755232; }
+
+.app-shell .pairing-card { background: #282139; border: 1px solid #dda95b42; border-radius: 24px 3px 24px 3px; }
+.app-shell .pairing-card > .eyebrow { color: #e1ba82; }
+.app-shell .pair-symbols { color: #e7c38a; }
+.app-shell .pair-symbols > span { border-color: #dda95b70; }
+.app-shell .pairing-card label { color: #dfd0d4; }
+.app-shell .pairing-card select { background: #352d46; border-color: #dda95b48; color: #f4e5cf; }
+.app-shell .pairing-card .primary-button { color: #272137; background: #dda95b; border-color: #dda95b; }
+.app-shell .pairing-card .primary-button:hover:not(:disabled) { background: #edc489; }
+.app-shell .pairing-note { color: #c7b8cc; }
+.app-shell .compatibility-result > .eyebrow { color: #8b5b32; }
+.app-shell .compatibility-result > h2 { color: #42344b; }
+.app-shell .compatibility-summary { color: #685e69; }
+.app-shell .connection-columns h3 { color: #3c6555; }
+.app-shell .connection-columns h3 svg, .app-shell .connection-columns li::marker { color: #95683b; }
+.app-shell .connection-columns ul { color: #69606b; }
+.app-shell .conversation-card { background: #e8dbc5; border-color: #cdb592; border-radius: 3px 16px 3px 16px; }
+.app-shell .conversation-card .eyebrow { color: #865a33; }
+.app-shell .conversation-card blockquote { color: #534252; }
+.app-shell .connection-orbits > span { border-color: #a16b36; color: #936436; }
+.app-shell .connection-orbits > span + span { border-color: #578c76; color: #4b7964; }
+.app-shell .connection-empty h2 { color: #42344b; }
+.app-shell .connection-empty h2 em { color: #996b38; }
+.app-shell .connection-empty p { color: #6d6270; }
+
+.app-shell .chat-context { background: #25283a; border: 1px solid #78d0b736; border-radius: 24px 3px 24px 3px; color: #e4e5d8; }
+.app-shell .chat-context > .eyebrow { color: #abd7c5; }
+.app-shell .chat-context .sun-wheel { color: #dda95b; }
+.app-shell .chat-context .sun-wheel > span { color: #e5c18c; }
+.app-shell .chat-context h2 { color: #f0e6d4; }
+.app-shell .chat-context p { color: #bdc5c2; }
+.app-shell .chat-context h3 { color: #b1d9c7; }
+.app-shell .chat-context-rule { background: #78d0b72e; }
+.app-shell .chat-mode-status { background: #78d0b70e; border: 1px solid #78d0b723; }
+.app-shell .status-dot { background: #78d0b7; }
+.app-shell .status-dot.ai { background: #dda95b; }
+.app-shell .chat-mode-status strong { color: #cfe5d7; }
+.app-shell .chat-mode-status span:last-child { color: #bdc9c0; }
+.app-shell .chat-context .chat-disclaimer { color: #b9b8c2; }
+.app-shell .chat-panel-header { background: #e9dcc7; border-color: #d3bfa0; }
+.app-shell .chat-panel-header > span:first-child { color: #8b5b32; }
+.app-shell .chat-panel-header strong { color: #44364b; }
+.app-shell .chat-mode-switch { border-color: #c9b28c; background: #e0cfb4; border-radius: 17px; }
+.app-shell .chat-mode-switch button { color: #74563b; border-radius: 14px; min-height: 28px; }
+.app-shell .chat-mode-switch button.selected { background: #332b42; color: #f5dfbd; box-shadow: 0 2px 5px #32243c20; }
+.app-shell .message-avatar { color: #91602e; background: #e8d6b8; border: 1px solid #d3b98d; }
+.app-shell .message-bubble { color: #5d5263; background: #ebe4d7; border-color: #d6c6ac; border-radius: 3px 16px 3px 16px; }
+.app-shell .message-bubble p { color: #5c5262; font-size: 13px; line-height: 1.85; }
+.app-shell .message-source { color: #766048; font-size: 9px; }
+.app-shell .user-message .message-bubble { background: #332940; border-color: #332940; border-radius: 16px 3px 16px 3px; }
+.app-shell .user-message .message-bubble p { color: #f1e3cd; }
+.app-shell .typing-indicator > span { background: #647d6a; }
+.app-shell .suggested-prompts button { color: #795b3b; background: #fbf2e2; border-color: #cbb28c; border-radius: 15px; font-size: 10px; }
+.app-shell .suggested-prompts button:hover:not(:disabled) { background: #ecdeca; }
+.app-shell .chat-compose { border-color: #d3c1a4; background: #eee2cf; }
+.app-shell .chat-compose textarea { color: #574b5f; background: #fcf5e9; border-color: #cbb99b; border-radius: 3px 16px 3px 16px; }
+.app-shell .chat-compose textarea::placeholder { color: #887482; }
+.app-shell .send-button { background: #332940; color: #e8c387; border-radius: 50%; }
+.app-shell .send-button:disabled { color: #95848d; background: #deceb8; }
+.app-shell .compose-note { color: #76644f; font-size: 9px; }
+.app-shell .ai-setup-help { background: #eee0c9; border-color: #d0ba94; }
+.app-shell .ai-setup-help summary, .app-shell .ai-connection-row button { color: #865a33; }
+.app-shell .ai-setup-help p, .app-shell .ai-setup-help code { color: #685b65; }
+.app-shell .ai-connection-row { background: #f4ead9; border-color: #d6c3a5; color: #746571; }
+.app-shell .message-calculations, .app-shell .message-references, .app-shell .marriage-results.compact { border-color: #c9b99d; color: #6d606a; }
+.app-shell :is(.message-calculations > summary, .message-references summary, .message-calculations .prediction-factors h3, .message-calculations .method-details h3, .message-references h3) { color: #875b34; }
+
+/* The personal record is a small ivory folio, held by the Yogi. */
+.app-shell .profile-dialog { background: #f6eddf; color: #302c42; border-color: #b99867; border-radius: 3px 27px 3px 27px; box-shadow: 0 25px 100px #02011199; }
+.app-shell .profile-dialog::backdrop { background: #100c24b8; backdrop-filter: blur(7px); }
+.app-shell .dialog-heading { color: #956436; }
+.app-shell .dialog-heading .icon-button { color: #756073; border-color: #cab18f; }
+.app-shell .profile-dialog > .eyebrow { color: #875b34; font-size: 9px; }
+.app-shell .profile-dialog h2 { color: #403449; }
+.app-shell .profile-dialog h2 em { color: #956436; }
+.app-shell .dialog-description { color: #6d606c; }
+.app-shell .form-field label { color: #625265; }
+.app-shell .form-field input, .app-shell .form-field select, .app-shell .profile-dialog .form-field input { color: #514252; background: #fff8ed; border-color: #cbb693; border-radius: 4px 13px 4px 13px; }
+.app-shell .form-field input::placeholder { color: #8c7582; }
+.app-shell .pairing-card .form-field select { background: #352d46; border-color: #dda95b48; color: #f4e5cf; }
+.app-shell .pairing-card .form-field label { color: #dfd0d4; }
+.app-shell .birth-details-opt-in { border-color: #cdbb9c; }
+.app-shell .checkbox-label { color: #4c6854; }
+.app-shell .checkbox-label > input { accent-color: #426b58; }
+.app-shell .birth-details-opt-in > p { color: #766574; }
+.app-shell .birth-details-fields { background: #eadfcf; border-color: #c8b28f; border-radius: 3px 17px 3px 17px; }
+.app-shell .birth-details-fields legend { color: #875b34; }
+.app-shell .birth-details-fields small { color: #72616f; }
+.app-shell .preset-place-details { color: #73606e; }
+.app-shell .birthplace-search-status { color: #665e6a; }
+.app-shell .birthplace-search-error { color: #975139; }
+.app-shell .birthplace-search-retry { color: #865a33; }
+.app-shell .birthplace-results { background: #fff7e9; border-color: #cab28c; }
+.app-shell .birthplace-result { color: #3c6050; }
+.app-shell .birthplace-result > small { color: #75616d; }
+.app-shell .birthplace-result.active, .app-shell .birthplace-result:hover { background: #dce5d8; }
+.app-shell .birthplace-attribution { color: #7b6872 !important; }
+.app-shell .birthplace-attribution a { color: #635b60; }
+.app-shell .manual-location > summary { color: #875b34; }
+.app-shell .manual-location > p { color: #71606e; }
+.app-shell .privacy-note { color: #6f6271; }
+.app-shell .reset-profile { color: #865a33; }
+.app-shell .storage-notice { color: #345c48; background: #dbe7d9; }
+.app-shell .error-notice, .app-shell .chat-error { color: #8a443a; background: #fff0e3; border-color: #cc9a83; }
+.app-shell .loading-caption { color: #766676; }
+.app-shell .skeleton { background-image: linear-gradient(90deg, #e5d9c4 25%, #f5eddd 50%, #e5d9c4 75%); }
+.app-shell .card-error > svg { color: #956436; }
+.app-shell .card-error h2, .app-shell .empty-state h2 { color: #403449; }
+.app-shell .empty-state p { color: #716371; }
+.app-shell .personalization-prompt::backdrop { background: #100c24c2; backdrop-filter: blur(6px); }
+.app-shell .personalization-prompt-card { background: linear-gradient(135deg, #fff6e8, #eee0cc); border-color: #c4a16b; border-radius: 3px 25px 3px 25px; box-shadow: 0 22px 65px #08041288; }
+.app-shell .personalization-prompt-card::after { content: ''; position: absolute; inset: 8px; border: 1px solid #c4a16b42; border-radius: 2px 19px 2px 19px; pointer-events: none; }
+.app-shell .personalization-prompt-eyebrow { color: #875b34; }
+.app-shell .personalization-prompt-card h2 { color: #403449; }
+.app-shell #personalization-prompt-description { color: #6b5d69; }
+.app-shell .personalization-prompt-primary { color: #f5dfbf; background: #332940; border-color: #332940; border-radius: 3px 15px 3px 15px; }
+.app-shell .personalization-prompt-primary:hover { background: #493751; }
+.app-shell .personalization-prompt-primary > svg { color: #e2b573; }
+.app-shell .personalization-prompt-skip { color: #865a33; }
+.app-shell .personalization-prompt-note { color: #766574; }
+.app-shell .personalization-prompt-close { color: #f0dcc0; background: #211932a6; border-color: #dda95b50; }
+
+.app-shell .yogi-launcher { background: #262039; border-color: #dda95b70; color: #f5e1c4; box-shadow: 0 8px 30px #06021060; }
+.app-shell .yogi-launcher small { color: #c5b6cd; }
+.app-shell .yogi-launcher-symbol { color: #ebc287; border-color: #dda95b55; background: radial-gradient(circle at 35% 25%, #ac784444, #624b2c11); }
+.app-shell .yogi-launcher-dot { background: #78d0b7; box-shadow: 0 0 10px #78d0b770; }
+.app-shell .yogi-dialog { background: #211b34; border-color: #dda95b60; border-radius: 3px 25px 3px 25px; }
+.app-shell .yogi-dialog::backdrop { background: #100c24c2; }
+.app-shell .yogi-panel { background: radial-gradient(ellipse at 50% 16%, #775b5933, transparent 50%), #211b34; }
+.app-shell .yogi-eyebrow { color: #ddba84; }
+.app-shell .yogi-header h2 { color: #f3e6d2; }
+.app-shell .yogi-header h2 em { color: #dda95b; }
+.app-shell .yogi-icon-button { color: #d0becd; border-color: #dda95b36; }
+.app-shell .yogi-avatar-status { color: #cfbecf; }
+.app-shell .yogi-avatar-status > span { background: #78d0b7; }
+.app-shell .yogi-description { color: #d0c2d0; }
+.app-shell .yogi-controls > label { color: #c9b8cd; }
+.app-shell .yogi-controls select, .app-shell .yogi-controls select option { color: #efdfc8; background: #33263e; border-color: #dda95b4d; }
+.app-shell .yogi-mode { color: #bee2cd; }
+.app-shell .yogi-mode > span { background: #78d0b7; }
+.app-shell .yogi-profile-link { color: #e6b977; }
+.app-shell .yogi-transcript { border-color: #dda95b33; scrollbar-color: #8d758e #211b34; }
+.app-shell .yogi-greeting > span { color: #dda95b; }
+.app-shell .yogi-greeting p { color: #f1dfc3; }
+.app-shell .yogi-greeting small { color: #c8bbcf; }
+.app-shell .yogi-message-label { color: #e6bb7f; }
+.app-shell .yogi-message-user { color: #f4e2c9; background: #dda95b0d; border-color: #dda95b36; border-radius: 14px 3px 14px 3px; }
+.app-shell .yogi-message-assistant { color: #eadfdc; background: #b7a0ce0a; border-color: #b7a0ce24; border-radius: 3px 14px 3px 14px; }
+.app-shell .yogi-read-button { color: #e8bc7d; }
+.app-shell .yogi-calculations { color: #c9bdcc; }
+.app-shell .yogi-calculations summary { color: #e0b97d; }
+.app-shell .yogi-compose { background: #161128cc; border-color: #dda95b57; border-radius: 3px 17px 3px 17px; }
+.app-shell .yogi-compose textarea { color: #f1e3d1; }
+.app-shell .yogi-compose textarea::placeholder { color: #b7a7bf; }
+.app-shell .yogi-send-button { color: #282035; background: #dda95b; border-color: #dda95b; border-radius: 50%; }
+.app-shell .yogi-talk-button { color: #bfead8; background: #78d0b712; border-color: #78d0b744; }
+.app-shell .yogi-talk-button:hover { background: #78d0b71c; }
+.app-shell .yogi-talk-button.is-recording { color: #f8dfbb; background: #c18b5033; border-color: #dda95b88; }
+.app-shell .yogi-cancel-button { color: #e7bc7d; }
+.app-shell .yogi-privacy-note { color: #bdacc6; }
+.app-shell .yogi-dialog :is(button, textarea, select, summary):focus-visible { outline-color: #e8bc7d; }
+
+/* The origin story reads as chapters from the same manuscript. */
+.app-shell .about-page { padding-top: 36px; }
+.app-shell .about-opening { gap: 52px; padding-bottom: 49px; }
+.app-shell .about-opening .eyebrow { color: #e3b575; }
+.app-shell .about-lead { color: #c4b9ce; }
+.app-shell .about-sky { color: #dda95b; filter: drop-shadow(0 0 25px #dda95b0b); }
+.app-shell .about-chapters { max-width: 960px; border: 1px solid #d5bf9a; background: #f6eddf; border-radius: 3px 28px 3px 28px; padding: 0 42px; box-shadow: 0 15px 50px #05031038; }
+.app-shell .about-chapter { position: relative; border-color: #d8c5a5; padding: 37px 0; gap: 24px; }
+.app-shell .about-chapter:last-child { border-bottom: 0; }
+.app-shell .about-chapter-number { color: #a87740; font-size: 39px; }
+.app-shell .about-chapter .eyebrow { color: #875b34; }
+.app-shell .about-chapter h2 { color: #41334b; }
+.app-shell .about-chapter p:not(.eyebrow) { color: #695d6b; }
+.app-shell .about-invitation p { color: #efe3d3; }
+.app-shell .about-invitation em { color: #dda95b; }
+.app-shell .about-invitation .primary-button { color: #251e32; background: #dda95b; border-color: #dda95b; }
+.app-shell .about-invitation .primary-button:hover { background: #edc489; }
+.app-shell .about-sources { color: #bfb1c9; border-color: #dda95b35; }
+.app-shell .about-sources summary { color: #e4b777; }
+.app-shell .about-sources a { color: #a6d9c6; }
+
+.app-shell .welcome-intro-layout { background: linear-gradient(90deg, #151329eb 0%, #151329bd 31%, #15132940 54%, #15132900 73%); }
+.app-shell .welcome-intro-brand > svg, .app-shell .welcome-intro-brand-period { color: #dda95b; }
+.app-shell .welcome-intro-eyebrow { color: #e6ba7c; }
+.app-shell .welcome-intro-title { color: #f6ebda; }
+.app-shell .welcome-intro-title em { color: #dda95b; }
+.app-shell .welcome-intro-description { color: #cdc0d0; }
+.app-shell .welcome-intro-enter { color: #251f32; border-color: #dda95b; border-radius: 3px 22px 3px 22px; background: #dda95b; box-shadow: 0 8px 35px #dda95b20; }
+.app-shell .welcome-intro-enter:hover { background: #edc489; }
+.app-shell .welcome-intro-skip { color: #e9ddce; background: #221c35a6; border-color: #dda95b40; }
+.app-shell .welcome-intro-skip:hover { background: #33263e; border-color: #dda95b80; }
+.app-shell .welcome-intro-skip > svg { color: #dda95b; }
+.app-shell .welcome-intro-bottom { color: #c7b6ca; }
+.app-shell .welcome-intro-tagline > span { background: #78d0b7; }
+.app-shell .welcome-intro-copyright { color: #bfaec5; }
+
+@media (max-width: 900px) {
+  .app-shell .welcome-intro-layout { background: linear-gradient(180deg, #15132900 0%, #15132926 26%, #15132980 43%, #151329e6 66%, #151329f5 100%); }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .app-shell .nav-link { padding-inline: 10px; gap: 6px; font-size: 11px; }
+  .app-shell .main-nav { gap: 3px; }
+  .app-shell .header-inner { gap: 18px; }
+}
+@media (max-width: 760px) {
+  .app-shell .page-heading { padding-top: 39px; padding-bottom: 28px; }
+  .app-shell .main-nav { gap: 5px; }
+  .app-shell .nav-link { border-radius: 15px 15px 0 0; padding: 8px 10px; font-size: 11px; min-height: 36px; }
+  .app-shell .nav-link.active { border-bottom-color: transparent; }
+  .app-shell .nav-link.active::after { width: 18px; height: 2px; left: calc(50% - 9px); bottom: -2px; border-radius: 2px; }
+  .app-shell .focus-button { padding-inline: 13px; }
+  .app-shell .reading-section h3 { font-size: 12px; }
+  .app-shell .daily-card-top > .eyebrow { font-size: 9px; }
+  .app-shell .small-tag { font-size: 7px; }
+  .app-shell .about-opening { gap: 13px; padding-bottom: 32px; }
+  .app-shell .about-chapters { padding: 0 27px; }
+  .app-shell .about-chapter { grid-template-columns: 40px minmax(0, 1fr); gap: 17px; }
+  .app-shell .about-chapter-number { font-size: 32px; }
+}
+@media (max-width: 460px) {
+  .app-shell .nav-link { padding: 8px 6px; font-size: 10px; gap: 3px; }
+  .app-shell .main-nav { gap: 0; }
+  .app-shell .focus-button { padding: 9px 8px; }
+  .app-shell .daily-card { border-radius: 3px 22px 3px 22px; }
+  .app-shell .daily-card-top > .eyebrow { font-size: 8px; letter-spacing: .8px; }
+  .app-shell .small-tag { font-size: 7px; letter-spacing: .4px; }
+  .app-shell .reading-section p { font-size: 12px; }
+  .app-shell .affirmation .eyebrow { font-size: 8px; }
+  .app-shell .message-bubble p { font-size: 12px; }
+  .app-shell .suggested-prompts button { font-size: 9px; }
+  .app-shell .compose-note { font-size: 8px; }
+  .app-shell .chart-section-heading > .small-tag { font-size: 7px; }
+  .app-shell .chart-stat-detail { font-size: 10px; }
+  .app-shell .dasha-grid .eyebrow { font-size: 8px; }
+  .app-shell .career-date-facts dt { font-size: 10px; }
+  .app-shell .about-chapters { padding: 0 22px; border-radius: 3px 22px 3px 22px; }
+  .app-shell .about-chapter { grid-template-columns: 1fr; gap: 8px; padding-block: 29px; }
+  .app-shell .about-chapter-number { font-size: 28px; }
+  .app-shell .about-chapter h2 { margin-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .nav-link { transition: none; }
+}
+@media print {
+  :root, body { background: white; color: black; }
+  .app-shell::before { display: none; }
+}

@@ -1,0 +1,53 @@
+.career-timing { margin: 20px 0 24px; color: #69705f; overflow-wrap: anywhere; }
+.career-timing-action { margin: 0 0 18px; padding: 11px 14px; border-left: 2px solid #b9955f; background: #b9955f0d; color: #61724f; font-size: 12px; line-height: 1.75; }
+.career-timing section + section { margin-top: 23px; padding-top: 20px; border-top: 1px solid #e0d8c2; }
+.career-timing h3 { margin: 0 0 7px; color: #5e704d; font-size: 14px; font-weight: 500; line-height: 1.6; }
+.career-timing-context { margin: 0 0 13px; color: #8b8066; font-size: 10px; line-height: 1.75; }
+.career-timing-empty { margin: 11px 0 15px; color: #707865; font-size: 12px; line-height: 1.8; }
+
+.career-search-list, .career-date-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 0; padding: 0; list-style: none; }
+.career-search-list > li, .career-date-list > li { min-width: 0; padding: 13px 16px; border: 1px solid #e0d7be; border-radius: 6px; background: #fffdf5; }
+.career-search-range { margin: 0; color: #60724b; font-size: 12px; font-weight: 500; line-height: 1.7; }
+.career-search-label { margin: 4px 0 0; color: #7c7e68; font-size: 11px; line-height: 1.65; }
+.career-date-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; }
+.career-date-heading > time { color: #536840; font-size: 13px; font-weight: 600; line-height: 1.65; }
+.career-date-heading > span { color: #8c8067; font-size: 10px; line-height: 1.65; }
+.career-date-star { display: flex; align-items: baseline; gap: 6px; margin: 3px 0 0; color: #817453; font-size: 10px; line-height: 1.7; }
+.career-date-star > span { flex: 0 0 auto; color: #ae8c50; }
+
+.career-timing-disclosure { margin-top: 9px; color: #78806c; font-size: 11px; line-height: 1.8; }
+.career-timing-disclosure > summary { width: fit-content; max-width: 100%; color: #8d774d; cursor: pointer; font-size: 10px; }
+.career-timing-disclosure > summary:hover { color: #6c5838; }
+.career-timing-disclosure > summary:focus-visible { outline: 2px solid #ad884c; outline-offset: 3px; border-radius: 2px; }
+.career-timing-disclosure ul { margin: 10px 0 0; padding-left: 17px; }
+.career-timing-disclosure li + li { margin-top: 6px; }
+.career-date-facts { display: grid; gap: 5px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #e5dfce; font-size: 10px; }
+.career-date-facts > div { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 12px; }
+.career-date-facts dt { color: #95876b; }
+.career-date-facts dd { margin: 0; color: #737a66; }
+.career-date-warning { margin: 9px 0 0; color: #957848; font-size: 10px; line-height: 1.8; }
+.career-timing-sample { margin: 13px 0 0; color: #8b826f; font-size: 10px; line-height: 1.8; }
+.career-timing-sample > span { color: #71664f; }
+.career-timing-method { margin-top: 10px; }
+
+.career-timing--compact { margin: 12px 0 16px; }
+.career-timing--compact .career-timing-action { margin-bottom: 13px; padding: 9px 11px; font-size: 10px; }
+.career-timing--compact section + section { margin-top: 17px; padding-top: 15px; }
+.career-timing--compact h3 { font-size: 12px; }
+.career-timing--compact .career-search-list, .career-timing--compact .career-date-list { grid-template-columns: 1fr; gap: 7px; }
+.career-timing--compact .career-search-list > li, .career-timing--compact .career-date-list > li { padding: 10px 12px; }
+.career-timing--compact .career-search-range, .career-timing--compact .career-date-heading > time { font-size: 11px; }
+.career-timing--compact .career-search-label, .career-timing--compact .career-timing-empty, .career-timing--compact .career-timing-disclosure { font-size: 10px; }
+.career-timing--compact .career-timing-context, .career-timing--compact .career-date-heading > span, .career-timing--compact .career-date-star, .career-timing--compact .career-timing-disclosure > summary, .career-timing--compact .career-timing-sample { font-size: 9px; }
+
+@media (max-width: 760px) {
+  .career-search-list, .career-date-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 460px) {
+  .career-timing h3 { font-size: 12px; }
+  .career-timing-action, .career-timing-empty { font-size: 11px; }
+  .career-search-list > li, .career-date-list > li { padding: 12px; }
+  .career-search-range { font-size: 11px; }
+  .career-date-facts > div { grid-template-columns: 1fr; gap: 0; }
+}

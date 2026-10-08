@@ -97,7 +97,7 @@ export function installVoiceRoutes(app, {
         signal: AbortSignal.timeout(30000),
         body: JSON.stringify({
           model: ttsModel, voice: 'sage', input: text, response_format: 'mp3',
-          instructions: `Read the supplied text faithfully, without additions. Use a warm, calm, natural conversational voice with clear pronunciation and gentle pacing. ${language === 'auto' ? 'Speak in the language of the text, preserving natural pronunciation of names and Vedic terms.' : `Speak naturally in the language identified by ${language}, pronouncing names and Vedic terms clearly.`} Avoid a theatrical or preachy delivery.`,
+          instructions: `Read the supplied text faithfully, without additions. Do not translate or replace the supplied words. Use a warm, calm, natural conversational voice with clear pronunciation and gentle pacing. ${language === 'auto' ? 'Speak in the language of the text. If the text’s language is ambiguous, use English. Names or Vedic terms alone do not imply a regional language. Preserve natural pronunciation of names and Vedic terms.' : `Speak naturally in the language identified by ${language}, pronouncing names and Vedic terms clearly.`} Avoid a theatrical or preachy delivery.`,
         }),
       });
       if (!response.ok) throw new Error('Provider rejected speech');

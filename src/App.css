@@ -2,6 +2,14 @@
 .app-shell.is-welcoming { height: 100dvh; min-height: 0; overflow: hidden; }
 .app-shell > header, .app-shell > main, .app-shell > footer { position: relative; z-index: 1; }
 .app-shell.is-welcoming > header, .app-shell.is-welcoming > main, .app-shell.is-welcoming > footer, .app-shell.is-welcoming > .skip-link { visibility: hidden; }
+.chart-heading-actions { display: flex; flex-direction: column; align-items: stretch; gap: 9px; flex: 0 0 auto; }
+.chart-download-button { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; padding: 11px 15px; border: 1px solid #29424b; border-radius: 6px; color: #fbf7ec; background: #29424b; font-size: 11px; font-weight: 600; }
+.chart-download-button:hover:not(:disabled) { background: #365864; }
+.chart-download-button:disabled { opacity: .45; cursor: not-allowed; }
+.chart-download-button:focus-visible { outline: 2px solid #ad8543; outline-offset: 3px; }
+.report-profile-note { margin: -10px 0 24px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.report-profile-note .text-button { display: inline; font-size: inherit; }
+@media (max-width: 639px) { .chart-heading-actions { width: 100%; margin-top: 12px; flex-direction: row; flex-wrap: wrap; } .chart-heading-actions > button { flex: 1 1 160px; justify-content: center; } .report-profile-note { margin-top: 0; font-size: 11px; } }
 .skip-link { position: fixed; top: -80px; left: 20px; z-index: 20; padding: 12px 20px; color: white; background: var(--navy); border-radius: 4px; }
 .skip-link:focus { top: 10px; }
 .site-header { height: 96px; border-bottom: 1px solid #e7e3dc; background: #fcfaf7; }
@@ -303,6 +311,7 @@ h1 em { color: #977347; font-weight: 400; }
 .forecast-section { background: #f6f3e9; border-color: #e1d9c5; }
 .forecast-context { font-size: 10px; color: #9d8358; letter-spacing: .4px; margin: 0 0 13px; }
 .forecast-intro { color: #7a8370; font-size: 12px; line-height: 1.9; margin: 0 0 23px; max-width: 780px; }
+.career-period-heading { font-size: 13px; font-weight: 500; color: #60734f; margin: 24px 0 14px; }
 .marriage-windows { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .marriage-window { display: flex; align-items: flex-start; gap: 17px; background: #fffdf5; border: 1px solid #e5dcc7; padding: 23px; border-radius: 6px; min-width: 0; }
 .window-number { color: #b4a27c; font-family: var(--serif); font-size: 17px; border: 1px solid #e7decd; border-radius: 50%; min-width: 33px; height: 33px; display: grid; place-items: center; margin-top: 2px; }
@@ -401,3 +410,6 @@ h1 em { color: #977347; font-weight: 400; }
 .compact .theme-window h3 { font-size: 22px; }
 @media (max-width: 760px) { .forecast-topic-control { min-width: 190px; } .current-phase-card { padding: 19px; } .theme-window h3 { font-size: 24px; } }
 @media (max-width: 460px) { .forecast-topic-control { width: 100%; min-width: 0; } .forecast-topic-control select { font-size: 11px; } .current-phase-card { padding: 18px; } .current-phase-card h3 { font-size: 24px; } .current-phase-card p { font-size: 11px; } .prediction-themes ul, .window-themes { font-size: 10px; } .theme-window h3 { font-size: 23px; } }
+@media (min-width: 761px) and (max-width: 950px) { .header-inner { gap: 20px; } .main-nav { gap: 18px; } .nav-link { font-size: 12px; gap: 6px; } .header-profile-name { display: none; } }
+@media (max-width: 760px) { .site-header { height: auto; } .header-inner { min-height: 121px; height: auto; position: relative; align-items: flex-start; padding-top: 19px; padding-bottom: 53px; } .main-nav { position: absolute; height: 43px; bottom: 0; left: 21px; right: 21px; justify-content: space-between; gap: 4px; } .nav-link { padding-top: 0; } .header-profile { padding-top: 3px; } }
+@media (max-width: 460px) { .main-nav { left: 17px; right: 17px; } .nav-link { font-size: 10px; gap: 3px; } .nav-link svg { display: none; } }

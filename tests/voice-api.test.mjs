@@ -240,6 +240,102 @@ test('AI Yogi can explain general questions without a profile in the question la
   });
 });
 
+test('AI Yogi Auto uses English fallback for a new greeting even after a Telugu conversation', async () => {
+  const calls = [];
+  const answer = 'Hello. What would you like to talk about?';
+  await withServer({ aiKey: serverKey, fetchImpl: async (url, options) => {
+    calls.push({ url, options });
+    return url.endsWith('/audio/speech')
+      ? new Response(Buffer.from('ID3fixture'), { headers: { 'Content-Type': 'audio/mpeg' } })
+      : Response.json({ choices: [{ message: { content: answer } }] });
+  } }, async ({ post }) => {
+    const response = await post('/api/chat', { assistant: 'yogi', profile: null, message: 'Hi', mode: 'ai', history: [{ role: 'user', content: 'నక్షత్రం అంటే ఏమిటి?' }, { role: 'assistant', content: 'నక్షత్రం చంద్రుని స్థానాన్ని సూచిస్తుంది.' }] });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).reply, answer);
+    const system = JSON.parse(calls[0].options.body).messages[0].content;
+    assert.match(system, /English is the default/);
+    assert.match(system, /ambiguous greeting, short utterance, names, or Vedic terms alone, use English/);
+    assert.match(system, /Do not choose a regional language from conversation history/);
+    assert.doesNotMatch(system, /use the most recent user language/);
+    const speech = await post('/api/voice', { text: answer });
+    assert.equal(speech.status, 200);
+    const spoken = JSON.parse(calls[1].options.body);
+    assert.equal(spoken.input, answer);
+    assert.match(spoken.instructions, /language is ambiguous, use English/);
+    assert.match(spoken.instructions, /Do not translate or replace/);
+  });
+});
+
+test('Auto preserves detected spoken language through transcription, chat and natural speech', async () => {
+  const calls = [];
+  const question = 'நட்சத்திரம் என்றால் என்ன?';
+  const answer = 'நட்சத்திரம் என்பது பிறந்த நேரத்தில் சந்திரன் இருக்கும் வானப்பகுதி.';
+  await withServer({ aiKey: serverKey, fetchImpl: async (url, options) => {
+    calls.push({ url, options });
+    if (url.endsWith('/audio/transcriptions')) return Response.json({ text: question });
+    if (url.endsWith('/audio/speech')) return new Response(Buffer.from('ID3fixture'), { headers: { 'Content-Type': 'audio/mpeg' } });
+    return Response.json({ choices: [{ message: { content: answer } }] });
+  } }, async ({ audio, post }) => {
+    const transcript = await audio('/api/transcribe?language=auto');
+    assert.equal(transcript.status, 200);
+    const recognized = await transcript.json();
+    assert.equal(recognized.text, question);
+    assert.equal(calls[0].options.body.get('language'), null, 'Auto must let the transcription provider detect the spoken language.');
+    const chat = await post('/api/chat', { assistant: 'yogi', profile: null, message: recognized.text, mode: 'ai', language: 'auto' });
+    assert.equal(chat.status, 200);
+    const result = await chat.json();
+    assert.equal(result.reply, answer);
+    const grounded = JSON.parse(calls[1].options.body);
+    assert.equal(JSON.parse(grounded.messages.at(-1).content).question, question);
+    assert.match(grounded.messages[0].content, /clearly uses another language, match that language, including transcribed speech/);
+    const speech = await post('/api/voice', { text: result.reply, language: 'auto' });
+    assert.equal(speech.status, 200);
+    const spoken = JSON.parse(calls[2].options.body);
+    assert.equal(spoken.input, answer);
+    assert.match(spoken.instructions, /Speak in the language of the text/);
+  });
+});
+
+test('an explicit English selection overrides a non-English question and history', async () => {
+  const calls = [];
+  const answer = 'A nakshatra is one of the twenty-seven traditional lunar divisions.';
+  await withServer({ aiKey: serverKey, fetchImpl: async (url, options) => {
+    calls.push({ url, options });
+    return url.endsWith('/audio/speech')
+      ? new Response(Buffer.from('ID3fixture'), { headers: { 'Content-Type': 'audio/mpeg' } })
+      : Response.json({ choices: [{ message: { content: answer } }] });
+  } }, async ({ post }) => {
+    const chat = await post('/api/chat', { assistant: 'yogi', profile: null, message: 'నక్షత్రం అంటే ఏమిటి?', mode: 'ai', language: 'EN-us', history: [{ role: 'user', content: 'తెలుగులో వివరించండి.' }] });
+    assert.equal(chat.status, 200);
+    const result = await chat.json();
+    assert.equal(result.reply, answer);
+    const system = JSON.parse(calls[0].options.body).messages[0].content;
+    assert.match(system, /BCP 47 tag en-US/);
+    assert.match(system, /explicit selection takes precedence over the language of the question or conversation history/);
+    const speech = await post('/api/voice', { text: result.reply, language: 'en-US' });
+    assert.equal(speech.status, 200);
+    const spoken = JSON.parse(calls[1].options.body);
+    assert.equal(spoken.input, answer);
+    assert.match(spoken.instructions, /language identified by en-US/);
+  });
+});
+
+test('an explicit Indian language selection overrides an English question and different history language', async () => {
+  let grounded;
+  await withServer({ aiKey: serverKey, fetchImpl: async (_url, options) => {
+    grounded = JSON.parse(options.body);
+    return Response.json({ choices: [{ message: { content: 'नक्षत्र आकाश के सत्ताईस पारंपरिक चंद्र विभागों में से एक है।' } }] });
+  } }, async ({ post }) => {
+    const response = await post('/api/chat', { assistant: 'yogi', profile: null, message: 'What is a nakshatra?', language: 'hi-IN', mode: 'ai', history: [{ role: 'user', content: 'నక్షత్రం అంటే ఏమిటి?' }] });
+    assert.equal(response.status, 200);
+    assert.match((await response.json()).reply, /नक्षत्र/);
+    assert.match(grounded.messages[0].content, /BCP 47 tag hi-IN/);
+    assert.match(grounded.messages[0].content, /explicit selection takes precedence/);
+    assert.equal(JSON.parse(grounded.messages.at(-1).content).question, 'What is a nakshatra?');
+    assert.doesNotMatch(grounded.messages[0].content, /English is the default/);
+  });
+});
+
 test('AI Yogi missing full birth details requests them before personalized chart or timing claims', async () => {
   const calls = [];
   await withServer({ aiKey: serverKey, fetchImpl: async (_url, options) => {

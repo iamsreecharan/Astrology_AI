@@ -8,6 +8,22 @@
 .celestial-scene.is-intro .celestial-canvas { opacity: 1; }
 .celestial-scene.is-intro .celestial-wash { background: radial-gradient(ellipse at 82% 42%, #31475759 0, transparent 53%), radial-gradient(ellipse at 48% 10%, #79654120 0, transparent 54%), radial-gradient(ellipse at 13% 86%, #233c4050 0, transparent 44%); }
 .celestial-scene.is-intro .celestial-fallback { width: min(68vw, 800px); right: 1vw; top: 50%; transform: translateY(-50%); opacity: .85; }
+.celestial-scene.is-intro .celestial-fallback-earth,
+.celestial-scene.is-intro .celestial-fallback-jupiter,
+.celestial-scene.is-intro .celestial-fallback-mars,
+.celestial-scene.is-intro .celestial-fallback-moon,
+.celestial-scene.is-intro .celestial-fallback-zodiac,
+.celestial-scene.is-intro .celestial-fallback-saturn { transform-box: view-box; transform-origin: 320px 320px; }
+.celestial-scene.is-intro .celestial-fallback-earth { animation: celestial-orbit 39s linear infinite; }
+.celestial-scene.is-intro .celestial-fallback-jupiter { animation: celestial-orbit 52s linear infinite; }
+.celestial-scene.is-intro .celestial-fallback-mars { animation: celestial-orbit 30s linear infinite; }
+.celestial-scene.is-intro .celestial-fallback-moon { animation: celestial-orbit 20s linear infinite; }
+.celestial-scene.is-intro .celestial-fallback-zodiac { animation: celestial-orbit 120s linear infinite; }
+.celestial-scene.is-intro .celestial-fallback-saturn { animation: celestial-ring-sway 12s ease-in-out infinite; }
+.celestial-scene.is-paused .celestial-fallback g { animation-play-state: paused; }
+@keyframes celestial-orbit { to { transform: rotate(360deg); } }
+@keyframes celestial-ring-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) { .celestial-scene.is-intro .celestial-fallback g { animation: none; } }
 @media (max-width: 639px) {
   .celestial-canvas { opacity: .46; }
   .celestial-fallback { width: 380px; right: -155px; top: 58px; opacity: .29; }

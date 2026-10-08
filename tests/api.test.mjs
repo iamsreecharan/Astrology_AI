@@ -692,6 +692,26 @@ test('mock AI receives grounded forecasts for every topic without raw birth iden
       assert.equal(context.prediction.asOf, prediction.asOf);
       assert.equal(context.prediction.horizonEnd, prediction.horizonEnd);
       assertGroundedWindows(context.prediction.windows, prediction.windows);
+      if (topic === 'career' && prediction.searchWindows) {
+        assert.equal(context.prediction.searchHorizonEnd, prediction.searchHorizonEnd);
+        assertGroundedWindows(context.prediction.searchWindows, prediction.searchWindows);
+        assert.match(body.messages[0].content, /nearest calculated periods first/);
+        assert.match(body.messages[0].content, /not a calculated offer date/);
+        if (prediction.planningDates) {
+          const groundedPlanning = context.prediction.planningDates;
+          assert.equal(groundedPlanning.status, prediction.planningDates.status);
+          assert.equal(groundedPlanning.horizon.end, prediction.planningDates.horizon.end);
+          assert.equal('timeZone' in groundedPlanning.horizon, false);
+          assert.deepEqual(groundedPlanning.dates.map(day => day.displayDate), prediction.planningDates.dates.map(day => day.displayDate));
+          for (const [index, day] of groundedPlanning.dates.entries()) {
+            assert.deepEqual(day.tara, prediction.planningDates.dates[index].tara);
+            assert.deepEqual(day.tithi, prediction.planningDates.dates[index].tithi);
+            assert.equal(day.moonRelativeHouse, prediction.planningDates.dates[index].moonRelativeHouse);
+            assert.equal('sampleLocal' in day, false);
+            assert.equal('timeZone' in day, false);
+          }
+        }
+      }
       assertGroundedStrings(context.prediction.method, prediction.method);
       assertGroundedStrings(context.prediction.limitations, prediction.limitations);
       if (topic !== 'marriage') {
@@ -708,6 +728,34 @@ test('mock AI receives grounded forecasts for every topic without raw birth iden
       }
     }
     assert.equal(calls.length, forecastQuestions.length);
+  });
+});
+
+test('interview, job-search and application-date follow-ups receive calculated career planning dates', async () => {
+  const requests = [];
+  await withServer({ aiKey: privateKey, fetchImpl: async (_url, options) => {
+    requests.push(JSON.parse(options.body));
+    return Response.json({ choices: [{ message: { content: 'Use the supplied conditional application planning dates while continuing your search.' } }] });
+  } }, async ({ post }) => {
+    for (const [message, history] of [
+      ['What are good dates for interviews?', []],
+      ['I am jobseeking. What should I focus on next month?', []],
+      ['Which dates are good for applications?', [{ role: 'user', content: 'When will I get a job?' }]],
+      ['When should I send an application for a role?', []],
+    ]) {
+      const response = await post('/api/chat', { profile: vedicProfile, message, history, mode: 'ai' });
+      assert.equal(response.status, 200);
+      const result = await response.json();
+      assert.equal(result.prediction.topic, 'career', message);
+      assert.ok(result.prediction.planningDates.dates.length > 0);
+      const context = JSON.parse(requests.at(-1).messages.at(-1).content);
+      assert.equal(context.prediction.topic, 'career');
+      assert.deepEqual(context.prediction.planningDates.dates.map(day => day.displayDate), result.prediction.planningDates.dates.map(day => day.displayDate));
+      assert.equal(JSON.stringify(context).includes(vedicProfile.timeZone), false);
+    }
+    const education = await post('/api/chat', { profile: vedicProfile, message: 'When should I apply to college?', mode: 'ai' });
+    assert.equal(education.status, 200);
+    assert.equal((await education.json()).prediction.topic, 'education');
   });
 });
 

@@ -1,4 +1,5 @@
 import { calculateTransitPlanets, validateBirthDetails } from './vedic-chart.mjs';
+import { calculateCareerPlanningDates } from './career-planning-dates.mjs';
 
 const RASHIS = Object.freeze([
   'Mesha (Aries)', 'Vrishabha (Taurus)', 'Mithuna (Gemini)', 'Karka (Cancer)',
@@ -56,6 +57,14 @@ function horizon(asOf, horizonYears) {
 function nextCalendarMonth(value) {
   const date = new Date(value);
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1);
+}
+
+function calendarMonthsAfter(value, count) {
+  const date = new Date(value);
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + count + 1, 0)).getUTCDate();
+  date.setUTCDate(Math.min(date.getUTCDate(), lastDay));
+  date.setUTCMonth(date.getUTCMonth() + count);
+  return date.getTime();
 }
 
 function readInterval(period, label) {
@@ -158,9 +167,42 @@ function careerDashaSupport(maha, antar, tenthLord) {
   return { points, reasons };
 }
 
+function careerSearchWindows(profile, ascendantSign, start, end, transitProvider) {
+  const candidates = [];
+  const houseThemes = {
+    6: 'workplace tasks, practical skills, and applications',
+    10: 'professional responsibilities and interviews',
+    11: 'networking, referrals, and professional goals',
+  };
+  let cursor = start;
+  let current = null;
+  while (cursor < end) {
+    const segmentEnd = Math.min(end, cursor + 7 * 86_400_000);
+    const sample = cursor + Math.floor((segmentEnd - cursor) / 2);
+    const mercury = transitPlanet(transitProvider, sample, ascendantSign, 'Mercury');
+    const house = (mercury.signIndex - ascendantSign + 12) % 12 + 1;
+    if (houseThemes[house]) {
+      if (!current) current = { start: cursor, end: segmentEnd, reasons: new Set() };
+      current.end = segmentEnd;
+      current.reasons.add(`Mercury in ${RASHIS[mercury.signIndex]} transits the natal ${ordinal(house)} whole-sign house, used here as a traditional prompt for ${houseThemes[house]}.`);
+    } else if (current) {
+      candidates.push(current);
+      current = null;
+    }
+    cursor = segmentEnd;
+  }
+  if (current) candidates.push(current);
+  return candidates.slice(0, 3).map(candidate => ({
+    start: dateOnly(candidate.start), end: dateOnly(candidate.end - 1),
+    ageRange: { min: age(profile.birthDate, candidate.start), max: age(profile.birthDate, candidate.end - 1) },
+    label: 'Approximate application and interview planning window', reasons: [...candidate.reasons],
+  }));
+}
+
 /** Explicit traditional career heuristic; the ephemeris supplies every transit. */
 export function estimateCareerWindows(profile, chart, {
   asOf = new Date(), horizonYears = 3, transitProvider = calculateTransitPlanets,
+  planningTransitProvider = calculateTransitPlanets,
 } = {}) {
   const { now, end: horizonEnd, ascendantSign, timeline } = prepare(profile, chart, asOf, horizonYears, transitProvider);
   const tenthSign = (ascendantSign + 9) % 12;
@@ -210,17 +252,24 @@ export function estimateCareerWindows(profile, chart, {
     }
     if (current) candidates.push(current);
   }
-  candidates.sort((a, b) => b.dashaPoints - a.dashaPoints
-    || b.jupiterTotal / b.duration - a.jupiterTotal / a.duration
-    || a.start - b.start);
+  candidates.sort((a, b) => a.start - b.start
+    || b.dashaPoints - a.dashaPoints
+    || b.jupiterTotal / b.duration - a.jupiterTotal / a.duration);
   const windows = candidates.slice(0, 3).map((candidate) => ({
     start: dateOnly(candidate.start), end: dateOnly(candidate.end - 1),
     ageRange: { min: age(profile.birthDate, candidate.start), max: age(profile.birthDate, candidate.end - 1) },
     label: 'Traditional career opportunity window', reasons: [...candidate.reasons],
   }));
+  const searchEnd = Math.min(horizonEnd, calendarMonthsAfter(now, 6));
+  const searchWindows = careerSearchWindows(profile, ascendantSign, earliest, searchEnd, transitProvider);
+  const natalMoon = chart.planets.find(planet => planet.name === 'Moon')?.longitude;
+  const planningDates = Number.isFinite(natalMoon) && natalMoon >= 0 && natalMoon < 360
+    ? calculateCareerPlanningDates(profile, chart, { asOf, transitProvider: planningTransitProvider }) : undefined;
   return {
     topic: 'career', status: windows.length ? 'estimated' : 'no-window',
     asOf: dateOnly(now), horizonEnd: dateOnly(horizonEnd), windows,
+    searchHorizonEnd: dateOnly(searchEnd), searchWindows,
+    ...(planningDates ? { planningDates } : {}),
     factors: [
       `D1 tenth house: ${RASHIS[tenthSign]}; traditional ruler: ${tenthLord}, placed in ${RASHIS[ruler.signIndex]}.`,
       `Professional significators used here: Mercury in ${RASHIS[mercury.signIndex]} and Saturn in ${RASHIS[saturn.signIndex]}.`,
@@ -230,18 +279,21 @@ export function estimateCareerWindows(profile, chart, {
       'The tenth house is traditionally interpreted through work, public responsibilities, and professional direction.',
       'Mercury is used as a prompt for skills and communication; Saturn for sustained effort and responsibility.',
       'Use any timing window to plan applications, learning, and conversations alongside actual employment opportunities.',
+      'Continue searching now. A later combined period is not a required waiting time, and employment can begin outside any highlighted interval.',
     ],
     method: [
       'D1 whole-sign tenth house and its traditional ruler, using the calculated approximate Lahiri sidereal chart.',
       'Qualifying Vimshottari periods require the tenth-house ruler, Mercury, or Saturn as mahadasha or antardasha lord; preserve their actual interval boundaries.',
       'A qualifying period also requires monthly future Jupiter occupation or traditional 5th, 7th, or 9th sign aspect to the natal tenth-house sign or its ruler’s sign.',
-      'Dasha ranking weights the tenth-house ruler as antardasha lord first, then as mahadasha lord, then Mercury/Saturn as antardasha lord, then as mahadasha lord; simultaneous support is combined.',
-      'Return at most three windows ranked by dasha support, then Jupiter target support, then earlier start. The ranking is not a probability.',
+      'Return the first three qualifying combined dasha/Jupiter windows in chronological order, so a stronger later period does not hide a nearer supported interval. Support weights break same-start ties only and are not probabilities.',
       'Merge contiguous supported calendar-month samples within each antardasha. Ages below 18 are excluded; February 29 birthdays use March 1 in non-leap years.',
+      'Separately sample Mercury weekly across the next six calendar months. Occupation of the natal whole-sign sixth, tenth, or eleventh house is a limited traditional planning heuristic for applications, interviews, and networking; it does not require or imply the combined dasha/Jupiter rule.',
+      'Return up to three chronological application/interview planning windows. Merge contiguous supported weekly samples and preserve unsupported gaps; these are approximate periods rather than exact transit ingress dates or auspicious-day selections.',
     ],
     limitations: limits(chart, [
       'These are traditional astrological estimates, not scientifically validated forecasts. They cannot promise a job offer, promotion, salary, or date of employment.',
       'Monthly transit sampling gives approximate window boundaries, not exact event dates. Dasha cutoffs retain the calculated timeline boundaries.',
+      'Application/interview planning windows use weekly Mercury samples and a weaker, separate transit heuristic. They are not calculated offer dates, a guarantee of favorable days, or evidence of a job within six months.',
       'This limited heuristic does not evaluate Dashamsa (D10), planetary strength, yogas, or real labor-market conditions.',
       'No window means this method found no qualifying interval within the selected horizon; it does not mean professional progress is impossible.',
     ]),

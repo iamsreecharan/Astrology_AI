@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import CareerTiming from './CareerTiming';
+import type { CareerPlanningDates, CareerSearchWindow } from './CareerTiming';
 import './AiYogi.css';
 
 const AiYogiAvatar = lazy(() => import('./AiYogiAvatar'));
@@ -6,13 +8,13 @@ const AiYogiAvatar = lazy(() => import('./AiYogiAvatar'));
 export type YogiProfile = { name: string; birthDate: string; birthTime?: string; birthPlace?: string; latitude?: number; longitude?: number; timeZone?: string };
 type YogiProps = { profile: YogiProfile | null; aiEnabled: boolean; onEditProfile: () => void };
 type Reference = { id: string; title: string };
-type Prediction = { factors?: string[]; themes?: string[]; method?: string[]; limitations?: string[]; windows?: { start: string; end: string; label?: string; reasons?: string[] }[] };
+type Prediction = { topic?: string; searchWindows?: CareerSearchWindow[]; searchHorizonEnd?: string; planningDates?: CareerPlanningDates; factors?: string[]; themes?: string[]; method?: string[]; limitations?: string[]; windows?: { start: string; end: string; label?: string; reasons?: string[] }[] };
 type Message = { id: number; role: 'user' | 'assistant'; text: string; source?: 'local' | 'ai'; references?: Reference[]; prediction?: Prediction };
 type AvatarState = 'idle' | 'listening' | 'thinking' | 'speaking';
-type Meter = { context: AudioContext; frame: number | null; source: MediaStreamAudioSourceNode | MediaElementAudioSourceNode; analyser: AnalyserNode };
+type Meter = { context: AudioContext; ownsContext: boolean; frame: number | null; source: MediaStreamAudioSourceNode | AudioBufferSourceNode; analyser: AnalyserNode };
 
 const LANGUAGES = [
-  ['auto', 'Auto · match my language'], ['en', 'English'], ['hi', 'हिन्दी · Hindi'], ['te', 'తెలుగు · Telugu'],
+  ['auto', 'Auto · English by default'], ['en', 'English'], ['hi', 'हिन्दी · Hindi'], ['te', 'తెలుగు · Telugu'],
   ['ta', 'தமிழ் · Tamil'], ['kn', 'ಕನ್ನಡ · Kannada'], ['ml', 'മലയാളം · Malayalam'], ['mr', 'मराठी · Marathi'],
   ['bn', 'বাংলা · Bengali'], ['gu', 'ગુજરાતી · Gujarati'], ['pa', 'ਪੰਜਾਬੀ · Punjabi'], ['ur', 'اردو · Urdu'],
   ['or', 'ଓଡ଼ିଆ · Odia'], ['es', 'Español'], ['fr', 'Français'], ['de', 'Deutsch'], ['pt', 'Português'],
@@ -70,6 +72,7 @@ function CalculationDetails({ message }: { message: Message }) {
   const prediction = message.prediction;
   if (!prediction && !message.references?.length) return null;
   return <details className="yogi-calculations"><summary>Calculation details</summary>
+    {prediction?.topic === 'career' && <CareerTiming planningDates={prediction.planningDates} searchWindows={prediction.searchWindows} searchHorizonEnd={prediction.searchHorizonEnd} compact />}
     {Boolean(prediction?.windows?.length) && <ul>{prediction?.windows?.map((window, index) => <li key={`${window.start}-${index}`}><strong>{window.label || `${window.start.slice(0, 10)} – ${window.end.slice(0, 10)}`}</strong>{window.reasons?.slice(0, 3).map(reason => <p key={reason}>{reason}</p>)}</li>)}</ul>}
     {Boolean(prediction?.factors?.length) && <ul>{prediction?.factors?.slice(0, 5).map(factor => <li key={factor}>{factor}</li>)}</ul>}
     {Boolean(prediction?.method?.length) && <p>{prediction?.method?.join(' ')}</p>}
@@ -121,8 +124,8 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
   const recordingLimitRef = useRef<number | null>(null);
   const recordingSendRef = useRef(false);
   const speechSeenRef = useRef(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
+  const voiceContextRef = useRef<AudioContext | null>(null);
+  const voiceSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const profileValue = profileSnapshot(profile);
   const profileKey = JSON.stringify(profileValue);
   const previousProfileRef = useRef(profileKey);
@@ -142,21 +145,21 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
     if (meter.frame !== null) cancelAnimationFrame(meter.frame);
     meter.source.disconnect();
     meter.analyser.disconnect();
-    void meter.context.close().catch(() => {});
+    if (meter.ownsContext) void meter.context.close().catch(() => {});
   }
 
-  function startMeter(source: MediaStream | HTMLAudioElement, ref: { current: Meter | null }, onLevel?: (rms: number, time: number) => void) {
+  function startMeter(source: MediaStream | AudioBufferSourceNode, ref: { current: Meter | null }, onLevel?: (rms: number, time: number) => void, voiceContext?: AudioContext) {
     stopMeter(ref);
     let context: AudioContext | null = null;
     try {
-      context = new AudioContext();
+      context = voiceContext ?? new AudioContext();
       const analyser = context.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.65;
-      const node = source instanceof HTMLAudioElement ? context.createMediaElementSource(source) : context.createMediaStreamSource(source);
+      const node = source instanceof MediaStream ? context.createMediaStreamSource(source) : source;
       node.connect(analyser);
-      if (source instanceof HTMLAudioElement) analyser.connect(context.destination);
-      const meter: Meter = { context, source: node, analyser, frame: null };
+      if (!(source instanceof MediaStream)) analyser.connect(context.destination);
+      const meter: Meter = { context, ownsContext: !voiceContext, source: node, analyser, frame: null };
       ref.current = meter;
       const samples = new Uint8Array(analyser.fftSize);
       let lastUpdate = 0;
@@ -176,29 +179,48 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
       meter.frame = requestAnimationFrame(sample);
       void context.resume().catch(() => {});
     } catch {
-      void context?.close().catch(() => {});
+      if (!voiceContext) void context?.close().catch(() => {});
       if (onLevel) throw new Error('This browser couldn’t start speech detection. Type your question instead.');
     }
+  }
+
+  function unlockVoice() {
+    if (!aiEnabled || !openRef.current) return;
+    try {
+      let context = voiceContextRef.current;
+      if (!context || context.state === 'closed') {
+        context = new AudioContext();
+        voiceContextRef.current = context;
+      }
+      // A user gesture unlocks this output once; every reply uses the same context.
+      void context.resume().catch(() => {});
+      const source = context.createBufferSource();
+      source.buffer = context.createBuffer(1, 1, context.sampleRate);
+      source.connect(context.destination);
+      source.onended = () => { source.disconnect(); source.buffer = null; };
+      source.start();
+    } catch { /* Voice playback will show a readable error if audio is unavailable. */ }
+  }
+
+  function releaseVoiceContext() {
+    const context = voiceContextRef.current;
+    voiceContextRef.current = null;
+    if (context && context.state !== 'closed') void context.close().catch(() => {});
   }
 
   function stopVoice(updateState = true) {
     ++voiceIdRef.current;
     voiceRequestRef.current?.abort();
     voiceRequestRef.current = null;
-    const audio = audioRef.current;
-    audioRef.current = null;
-    if (audio) {
-      audio.onplay = null;
-      audio.onended = null;
-      audio.onerror = null;
-      audio.onpause = null;
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
+    const source = voiceSourceRef.current;
+    voiceSourceRef.current = null;
+    if (source) {
+      source.onended = null;
+      try { source.stop(); } catch { /* The last chunk may have already ended. */ }
+      source.disconnect();
+      source.buffer = null;
     }
     stopMeter(voiceMeterRef);
-    if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
-    audioUrlRef.current = null;
     if (updateState && mountedRef.current) {
       setSpeaking(false);
       setVoiceLoading(false);
@@ -259,6 +281,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
     conversationRef.current = false;
     clearRearm();
     cancelConversation(updateState);
+    releaseVoiceContext();
     if (updateState && mountedRef.current) {
       setConversationActive(false);
       setConversationPaused(paused);
@@ -277,6 +300,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
   function beginConversation() {
     if (!aiEnabled || !openRef.current) return;
     endConversation();
+    unlockVoice();
     conversationRef.current = true;
     setConversationActive(true);
     setConversationPaused(false);
@@ -304,58 +328,75 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
         if (!openRef.current || requestId !== voiceIdRef.current) return;
         setVoiceLoading(true);
         const timeout = window.setTimeout(() => controller.abort(), 60000);
-        let blob: Blob;
+        let bytes: ArrayBuffer;
         try {
           const response = await checkedResponse(await fetch('/api/voice', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text, language }), signal: controller.signal,
           }));
-          blob = await response.blob();
+          bytes = await response.arrayBuffer();
         } finally { window.clearTimeout(timeout); }
-        if (!blob.size) throw new Error('No voice audio was returned. You can still read the answer.');
+        if (!bytes.byteLength) throw new Error('No voice audio was returned. You can still read the answer.');
         if (!openRef.current || requestId !== voiceIdRef.current) return;
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.preload = 'auto';
-        audioRef.current = audio;
-        audioUrlRef.current = url;
-        setVoiceLoading(false);
+        const context = voiceContextRef.current;
+        if (!context || context.state === 'closed') throw new DOMException('Voice needs a user gesture', 'NotAllowedError');
+        const buffer = await context.decodeAudioData(bytes);
+        if (!openRef.current || requestId !== voiceIdRef.current || controller.signal.aborted) return;
+        if (context.state !== 'running') {
+          let resumeTimeout: number | undefined;
+          try {
+            await Promise.race([
+              context.resume(),
+              new Promise<void>(resolve => { resumeTimeout = window.setTimeout(resolve, 1000); }),
+            ]);
+          } finally { window.clearTimeout(resumeTimeout); }
+        }
+        if (!openRef.current || requestId !== voiceIdRef.current || controller.signal.aborted) return;
+        if (context.state !== 'running') throw new DOMException('Your browser paused voice playback. Tap Play voice once to enable audio.', 'NotAllowedError');
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        voiceSourceRef.current = source;
         await new Promise<void>((resolve, reject) => {
-          const aborted = () => reject(new DOMException('Voice stopped', 'AbortError'));
-          controller.signal.addEventListener('abort', aborted, { once: true });
-          audio.onplay = () => {
-            if (requestId !== voiceIdRef.current) return;
-            setSpeaking(true);
-            setVoiceError('');
-            if (!voiceMeterRef.current) startMeter(audio, voiceMeterRef);
-            else void voiceMeterRef.current.context.resume().catch(() => {});
-          };
-          audio.onended = () => {
+          let playbackLimit: number | undefined;
+          const cleanUp = () => {
             controller.signal.removeEventListener('abort', aborted);
+            context.removeEventListener('statechange', interrupted);
+            window.clearTimeout(playbackLimit);
+          };
+          const aborted = () => { cleanUp(); reject(new DOMException('Voice stopped', 'AbortError')); };
+          const interrupted = () => {
+            if (context.state === 'running') return;
+            cleanUp();
+            reject(new Error('Voice playback was interrupted. You can play the answer again or resume the conversation.'));
+          };
+          controller.signal.addEventListener('abort', aborted, { once: true });
+          context.addEventListener('statechange', interrupted);
+          source.onended = () => {
+            cleanUp();
             stopMeter(voiceMeterRef);
-            audio.onplay = null;
-            audio.onended = null;
-            audio.onerror = null;
-            audio.onpause = null;
-            audioRef.current = null;
-            URL.revokeObjectURL(url);
-            audioUrlRef.current = null;
+            source.onended = null;
+            source.disconnect();
+            source.buffer = null;
+            if (voiceSourceRef.current === source) voiceSourceRef.current = null;
             setSpeaking(false);
             setAudioLevel(0);
             resolve();
           };
-          audio.onerror = () => {
-            controller.signal.removeEventListener('abort', aborted);
-            reject(new Error('Voice playback didn’t finish. Read the answer or retry its voice button.'));
-          };
-          audio.onpause = () => {
-            if (requestId !== voiceIdRef.current || audio.ended) return;
-            setSpeaking(false);
-            setVoiceError('Voice playback paused. Tap Play voice to continue.');
-          };
-          void audio.play().catch(() => {
-            if (requestId === voiceIdRef.current) setVoiceError('Your browser paused autoplay. Tap Play voice to listen.');
-          });
+          try {
+            startMeter(source, voiceMeterRef, undefined, context);
+            if (!voiceMeterRef.current) source.connect(context.destination);
+            source.start();
+            playbackLimit = window.setTimeout(() => {
+              cleanUp();
+              reject(new Error('Voice playback didn’t finish. You can play the answer again or resume the conversation.'));
+            }, Math.ceil(buffer.duration * 1000) + 10000);
+            setSpeaking(true);
+            setVoiceLoading(false);
+            setVoiceError('');
+          } catch (cause) {
+            cleanUp();
+            reject(cause);
+          }
         });
       }
       if (requestId === voiceIdRef.current) {
@@ -364,22 +405,13 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
       }
     } catch (cause) {
       if (requestId !== voiceIdRef.current || !openRef.current) return;
-      const message = controller.signal.aborted ? 'Voice took too long to connect. You can retry or read the answer.' : cause instanceof Error ? cause.message : 'Voice couldn’t connect. The written answer is still available.';
+      const message = controller.signal.aborted ? 'Voice took too long to connect. You can retry or read the answer.' : cause instanceof DOMException && cause.name === 'NotAllowedError' ? 'Your browser paused voice playback. Tap Play voice once to enable audio.' : cause instanceof Error ? cause.message : 'Voice couldn’t connect. The written answer is still available.';
       if (conversationRef.current) endConversation(true, true);
       else stopVoice();
       setVoiceError(message);
     } finally {
       if (voiceRequestRef.current === controller) voiceRequestRef.current = null;
     }
-  }
-
-  async function resumeVoice() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    try {
-      await voiceMeterRef.current?.context.resume();
-      await audio.play();
-    } catch { setVoiceError('Your browser couldn’t play this audio. You can read the answer and retry its voice button.'); }
   }
 
   async function askQuestion(question: string, retry = false, existingController?: AbortController, existingRequestId?: number) {
@@ -615,7 +647,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
     const pauseOnHide = () => {
       if (document.visibilityState !== 'hidden') return;
       if (conversationRef.current) endConversation(true, true);
-      else { discardRecording(); stopVoice(); }
+      else { discardRecording(); stopVoice(); releaseVoiceContext(); }
     };
     document.addEventListener('visibilitychange', pauseOnHide);
     return () => {
@@ -641,16 +673,16 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
         </div>
         <p id="yogi-description" className="yogi-description">Ask about the stars, life, or something you’d like explained. Speak or type in your language.</p>
         <div className="yogi-controls"><label htmlFor="yogi-language">Conversation language</label><select id="yogi-language" value={language} disabled={busy} onChange={event => { stopVoice(); setVoiceError(''); setLanguage(event.target.value); }}>{LANGUAGES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><span className="yogi-mode"><span aria-hidden="true" />{aiEnabled ? 'Live Vedic AI' : 'Local guide · English'}</span></div>
-        {!hasBirthDetails && <button type="button" className="yogi-profile-link" onClick={() => { closeAssistant(); onEditProfile(); }}>{profile ? 'Add birth time and place for personal Vedic answers' : 'Add your birth details for personal Vedic answers'}<span aria-hidden="true">↗</span></button>}
+        {!hasBirthDetails && <button type="button" className="yogi-profile-link" onClick={() => { closeAssistant(); onEditProfile(); }}>{profile ? 'Add birth time and place for personal Vedic answers' : 'Add your birth details for personal Vedic answers'}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button>}
         <div ref={transcriptRef} className="yogi-transcript" role="log" aria-label="AI Yogi conversation" aria-live="polite" aria-relevant="additions text">
-          {!messages.length && <div className="yogi-greeting"><span aria-hidden="true">✧</span><p>Namaste. What’s on your mind?</p><small>{aiEnabled ? 'I’ll answer in your language, with words you can read and a voice you can hear.' : 'The local guide can share short Vedic notes in English. Live voice becomes available when this server’s AI connection is configured.'}</small></div>}
-          {messages.map(message => <article key={message.id} className={`yogi-message yogi-message-${message.role}`}><span className="yogi-message-label">{message.role === 'user' ? 'You' : 'AI Yogi'}{message.source === 'local' ? ' · Local guide' : ''}</span><p dir="auto">{message.text}</p>{message.role === 'assistant' && <><CalculationDetails message={message} />{aiEnabled && message.source === 'ai' && <button type="button" className="yogi-read-button" disabled={voiceLoading || loading || transcribing || micPending} onClick={() => { if (voiceMessageId === message.id && audioRef.current && !speaking) void resumeVoice(); else if (voiceMessageId === message.id && speaking) { stopVoice(); listenAgain(); } else { discardRecording(); void playVoice(message); } }}><Icon name={voiceMessageId === message.id && speaking ? 'stop' : 'speaker'} />{voiceMessageId === message.id && speaking ? 'Stop voice' : voiceMessageId === message.id && voiceLoading ? 'Preparing voice…' : 'Play voice'}</button>}</>}</article>)}
+          {!messages.length && <div className="yogi-greeting"><span aria-hidden="true">✧</span><p>Namaste. What’s on your mind?</p><small>{aiEnabled ? 'I’ll start in English and switch to the language you speak or select. Every reply has words you can read and a voice you can hear.' : 'The local guide can share short Vedic notes in English. Live voice becomes available when this server’s AI connection is configured.'}</small></div>}
+          {messages.map(message => <article key={message.id} className={`yogi-message yogi-message-${message.role}`}><span className="yogi-message-label">{message.role === 'user' ? 'You' : 'AI Yogi'}{message.source === 'local' ? ' · Local guide' : ''}</span><p dir="auto">{message.text}</p>{message.role === 'assistant' && <><CalculationDetails message={message} />{aiEnabled && message.source === 'ai' && <button type="button" className="yogi-read-button" disabled={voiceLoading || loading || transcribing || micPending} onClick={() => { if (voiceMessageId === message.id && speaking) { stopVoice(); listenAgain(); } else { discardRecording(); unlockVoice(); void playVoice(message); } }}><Icon name={voiceMessageId === message.id && speaking ? 'stop' : 'speaker'} />{voiceMessageId === message.id && speaking ? 'Stop voice' : voiceMessageId === message.id && voiceLoading ? 'Preparing voice…' : 'Play voice'}</button>}</>}</article>)}
           {(loading || transcribing) && <div className="yogi-thinking" role="status"><span /><span /><span /><p>{transcribing ? 'Listening to your recording…' : 'AI Yogi is thinking…'}</p></div>}
-          {error && <div className="yogi-error" role="alert"><p>{error}</p>{lastQuestion && !busy && <button type="button" onClick={() => void askQuestion(lastQuestion, true)}>Retry question</button>}</div>}
+          {error && <div className="yogi-error" role="alert"><p>{error}</p>{lastQuestion && !busy && <button type="button" onClick={() => { unlockVoice(); void askQuestion(lastQuestion, true); }}>Retry question</button>}</div>}
         </div>
         {voiceError && <p className="yogi-voice-error" role="status">{voiceError}</p>}
-        <form className="yogi-compose" onSubmit={event => { event.preventDefault(); if (!loading && !transcribing && !micPending) void askQuestion(input); }}>
-          <label className="sr-only" htmlFor="yogi-question">Your question for AI Yogi</label><textarea ref={inputRef} id="yogi-question" dir="auto" placeholder="Type your question in any language…" rows={2} value={input} maxLength={1000} disabled={loading || transcribing || micPending} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (!loading && !transcribing && !micPending) void askQuestion(input); } }} /><button type="submit" className="yogi-send-button" aria-label="Send question to AI Yogi" disabled={!input.trim() || input.trim().length > 1000 || loading || transcribing || micPending}><Icon name="send" /></button>
+        <form className="yogi-compose" onSubmit={event => { event.preventDefault(); if (!loading && !transcribing && !micPending && input.trim()) { unlockVoice(); void askQuestion(input); } }}>
+          <label className="sr-only" htmlFor="yogi-question">Your question for AI Yogi</label><textarea ref={inputRef} id="yogi-question" dir="auto" placeholder="Type your question in any language…" rows={2} value={input} maxLength={1000} disabled={loading || transcribing || micPending} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (!loading && !transcribing && !micPending && input.trim()) { unlockVoice(); void askQuestion(input); } } }} /><button type="submit" className="yogi-send-button" aria-label="Send question to AI Yogi" disabled={!input.trim() || input.trim().length > 1000 || loading || transcribing || micPending}><Icon name="send" /></button>
         </form>
         <div className="yogi-talk-row"><button ref={conversationButtonRef} type="button" className={`yogi-talk-button ${conversationActive ? 'is-recording' : ''}`} disabled={!aiEnabled || (!conversationActive && (loading || transcribing || micPending))} onClick={() => { if (conversationActive) endConversation(); else beginConversation(); }}><Icon name={conversationActive ? 'stop' : 'mic'} />{conversationActive ? 'End conversation' : conversationPaused ? 'Resume conversation' : 'Start conversation'}</button>{recording && <button type="button" className="yogi-cancel-button" onClick={finishRecording}>Send now</button>}{(speaking || voiceLoading) && <button type="button" className="yogi-cancel-button" onClick={() => { stopVoice(); listenAgain(); }}>Stop voice</button>}</div>
         <p className="yogi-privacy-note">{recording ? 'Listening now. I’ll reply when you finish speaking, then listen again. Close or End conversation turns the microphone off.' : conversationActive ? 'Conversation is on. Your microphone pauses while I think and speak. AI-generated voice.' : aiEnabled ? 'Audio, questions, recent conversation and calculated chart facts go to OpenAI. Saved name and exact birth details are excluded from chart context. AI-generated voice.' : 'Local answers use traditional notes. Live AI and natural voice aren’t connected to this server yet.'}</p>

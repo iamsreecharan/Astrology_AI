@@ -1,0 +1,106 @@
+.yogi-launcher { position: fixed; z-index: 12; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 18px 10px 10px; border: 1px solid #c9a86b55; border-radius: 40px; background: #132731; color: #f9edcf; box-shadow: 0 8px 32px #0b1e313b; transition: transform .2s, box-shadow .2s; }
+.yogi-launcher:hover { transform: translateY(-3px); box-shadow: 0 12px 36px #0b1e314d; }
+.yogi-launcher > span:nth-child(2) { text-align: left; font-family: var(--serif); font-size: 20px; line-height: 1.05; }
+.yogi-launcher small { display: block; margin-top: 5px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #c8c8b8; font-size: 9px; letter-spacing: .2px; }
+.yogi-launcher-symbol { display: grid; place-items: center; width: 43px; height: 43px; flex-shrink: 0; color: #e4bc72; border-radius: 50%; background: radial-gradient(circle at 35% 25%, #9a704066, #624b2c11); border: 1px solid #dbb97340; }
+.yogi-launcher-symbol svg { width: 26px; height: 26px; }
+.yogi-launcher-dot { width: 6px; height: 6px; border-radius: 50%; background: #d9b771; margin-left: 2px; box-shadow: 0 0 10px #d9b77188; }
+body:has(.yogi-launcher) .site-footer { padding-bottom: 104px; }
+.yogi-dialog { padding: 0; border: 1px solid #d2b88642; border-radius: 22px; margin: auto; width: min(480px, calc(100vw - 32px)); max-width: 100%; max-height: calc(100dvh - 36px); background: #112530; color: #f4ead8; overflow: hidden; box-shadow: 0 25px 100px #020c1dcc; }
+.yogi-dialog::backdrop { background: #05111dc4; backdrop-filter: blur(7px); }
+.yogi-panel { display: flex; flex-direction: column; max-height: calc(100dvh - 38px); padding: 23px 25px 17px; background: radial-gradient(ellipse at 50% 15%, #385c5a42, transparent 53%), #112530; overflow-y: auto; overscroll-behavior: contain; }
+.yogi-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-shrink: 0; }
+.yogi-eyebrow { color: #c8ad7c; font-size: 8px; letter-spacing: 1.55px; }
+.yogi-header h2 { margin: 6px 0 0; font-family: var(--serif); font-weight: 400; font-size: 30px; letter-spacing: -.5px; color: #f8eddb; }
+.yogi-header h2 em { font-weight: 400; color: #e4bf80; }
+.yogi-icon-button { display: grid; place-items: center; min-width: 44px; min-height: 44px; background: #ffffff07; color: #c4c6bd; border: 1px solid #d6be8b30; border-radius: 50%; }
+.yogi-icon-button:hover { background: #ffffff12; color: #fff3d8; }
+.yogi-avatar-stage { position: relative; display: flex; justify-content: center; align-items: center; flex-direction: column; width: 100%; min-height: 185px; padding-bottom: 20px; margin-top: 4px; flex-shrink: 0; }
+.yogi-avatar-stage .ai-yogi-avatar { width: 175px; max-width: 175px; }
+.yogi-avatar-stage::before { content: ''; position: absolute; width: 210px; height: 120px; top: 35px; border-radius: 50%; background: #dba75414; filter: blur(25px); pointer-events: none; }
+.yogi-avatar-placeholder { height: 175px; display: grid; place-items: center; font-family: var(--serif); font-size: 70px; color: #dabb79; }
+.yogi-avatar-status { position: absolute; bottom: 0; display: flex; align-items: center; gap: 7px; font-size: 10px; color: #c2c9bd; line-height: 1.3; text-align: center; }
+.yogi-avatar-status > span { width: 5px; height: 5px; flex-shrink: 0; background: #adbd9d; border-radius: 50%; }
+.yogi-state-listening .yogi-avatar-status > span { background: #d9bb78; box-shadow: 0 0 0 3px #d9bb7822; animation: yogi-pulse 1.4s ease-in-out infinite; }
+.yogi-description { text-align: center; font-size: 11px; line-height: 1.7; color: #c8cebf; max-width: 335px; margin: 15px auto 17px; flex-shrink: 0; }
+.yogi-controls { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; align-items: center; flex-shrink: 0; }
+.yogi-controls > label { grid-column: 1 / -1; color: #b9bfaf; font-size: 9px; letter-spacing: .3px; }
+.yogi-controls select { min-width: 0; width: 100%; height: 38px; padding: 7px 28px 7px 10px; border: 1px solid #d7bd8240; border-radius: 7px; background: #172f3a; color: #eee3cd; font-size: 11px; }
+.yogi-controls select option { background: #172f3a; color: #eee3cd; }
+.yogi-mode { display: flex; align-items: center; gap: 5px; color: #bfcbb2; font-size: 9px; white-space: nowrap; }
+.yogi-mode > span { height: 5px; width: 5px; background: #b7c99a; border-radius: 50%; }
+.yogi-profile-link { padding: 11px 2px 0; border: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: transparent; color: #dfbd7d; text-align: left; font-size: 10px; line-height: 1.5; flex-shrink: 0; min-height: 35px; }
+.yogi-profile-link:hover { color: #f9d899; text-decoration: underline; text-underline-offset: 3px; }
+.yogi-transcript { height: 210px; min-height: 130px; flex: 1 0 130px; overflow-y: auto; overscroll-behavior: contain; margin-top: 14px; padding: 15px 0 5px; border-top: 1px solid #d6bd8723; scrollbar-width: thin; scrollbar-color: #718079 #142934; }
+.yogi-greeting { text-align: center; max-width: 325px; margin: auto; padding: 12px 0 22px; }
+.yogi-greeting > span { font-size: 23px; color: #dcb66f; }
+.yogi-greeting p { font-family: var(--serif); color: #f2e5c9; font-size: 23px; margin: 11px 0; }
+.yogi-greeting small { color: #bcc6b8; font-size: 11px; line-height: 1.65; }
+.yogi-message { border-radius: 11px; margin: 0 0 14px; padding: 12px 14px; font-size: 12px; line-height: 1.75; overflow-wrap: anywhere; }
+.yogi-message p { margin: 5px 0 0; white-space: pre-wrap; }
+.yogi-message-label { color: #cfb989; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; }
+.yogi-message-user { background: #e5c48b14; border: 1px solid #e5c48b25; margin-left: 28px; color: #f5e9d0; }
+.yogi-message-assistant { background: #ffffff07; border: 1px solid #d5d9c714; margin-right: 14px; color: #e0e5d8; }
+.yogi-read-button { min-height: 35px; display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #ddbe83; font-size: 10px; padding: 8px 0 0; }
+.yogi-read-button svg { width: 15px; height: 15px; }
+.yogi-read-button:hover { color: #ffe2a4; }
+.yogi-calculations { margin-top: 10px; color: #bfc8b6; font-size: 10px; line-height: 1.7; }
+.yogi-calculations summary { cursor: pointer; min-height: 30px; padding: 5px 0; color: #d1b780; }
+.yogi-calculations ul { padding-left: 17px; margin: 6px 0; }
+.yogi-calculations li { margin-top: 5px; }
+.yogi-calculations li p { margin-top: 3px; }
+.yogi-thinking { padding: 6px 10px; display: flex; gap: 4px; align-items: center; color: #cab88f; }
+.yogi-thinking > span { height: 4px; width: 4px; background: #d6b374; border-radius: 50%; animation: yogi-pulse 1.2s ease-in-out infinite; }
+.yogi-thinking > span:nth-child(2) { animation-delay: .15s; }
+.yogi-thinking > span:nth-child(3) { animation-delay: .3s; }
+.yogi-thinking p { margin: 0 0 0 7px; font-size: 10px; }
+.yogi-error { margin: 6px 0 12px; padding: 11px 12px; background: #b8765620; border: 1px solid #ddb28b50; border-radius: 8px; color: #f3caa9; font-size: 11px; line-height: 1.6; }
+.yogi-error p { margin: 0; }
+.yogi-error button { border: 0; color: #f9dab1; background: transparent; min-height: 35px; padding: 8px 0 0; font-size: 10px; text-decoration: underline; text-underline-offset: 3px; }
+.yogi-voice-error { flex-shrink: 0; margin: 4px 0 9px; color: #dec997; font-size: 10px; line-height: 1.5; }
+.yogi-compose { position: relative; display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0; border: 1px solid #cfb67d52; border-radius: 11px; background: #0d202bcc; padding: 5px 6px 5px 11px; }
+.yogi-compose textarea { width: 100%; min-width: 0; padding: 7px 0; border: 0; outline-offset: 1px; color: #f4ead2; font-size: 12px; line-height: 1.5; background: transparent; resize: none; min-height: 49px; max-height: 130px; }
+.yogi-compose textarea::placeholder { color: #9daa9d; }
+.yogi-send-button { display: grid; place-items: center; min-width: 42px; min-height: 42px; border: 1px solid #d4b98155; border-radius: 8px; background: #dfbe85; color: #172b35; margin-bottom: 2px; }
+.yogi-send-button:disabled { opacity: .35; }
+.yogi-talk-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; padding-top: 11px; }
+.yogi-talk-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 18px; min-height: 44px; border: 1px solid #e2bc7855; border-radius: 25px; background: #b3924d22; color: #f1d39a; font-size: 11px; }
+.yogi-talk-button:hover { background: #b3924d33; }
+.yogi-talk-button.is-recording { color: #fff0d4; background: #a6664142; border-color: #dbad7399; }
+.yogi-talk-button:disabled { opacity: .45; }
+.yogi-cancel-button { padding: 10px 3px; min-height: 44px; background: transparent; border: 0; color: #d3c59f; font-size: 10px; text-decoration: underline; text-underline-offset: 3px; }
+.yogi-privacy-note { margin: 10px 0 0; color: #a4b09f; text-align: center; font-size: 8px; line-height: 1.6; flex-shrink: 0; }
+.yogi-dialog button:focus-visible, .yogi-dialog textarea:focus-visible, .yogi-dialog select:focus-visible, .yogi-dialog summary:focus-visible { outline: 2px solid #e3c285; outline-offset: 3px; }
+@keyframes yogi-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@media (max-width: 600px) {
+  .yogi-launcher { right: 14px; bottom: max(16px, env(safe-area-inset-bottom)); padding: 8px 13px 8px 8px; gap: 8px; min-height: 56px; }
+  .yogi-launcher-symbol { width: 38px; height: 38px; }
+  .yogi-launcher > span:nth-child(2) { font-size: 18px; }
+  .yogi-launcher small { font-size: 8px; }
+  .yogi-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); border-radius: 18px; }
+  .yogi-panel { max-height: calc(100dvh - 22px); padding: 17px 16px 13px; }
+  .yogi-header h2 { font-size: 27px; }
+  .yogi-eyebrow { font-size: 7px; letter-spacing: 1.25px; }
+  .yogi-avatar-stage { min-height: 165px; padding-bottom: 18px; }
+  .yogi-avatar-stage .ai-yogi-avatar { width: 155px; max-width: 155px; }
+  .yogi-avatar-placeholder { height: 155px; }
+  .yogi-description { margin: 11px auto 13px; font-size: 10px; }
+  .yogi-transcript { height: 180px; margin-top: 10px; padding-top: 11px; }
+  .yogi-greeting { padding: 9px 0 12px; }
+  .yogi-greeting p { font-size: 22px; }
+  .yogi-greeting small { font-size: 10px; }
+  .yogi-message { font-size: 12px; padding: 10px 11px; }
+  .yogi-controls { gap: 5px 7px; }
+  .yogi-mode { font-size: 8px; }
+  .yogi-compose textarea { font-size: 16px; line-height: 1.4; }
+  .yogi-send-button { min-width: 44px; min-height: 44px; }
+  .yogi-read-button, .yogi-calculations summary, .yogi-error button, .yogi-profile-link { min-height: 44px; }
+}
+@media (max-height: 700px) {
+  .yogi-avatar-stage { min-height: 125px; }
+  .yogi-avatar-stage .ai-yogi-avatar { width: 115px; max-width: 115px; }
+  .yogi-avatar-placeholder { height: 115px; }
+  .yogi-description { margin: 9px auto 10px; }
+  .yogi-transcript { height: 145px; min-height: 95px; flex-basis: 95px; }
+}
+@media (prefers-reduced-motion: reduce) { .yogi-launcher:hover { transform: none; } .yogi-thinking > span, .yogi-state-listening .yogi-avatar-status > span { animation: none; } }

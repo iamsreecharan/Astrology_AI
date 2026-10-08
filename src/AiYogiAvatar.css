@@ -1,0 +1,41 @@
+.ai-yogi-avatar {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1;
+  position: relative;
+  margin-inline: auto;
+  isolation: isolate;
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.ai-yogi-avatar__canvas,
+.ai-yogi-avatar__fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+.ai-yogi-avatar__canvas[hidden] { display: none; }
+
+.ai-yogi-avatar__aura {
+  position: absolute;
+  inset: 8% 5% 3%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 36%, #e5b16b1c 0, #dfb3730d 34%, transparent 69%);
+  transition: opacity .3s ease;
+  opacity: .85;
+}
+
+.ai-yogi-avatar--listening .ai-yogi-avatar__aura {
+  background: radial-gradient(ellipse at 50% 45%, #b6dacf19, #dfb3730d 42%, transparent 69%);
+}
+
+.ai-yogi-avatar--speaking .ai-yogi-avatar__aura { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-yogi-avatar__aura { transition: none; }
+}

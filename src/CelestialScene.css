@@ -1,11 +1,16 @@
 .celestial-scene { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; contain: strict; }
-.celestial-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: .54; }
+.celestial-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: .66; }
 .celestial-wash { position: absolute; inset: 0; background: radial-gradient(ellipse at 88% 21%, #eadbbd40 0, #eadbbd10 27%, transparent 52%), radial-gradient(ellipse at 2% 76%, #d9e1d124 0, transparent 35%); }
-.celestial-fallback { position: absolute; width: clamp(380px, 43vw, 590px); height: auto; right: -46px; top: 38px; opacity: .31; }
+.celestial-fallback { position: absolute; width: clamp(380px, 43vw, 590px); height: auto; right: -46px; top: 38px; opacity: .4; }
 .celestial-scene.is-ready .celestial-fallback { display: none; }
 .celestial-scene:not(.is-ready) .celestial-canvas { visibility: hidden; }
+.celestial-scene.is-intro { background: #0b1723; }
+.celestial-scene.is-intro .celestial-canvas { opacity: 1; }
+.celestial-scene.is-intro .celestial-wash { background: radial-gradient(ellipse at 82% 42%, #31475759 0, transparent 53%), radial-gradient(ellipse at 48% 10%, #79654120 0, transparent 54%), radial-gradient(ellipse at 13% 86%, #233c4050 0, transparent 44%); }
+.celestial-scene.is-intro .celestial-fallback { width: min(68vw, 800px); right: 1vw; top: 50%; transform: translateY(-50%); opacity: .85; }
 @media (max-width: 639px) {
-  .celestial-canvas { opacity: .34; }
-  .celestial-fallback { width: 380px; right: -155px; top: 58px; opacity: .21; }
+  .celestial-canvas { opacity: .46; }
+  .celestial-fallback { width: 380px; right: -155px; top: 58px; opacity: .29; }
 }
+@media (max-width: 900px) { .celestial-scene.is-intro .celestial-fallback { width: min(390px, 100vw); right: calc(50% - min(195px, 50vw)); top: calc(27.5dvh - min(195px, 50vw)); transform: none; opacity: .85; } }
 @media print { .celestial-scene { display: none; } }

@@ -1,5 +1,7 @@
 .app-shell { min-height: 100vh; position: relative; isolation: isolate; }
+.app-shell.is-welcoming { height: 100dvh; min-height: 0; overflow: hidden; }
 .app-shell > header, .app-shell > main, .app-shell > footer { position: relative; z-index: 1; }
+.app-shell.is-welcoming > header, .app-shell.is-welcoming > main, .app-shell.is-welcoming > footer, .app-shell.is-welcoming > .skip-link { visibility: hidden; }
 .skip-link { position: fixed; top: -80px; left: 20px; z-index: 20; padding: 12px 20px; color: white; background: var(--navy); border-radius: 4px; }
 .skip-link:focus { top: 10px; }
 .site-header { height: 96px; border-bottom: 1px solid #e7e3dc; background: #fcfaf7; }

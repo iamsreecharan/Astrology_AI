@@ -6,7 +6,7 @@ A Vedic birth-chart and astrology chat app built with React, TypeScript, Vite, a
 
 ![Astral with an example birth profile](docs/preview.png)
 
-The screenshot uses an example profile. Render creates a live URL after deployment; the cloud-onboarding screen does not provide an app preview.
+The screenshot uses an example profile. New tab sessions open with [“Welcome to a world moved by the cosmos.”](docs/welcome.png) Choose Enter Astral, Skip intro, or Escape to continue immediately; the welcome does not repeat when you reload that tab. Render creates a live URL after deployment; the cloud-onboarding screen does not provide an app preview.
 
 ## What it does
 
@@ -15,10 +15,11 @@ The screenshot uses an example profile. Render creates a live URL after deployme
 - Estimates traditional marriage windows with dates, completed-age ranges, and calculation reasons. It returns no window when the rules find none.
 - Finds conditional career opportunity periods and tracks changes in Saturn's traditional Moon-relative phases.
 - Explains married life, education, finances, family, travel, wellbeing, and general life themes using the relevant houses, rulers, and dasha periods.
-- Answers chart questions with a **Calculated Vedic guide**, or **Vedic AI** when an OpenAI key is configured.
+- Opens chat in **Vedic AI** when a server key is configured, with **Local** beside it for the calculated guide.
 - Suggests birthplaces worldwide as you type, with coordinates and time zones filled from the selected place.
 - Gives short, question-first chat replies, with supporting calculations available in **Calculation details**.
-- Adds a Three.js celestial background with animated planets and orbits, a static reduced-motion view, and a fallback when WebGL is unavailable.
+- Adds **AI Yogi**, an animated 3D guide with multilingual text and natural speech. Start a conversation once and it listens again after each answer until you end or close it.
+- Opens with a 3D planetary welcome and keeps animated Saturn, Earth, Jupiter, Mars, the Moon, and twinkling stars behind the app. Reduced-motion preferences get a static scene; WebGL has a visual fallback.
 - Keeps Western calendar sun-sign daily reflections and compatibility available for date-only profiles.
 - Saves profiles in the current browser, with controls to edit or remove them.
 
@@ -64,11 +65,21 @@ Set `ASTROLOGY_AI_API_KEY` securely for the server you are using:
 - **Codex cloud:** bind it in the environment's secret settings, save the configuration, and restart the app in an environment that has that binding.
 - **Local development:** add it to an ignored `.env` file in the repository, then restart `npm run dev`.
 
-These settings are separate. A key added locally or in Codex cloud does not automatically reach Render. `ASTROLOGY_AI_MODEL` is optional and defaults to `gpt-4.1-mini`. A valid key, model access, and provider billing are required; no key is included. After restarting, check the connection again in **Ask Astral**. The AI toggle appears when this server reports a configured key; that status alone does not verify provider access.
+These settings are separate. A key added locally or in Codex cloud does not automatically reach Render. `ASTROLOGY_AI_MODEL` is optional and defaults to `gpt-4.1-mini`. A valid key, model access, and provider billing are required; no key is included. After restarting, check the connection again in **Ask Astral**. Vedic AI is selected by default when this server reports a configured key, and Local is the second option. Choosing Local keeps that choice during connection checks and tab changes. Key presence alone does not verify provider access.
 
-Live AI requires a complete birth profile. The server sends derived chart facts, selected notes, the question, and up to six recent conversation messages to OpenAI. It excludes the raw profile name, birth date/time, place, coordinates, and time zone from the structured model context. Personal information typed into messages can still be sent. The model explains supplied values rather than calculating planetary positions; topic assessments and timing windows come from the server's rules.
+Live chart chat in **Ask Astral** requires a complete birth profile. **AI Yogi** can answer general questions without one; personal chart readings and timing need your saved birth details. The labeled example profile is not used as your personal Yogi chart. The server sends derived chart facts, selected notes, the question, and up to six recent conversation messages to OpenAI. It excludes the raw profile name, birth date/time, place, coordinates, and time zone from the structured model context. Personal information typed into messages can still be sent. The model explains supplied values rather than calculating planetary positions; topic assessments and timing windows come from the server's rules.
 
 The key stays on the server. Node's `--use-env-proxy` supports the cloud platform's HTTPS proxy route; the cloud secret destination is `api.openai.com`. Keep keys out of browser code, Git, and chat. Provider errors stay visible, and Local mode remains available.
+
+## Talk with AI Yogi
+
+Open **AI Yogi** and choose **Start conversation**. Allow microphone access, speak, and pause briefly when you finish. The guide transcribes your question, shows its answer, speaks those same words, and listens for your next question. The microphone is off while it thinks and speaks. **Send now** submits the current recording; **Stop voice** moves on to listening. **End conversation**, Close, Escape, or hiding the page stops the microphone and playback. Returning to the page requires an explicit resume.
+
+**Auto** matches your current question's language; the language picker provides Indian and other world languages. You can always type, edit a transcription that exceeds the question limit, or replay an answer. Voice quality and transcription accuracy vary by language, pronunciation, and background noise. The animated guide is fictional and its voice is AI-generated.
+
+Voice uses the same server key as chat. Defaults are `gpt-4o-mini-transcribe` for recognition and `gpt-4o-mini-tts` with the `sage` voice for speech. `ASTROLOGY_AI_TRANSCRIBE_MODEL` and `ASTROLOGY_AI_TTS_MODEL` are optional server overrides. Provider access and billing must cover these models as well as chat. A personal-chart Yogi turn first classifies the question, then generates an answer grounded in the corresponding calculated topic; a general turn without a profile needs only the answer request.
+
+Microphone input needs HTTPS on a hosted site and a browser with MediaRecorder and Web Audio support. Recordings stop after 45 seconds or at 8 MiB. Quiet recordings are discarded without a provider request. Audio goes through this server to OpenAI for transcription; answer text goes to OpenAI for speech. The app does not save audio on the server. If permission, recognition, or playback fails, the written conversation remains available. Without a key, Yogi offers limited local English notes and text input.
 
 ## Checks
 
@@ -78,7 +89,7 @@ npm run check
 
 This runs TypeScript checking, the production build, and Node tests for profiles, birthplace search, Western reflections, chart positions, D9, Vimshottari, topic assessments, timing rules, knowledge selection, and the API. Chart tests use independent numeric reference fixtures. Timing tests check period boundaries, ages, transit integration, ranking, and no-window behavior; they do not validate real-life outcomes.
 
-Provider tests use controlled responses to check grounding, conversation handling, privacy filtering, and failures without API charges. A real key must be verified separately.
+Provider tests use controlled responses to check grounding, multilingual conversation handling, privacy filtering, audio validation, bounded responses, and failures without API charges. A real key must be verified separately. Browser checks also cover continuous turns, microphone cleanup, mobile layout, and natural audio playback.
 
 ## API
 
@@ -90,7 +101,9 @@ Provider tests use controlled responses to check grounding, conversation handlin
 | `POST /api/profile` | Validate a profile |
 | `POST /api/chart` | Calculate a chart from `{ profile }` |
 | `POST /api/prediction` | Calculate a topic assessment from `{ profile, topic }` |
-| `POST /api/chat` | Answer `{ profile, message, focus, mode, history }` |
+| `POST /api/chat` | Answer `{ profile, message, focus, mode, history, assistant, language }` |
+| `POST /api/transcribe?language=auto` | Transcribe a raw audio body, up to 8 MiB |
+| `POST /api/voice` | Speak `{ text, language }` as MP3, up to 2,000 characters per request |
 | `POST /api/reading` | Create a local daily reflection |
 | `POST /api/compatibility` | Reflect on two Western sun signs |
 
@@ -111,6 +124,8 @@ A full profile looks like this:
 Prediction `topic` accepts `marriage`, `career`, `difficult-periods`, `married-life`, `general`, `education`, `finances`, `family`, `travel`, or `wellbeing`. The returned shape depends on the topic: event-related windows, Saturn phase changes, or house and dasha themes.
 
 Chat `focus` accepts `general`, `love`, `career`, or `wellbeing`; `mode` accepts `local` or `ai`. Optional `history` contains up to six `{ role: "user" | "assistant", content: "..." }` messages. The server uses the question and recent context to select a topic, recalculates charts, and ignores client-supplied chart data.
+
+`assistant` defaults to `astral`; `yogi` allows `profile: null` for general questions. `language` defaults to `auto` or accepts a BCP 47 tag such as `hi-IN` or `te-IN`. Transcription accepts WebM, MP4/M4A, WAV, OGG, and MP3 with their audio MIME types. Speech and transcription responses are not cached.
 
 ## Cloud setup
 
@@ -143,4 +158,5 @@ The hosted service has no account authentication or per-user AI quotas. POST req
 - `server/places.mjs`: bounded, read-only birthplace search.
 - `server/data/`: the bundled GeoNames SQLite snapshot and provenance.
 - `server/app.mjs`: API, provider integration, and frontend serving.
+- `server/voice.mjs`: audio transcription, natural speech, and language validation.
 - `tests/`: calculation and HTTP tests.

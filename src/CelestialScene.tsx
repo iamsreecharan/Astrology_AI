@@ -25,28 +25,78 @@ function randomSource(seed: number) {
   };
 }
 
-function surfaceTexture(kind: 'saturn' | 'moon' | 'sun') {
+function surfaceTexture(kind: 'saturn' | 'moon' | 'sun' | 'earth' | 'jupiter' | 'mars') {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 256;
   const context = canvas.getContext('2d');
   if (!context) return null;
   const pixels = context.createImageData(canvas.width, canvas.height);
-  const random = randomSource(kind === 'saturn' ? 27 : kind === 'moon' ? 9 : 12);
+  const random = randomSource({ saturn: 27, moon: 9, sun: 12, earth: 31, jupiter: 42, mars: 19 }[kind]);
+  const base = { saturn: [214, 190, 151], moon: [164, 156, 137], sun: [246, 171, 65], earth: [56, 103, 129], jupiter: [196, 156, 112], mars: [178, 106, 75] }[kind];
   for (let y = 0; y < canvas.height; y += 1) {
     const bands = Math.sin(y * 0.18) * 7 + Math.sin(y * 0.061) * 14 + Math.sin(y * 0.49) * 3;
     for (let x = 0; x < canvas.width; x += 1) {
-      const grain = (random() - 0.5) * (kind === 'moon' ? 26 : 11);
+      const grain = (random() - 0.5) * (kind === 'moon' || kind === 'mars' ? 26 : 11);
       const offset = (y * canvas.width + x) * 4;
-      const color = kind === 'saturn' ? [214, 190, 151] : kind === 'moon' ? [164, 156, 137] : [246, 171, 65];
-      const variation = kind === 'moon' ? grain : kind === 'sun' ? grain + Math.sin(x * 0.7 + y * 0.31) * 6 : bands + grain;
-      pixels.data[offset] = color[0] + variation;
-      pixels.data[offset + 1] = color[1] + variation;
-      pixels.data[offset + 2] = color[2] + variation;
+      const variation = kind === 'moon' || kind === 'earth' ? grain
+        : kind === 'sun' ? grain + Math.sin(x * 0.7 + y * 0.31) * 6
+          : kind === 'mars' ? grain + Math.sin(x * 0.023 + y * 0.013) * 12 + Math.sin(x * 0.04 - y * 0.065) * 9
+            : kind === 'jupiter' ? bands * 1.8 + Math.sin(y * 0.11 + Math.sin(x * 0.027) * 0.65) * 12 + grain : bands + grain;
+      pixels.data[offset] = base[0] + variation;
+      pixels.data[offset + 1] = base[1] + variation;
+      pixels.data[offset + 2] = base[2] + variation;
       pixels.data[offset + 3] = 255;
     }
   }
   context.putImageData(pixels, 0, 0);
+  if (kind === 'earth') {
+    const continents = [
+      [[-168, 65], [-150, 60], [-136, 58], [-124, 49], [-123, 38], [-116, 32], [-109, 24], [-97, 16], [-87, 20], [-81, 24], [-81, 31], [-70, 45], [-57, 54], [-64, 60], [-83, 67], [-110, 72], [-143, 70]],
+      [[-73, 59], [-55, 60], [-20, 76], [-37, 83], [-57, 80]],
+      [[-81, 12], [-66, 10], [-51, 2], [-35, -7], [-40, -21], [-52, -33], [-68, -55], [-77, -30], [-78, -9]],
+      [[-10, 36], [-6, 55], [8, 58], [21, 71], [44, 68], [75, 73], [113, 72], [151, 60], [179, 65], [166, 49], [142, 46], [130, 34], [122, 22], [108, 6], [99, 15], [78, 8], [68, 24], [50, 30], [36, 41], [20, 40]],
+      [[-17, 35], [10, 37], [32, 30], [43, 12], [51, 11], [40, -12], [33, -27], [18, -35], [10, -20], [-1, 4], [-17, 16]],
+      [[113, -22], [129, -11], [143, -13], [153, -25], [146, -39], [129, -34], [114, -34]],
+      [[47, -13], [50, -17], [45, -26], [43, -23]],
+      [[129, 32], [143, 44], [145, 41], [137, 33]],
+    ];
+    const land = context.createLinearGradient(0, 40, 0, 210);
+    land.addColorStop(0, '#b0b694');
+    land.addColorStop(0.32, '#76916c');
+    land.addColorStop(0.52, '#b9ad7d');
+    land.addColorStop(0.72, '#6e8864');
+    land.addColorStop(1, '#bcc1a0');
+    context.fillStyle = land;
+    for (const coastline of continents) {
+      context.beginPath();
+      coastline.forEach(([longitude, latitude], index) => {
+        const x = (longitude + 180) / 360 * canvas.width;
+        const y = (90 - latitude) / 180 * canvas.height;
+        if (index === 0) context.moveTo(x, y); else context.lineTo(x, y);
+      });
+      context.closePath();
+      context.fill();
+    }
+    context.fillStyle = '#e2e8de';
+    context.fillRect(0, 0, canvas.width, 9);
+    context.fillRect(0, 243, canvas.width, 13);
+  }
+  if (kind === 'jupiter') {
+    const storm = context.createRadialGradient(343, 163, 2, 346, 165, 43);
+    storm.addColorStop(0, '#ad6a47cc');
+    storm.addColorStop(0.6, '#bc7d5499');
+    storm.addColorStop(1, '#dfbb8200');
+    context.fillStyle = storm;
+    context.beginPath();
+    context.ellipse(346, 165, 45, 19, -0.07, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = '#ead6b245';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.ellipse(346, 165, 38, 14, -0.07, 0, Math.PI * 2);
+    context.stroke();
+  }
   if (kind === 'moon') {
     for (let index = 0; index < 65; index += 1) {
       const x = random() * canvas.width;
@@ -67,6 +117,56 @@ function surfaceTexture(kind: 'saturn' | 'moon' | 'sun') {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   return texture;
+}
+
+function cloudTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  const random = randomSource(63);
+  for (let index = 0; index < 95; index += 1) {
+    const x = random() * canvas.width;
+    const y = 22 + random() * 212;
+    const width = 7 + random() * 34;
+    const height = 2 + random() * 6;
+    const cloud = context.createRadialGradient(x, y, 0, x, y, width);
+    cloud.addColorStop(0, '#fffefa8f');
+    cloud.addColorStop(1, '#fffefa00');
+    context.fillStyle = cloud;
+    context.beginPath();
+    context.ellipse(x, y, width, height, (random() - 0.5) * 0.4, 0, Math.PI * 2);
+    context.fill();
+  }
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.wrapS = THREE.RepeatWrapping;
+  return map;
+}
+
+function sparkleTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  const glow = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+  glow.addColorStop(0, '#c7a264ee');
+  glow.addColorStop(0.17, '#c7a264b0');
+  glow.addColorStop(0.6, '#c7a26420');
+  glow.addColorStop(1, '#c7a26400');
+  context.fillStyle = glow;
+  context.fillRect(0, 0, 64, 64);
+  context.fillStyle = '#b8975bc7';
+  context.beginPath();
+  context.moveTo(32, 7);
+  context.quadraticCurveTo(34, 29, 57, 32);
+  context.quadraticCurveTo(34, 35, 32, 57);
+  context.quadraticCurveTo(29, 35, 7, 32);
+  context.quadraticCurveTo(29, 29, 32, 7);
+  context.fill();
+  return new THREE.CanvasTexture(canvas);
 }
 
 function glowTexture() {
@@ -149,6 +249,23 @@ function CelestialFallback() {
         <stop offset=".5" stopColor="#ad8e60" stopOpacity=".2" />
         <stop offset="1" stopColor="#ceb98c" stopOpacity=".7" />
       </linearGradient>
+      <radialGradient id="celestial-earth" cx="28%" cy="25%" r="79%">
+        <stop stopColor="#94bdc7" />
+        <stop offset=".55" stopColor="#56859a" />
+        <stop offset="1" stopColor="#3d5765" />
+      </radialGradient>
+      <radialGradient id="celestial-jupiter" cx="27%" cy="22%" r="82%">
+        <stop stopColor="#dfc69e" />
+        <stop offset=".58" stopColor="#c69e71" />
+        <stop offset="1" stopColor="#8e7962" />
+      </radialGradient>
+      <radialGradient id="celestial-mars" cx="28%" cy="24%" r="78%">
+        <stop stopColor="#d0a483" />
+        <stop offset=".6" stopColor="#b97958" />
+        <stop offset="1" stopColor="#8e6552" />
+      </radialGradient>
+      <clipPath id="celestial-earth-clip"><circle cx="128" cy="239" r="38" /></clipPath>
+      <clipPath id="celestial-jupiter-clip"><circle cx="534" cy="459" r="49" /></clipPath>
     </defs>
     <g stroke="#ac946f" strokeOpacity=".3">
       <circle cx="320" cy="320" r="265" />
@@ -163,12 +280,34 @@ function CelestialFallback() {
     <circle cx="320" cy="320" r="96" fill="url(#celestial-planet)" />
     <path d="M 153 383 C 211 393 400 350 493 247" stroke="url(#celestial-ring)" strokeWidth="25" />
     <circle cx="531" cy="177" r="14" fill="#d4ccba" />
+    <circle cx="128" cy="239" r="38" fill="url(#celestial-earth)" />
+    <g clipPath="url(#celestial-earth-clip)" fill="#a7b292" opacity=".85">
+      <path d="M100 207L111 215L106 226L116 238L110 250L99 243L92 227ZM124 242L137 245L139 261L131 275L126 264ZM136 205L155 213L149 228L132 229L130 222ZM148 240L160 246L157 259L145 253Z" />
+    </g>
+    <circle cx="534" cy="459" r="49" fill="url(#celestial-jupiter)" />
+    <g clipPath="url(#celestial-jupiter-clip)" stroke="#ad8059" strokeWidth="7" strokeOpacity=".35">
+      <path d="M480 433Q533 441 586 432M480 452Q533 461 586 451M480 473Q533 483 586 472" />
+      <ellipse cx="553" cy="474" rx="13" ry="5" fill="#b87d56" stroke="none" />
+    </g>
+    <circle cx="207" cy="447" r="24" fill="url(#celestial-mars)" />
+    <g fill="#b39865" opacity=".55">
+      <path d="M77 318L80 330L92 333L80 336L77 348L74 336L62 333L74 330Z" />
+      <path d="M430 83L432 92L441 94L432 96L430 105L428 96L419 94L428 92Z" />
+      <path d="M410 526L412 535L421 537L412 539L410 548L408 539L399 537L408 535Z" />
+    </g>
   </svg>;
 }
 
-export default function CelestialScene() {
+export default function CelestialScene({ intro = false }: { intro?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const introMode = useRef(intro);
+  const refreshLayout = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    introMode.current = intro;
+    refreshLayout.current?.();
+  }, [intro]);
 
   useEffect(() => {
     const element = host.current;
@@ -178,9 +317,9 @@ export default function CelestialScene() {
     let renderer: THREE.WebGLRenderer;
     try {
       const probe = document.createElement('canvas');
-      const context = probe.getContext('webgl2', { alpha: true, antialias: false, powerPreference: 'low-power' });
+      const context = probe.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'low-power' });
       if (!context) return;
-      renderer = new THREE.WebGLRenderer({ canvas: probe, context, alpha: true, antialias: false, powerPreference: 'low-power' });
+      renderer = new THREE.WebGLRenderer({ canvas: probe, context, alpha: true, antialias: true, powerPreference: 'low-power' });
     } catch {
       return;
     }
@@ -195,7 +334,8 @@ export default function CelestialScene() {
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-8, 8, 5, -5, 0.1, 80);
     camera.position.set(0, 0, 18);
-    scene.add(new THREE.AmbientLight(0xdce1dd, 1.65));
+    const ambientLight = new THREE.AmbientLight(0xdce1dd, 1.65);
+    scene.add(ambientLight);
     const sunlight = new THREE.DirectionalLight(0xffefd0, 3.4);
     sunlight.position.set(-5, 6, 8);
     scene.add(sunlight);
@@ -227,6 +367,32 @@ export default function CelestialScene() {
       map: surfaceTexture('moon'), roughness: 1,
     }));
     planetarySystem.add(moon);
+
+    const neighboringPlanets = new THREE.Group();
+    scene.add(neighboringPlanets);
+    const earth = new THREE.Mesh(new THREE.SphereGeometry(0.43, 32, 24), new THREE.MeshStandardMaterial({
+      map: surfaceTexture('earth'), roughness: 0.78, metalness: 0,
+    }));
+    earth.rotation.set(0.17, -1.55, 0.18);
+    neighboringPlanets.add(earth);
+    const earthClouds = new THREE.Mesh(new THREE.SphereGeometry(0.44, 32, 24), new THREE.MeshStandardMaterial({
+      map: cloudTexture(), transparent: true, opacity: 0.62, roughness: 1, depthWrite: false,
+    }));
+    earth.add(earthClouds);
+    const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(0.455, 24, 16), new THREE.MeshBasicMaterial({
+      color: 0x91bbca, transparent: true, opacity: 0.14, side: THREE.BackSide, depthWrite: false,
+    }));
+    earth.add(atmosphere);
+    const jupiter = new THREE.Mesh(new THREE.SphereGeometry(0.59, 32, 24), new THREE.MeshStandardMaterial({
+      map: surfaceTexture('jupiter'), roughness: 0.94, metalness: 0,
+    }));
+    jupiter.rotation.set(0.05, -0.65, -0.12);
+    neighboringPlanets.add(jupiter);
+    const mars = new THREE.Mesh(new THREE.SphereGeometry(0.27, 24, 16), new THREE.MeshStandardMaterial({
+      map: surfaceTexture('mars'), roughness: 1, metalness: 0,
+    }));
+    mars.rotation.set(0.15, 0.8, -0.2);
+    neighboringPlanets.add(mars);
 
     const zodiacWheel = new THREE.Group();
     zodiacWheel.rotation.x = 0.36;
@@ -261,16 +427,30 @@ export default function CelestialScene() {
     sunGroup.add(outerOrbit);
 
     const random = randomSource(108);
-    const starCoordinates = new Float32Array(95 * 3);
-    for (let index = 0; index < 95; index += 1) {
+    const starCoordinates = new Float32Array(230 * 3);
+    for (let index = 0; index < 230; index += 1) {
       starCoordinates[index * 3] = (random() - 0.5) * 22;
       starCoordinates[index * 3 + 1] = (random() - 0.5) * 11;
       starCoordinates[index * 3 + 2] = -2 - random() * 4;
     }
     const starsGeometry = new THREE.BufferGeometry();
     starsGeometry.setAttribute('position', new THREE.BufferAttribute(starCoordinates, 3));
-    const stars = new THREE.Points(starsGeometry, new THREE.PointsMaterial({ color: 0xa98a55, size: 0.025, transparent: true, opacity: 0.32 }));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xa98a55, size: 0.032, transparent: true, opacity: 0.39 });
+    const stars = new THREE.Points(starsGeometry, starMaterial);
     scene.add(stars);
+    const sparkles = new THREE.Group();
+    scene.add(sparkles);
+    const sparkMap = sparkleTexture();
+    const sparklePositions = [[-3.1, 1.02], [1.35, 1.25], [-2.9, -1.78], [2.23, -0.9], [-0.9, -2.45], [-4.02, -0.5]];
+    const sparkleMaterials: THREE.SpriteMaterial[] = [];
+    for (let index = 0; index < sparklePositions.length; index += 1) {
+      const material = new THREE.SpriteMaterial({ map: sparkMap, transparent: true, opacity: 0.47, depthWrite: false });
+      const sparkle = new THREE.Sprite(material);
+      sparkle.position.set(...sparklePositions[index] as [number, number], -0.3);
+      sparkle.scale.setScalar(index % 2 ? 0.22 : 0.31);
+      sparkles.add(sparkle);
+      sparkleMaterials.push(material);
+    }
 
     let frame = 0;
     let previousFrame = 0;
@@ -281,6 +461,17 @@ export default function CelestialScene() {
     let narrow = false;
     const pointer = new THREE.Vector2();
     const drift = new THREE.Vector2();
+    const earthHome = new THREE.Vector3();
+    const jupiterHome = new THREE.Vector3();
+    const marsHome = new THREE.Vector3();
+    const moveAlongOrbit = (body: THREE.Mesh, home: THREE.Vector3, speed: number) => {
+      const angle = elapsed * speed;
+      body.position.set(
+        home.x * Math.cos(angle) - home.y / 0.75 * Math.sin(angle),
+        home.x * 0.75 * Math.sin(angle) + home.y * Math.cos(angle),
+        home.z + Math.sin(angle) * 0.55,
+      );
+    };
 
     const render = () => {
       if (!contextUnavailable) renderer.render(scene, camera);
@@ -296,9 +487,28 @@ export default function CelestialScene() {
       planet.rotation.y = elapsed * 0.05;
       planetarySystem.rotation.y = Math.sin(elapsed * 0.06) * 0.12 + drift.x;
       planetarySystem.rotation.x = 0.27 + drift.y;
+      neighboringPlanets.rotation.y = drift.x * 0.4;
+      earth.rotation.y = -1.55 + elapsed * 0.095;
+      earthClouds.rotation.y = elapsed * 0.025;
+      jupiter.rotation.y = -0.65 + elapsed * 0.058;
+      mars.rotation.y = 0.8 + elapsed * 0.078;
+      if (introMode.current) {
+        moveAlongOrbit(earth, earthHome, 0.042);
+        moveAlongOrbit(jupiter, jupiterHome, 0.026);
+        moveAlongOrbit(mars, marsHome, 0.055);
+      } else {
+        earth.position.set(earthHome.x + Math.cos(elapsed * 0.13) * 0.08, earthHome.y + Math.sin(elapsed * 0.15) * 0.1, earthHome.z);
+        jupiter.position.set(jupiterHome.x + Math.sin(elapsed * 0.09) * 0.07, jupiterHome.y + Math.sin(elapsed * 0.12 + 2) * 0.07, jupiterHome.z);
+        mars.position.set(marsHome.x + Math.sin(elapsed * 0.17) * 0.1, marsHome.y + Math.sin(elapsed * 0.14 + 1) * 0.07, marsHome.z);
+      }
       zodiacWheel.rotation.z = -0.14 + elapsed * 0.009;
       moon.position.set(Math.cos(elapsed * 0.075 + 0.8) * 2.35, Math.sin(elapsed * 0.075 + 0.8) * 0.58, Math.sin(elapsed * 0.075 + 0.8) * 1.6);
       sun.rotation.y = elapsed * 0.025;
+      starMaterial.opacity = (introMode.current ? 0.75 : 0.39) + Math.sin(elapsed * 0.48) * 0.07;
+      sparkleMaterials.forEach((material, index) => {
+        material.opacity = (introMode.current ? 0.75 : 0.4) + Math.sin(elapsed * (0.55 + index * 0.06) + index * 1.4) * 0.18;
+      });
+      stars.position.set(drift.x * 0.6, drift.y * 0.6, 0);
       render();
     };
     const stopAnimation = () => {
@@ -318,17 +528,36 @@ export default function CelestialScene() {
       if (!width || !height) return;
       const aspect = width / height;
       narrow = width < 640;
+      const welcoming = introMode.current;
+      const compactIntro = welcoming && width <= 900;
       camera.left = -aspect * 5;
       camera.right = aspect * 5;
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, narrow ? 1.25 : 1.5));
       renderer.setSize(width, height, false);
-      planetarySystem.scale.setScalar(narrow ? 0.65 : 0.91);
-      planetarySystem.position.set(aspect * 5 - (narrow ? 0.75 : 2.1), narrow ? 3.02 : 2.8, 0);
-      zodiacWheel.scale.setScalar(narrow ? 0.64 : 0.91);
+      ambientLight.intensity = welcoming ? 0.9 : 1.65;
+      sunlight.intensity = welcoming ? 2.7 : 3.4;
+      starMaterial.color.setHex(welcoming ? 0xc5d6e2 : 0xa98a55);
+      starMaterial.size = welcoming ? 0.04 : 0.032;
+      starMaterial.opacity = welcoming ? 0.75 : 0.39;
+      planetarySystem.scale.setScalar(welcoming ? compactIntro ? 0.74 : 1.32 : narrow ? 0.65 : 0.91);
+      planetarySystem.position.set(welcoming ? compactIntro ? 0.15 : aspect * 5 - 3 : aspect * 5 - (narrow ? 0.75 : 2.1), welcoming ? compactIntro ? 2.25 : 0.4 : narrow ? 3.02 : 2.8, 0);
+      neighboringPlanets.position.copy(planetarySystem.position);
+      neighboringPlanets.scale.setScalar(welcoming ? compactIntro ? 0.7 : 1.15 : narrow ? 0.53 : 0.88);
+      earthHome.set(compactIntro ? -1.62 : narrow ? -1.45 : -2.21, compactIntro ? 0.65 : narrow ? -0.95 : 0.54, 0.9);
+      jupiterHome.set(compactIntro ? 1.5 : narrow ? 0.75 : 1.52, compactIntro ? -1.27 : narrow ? -2.53 : -1.7, -0.5);
+      marsHome.set(compactIntro ? -1.18 : narrow ? -0.48 : -2.05, compactIntro ? -1.73 : narrow ? -3.13 : -1.17, 0.4);
+      earth.position.copy(earthHome);
+      jupiter.position.copy(jupiterHome);
+      mars.position.copy(marsHome);
+      sparkles.position.copy(planetarySystem.position);
+      sparkles.scale.setScalar(welcoming ? compactIntro ? 0.62 : 1.18 : narrow ? 0.46 : 0.9);
+      sparkleMaterials.forEach(material => { material.opacity = welcoming ? 0.75 : 0.47; });
+      zodiacWheel.scale.setScalar(welcoming ? compactIntro ? 0.65 : 1.2 : narrow ? 0.64 : 0.91);
       zodiacWheel.position.copy(planetarySystem.position);
-      sunGroup.position.set(-aspect * 5 + (narrow ? 0.25 : 0.65), -2.35, 0);
+      sunGroup.position.set((welcoming ? 1 : -1) * (aspect * 5 - (narrow ? 0.25 : 0.65)), welcoming ? -3.5 : -2.35, 0);
       sunGroup.scale.setScalar(narrow ? 0.75 : 1);
+      sunGroup.visible = !compactIntro;
       moon.position.set(1.64, 0.42, 1.1);
       render();
     };
@@ -349,6 +578,10 @@ export default function CelestialScene() {
       syncAnimation();
     };
     const observer = new ResizeObserver(resize);
+    refreshLayout.current = () => {
+      resize();
+      syncAnimation();
+    };
     observer.observe(element);
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     document.addEventListener('visibilitychange', syncAnimation);
@@ -361,6 +594,7 @@ export default function CelestialScene() {
 
     return () => {
       disposed = true;
+      refreshLayout.current = null;
       stopAnimation();
       observer.disconnect();
       window.removeEventListener('pointermove', onPointerMove);
@@ -375,7 +609,7 @@ export default function CelestialScene() {
     };
   }, []);
 
-  return <div ref={host} className={`celestial-scene${ready ? ' is-ready' : ''}`} aria-hidden="true">
+  return <div ref={host} className={`celestial-scene${ready ? ' is-ready' : ''}${intro ? ' is-intro' : ''}`} aria-hidden="true">
     <div className="celestial-wash" />
     <CelestialFallback />
   </div>;

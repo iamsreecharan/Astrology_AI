@@ -455,7 +455,7 @@ test('local Vedic chat supplies computed facts, references, and marriage timing 
   await withServer({}, async ({ post }) => {
     const chartResponse = await post('/api/chart', { profile: vedicProfile });
     const chart = await chartResponse.json();
-    const factsResponse = await post('/api/chat', { profile: vedicProfile, message: 'Explain my nakshatra, lagna and D9.', mode: 'local' });
+    const factsResponse = await post('/api/chat', { profile: vedicProfile, message: 'Explain my nakshatra, Moon rashi, lagna and D9.', mode: 'local' });
     assert.equal(factsResponse.status, 200);
     const factsReply = await factsResponse.json();
     assert.equal(factsReply.source, 'local');
@@ -539,10 +539,18 @@ test('local forecasts answer career, hard periods, marriage quality, and other l
       assertForecast(result.prediction, topic);
       assert.deepEqual(result.prediction, prediction);
       assert.ok(result.reply.trim().length > 0);
+      assert.ok(result.reply.trim().split(/\s+/).length <= 160, `${topic} answer must stay brief`);
       if (topic === 'marriage') {
         assertLocalTimingReply(result, prediction);
+      } else if (topic === 'difficult-periods') {
+        assert.ok(result.reply.includes(prediction.currentPhase.name));
+        const exit = prediction.factors.find(factor => /first absent at the monthly sample on/.test(factor))?.match(/monthly sample on (\d{4}-\d{2}-\d{2})/)?.[1];
+        if (exit) assert.ok(result.reply.includes(exit));
+        assert.match(result.reply, /not the guaranteed end of hardship/);
+        assert.doesNotMatch(result.reply, /nakshatra|Moon rashi|Computed factors:/);
       } else {
-        for (const window of prediction.windows) {
+        const summarizedWindows = topic === 'career' ? prediction.windows : prediction.windows.slice(0, 1);
+        for (const window of summarizedWindows) {
           assert.ok(result.reply.includes(window.start), `${topic} must state supplied window start dates`);
           assert.ok(result.reply.includes(window.end), `${topic} must state supplied window end dates`);
         }
@@ -675,7 +683,7 @@ test('mock AI receives grounded forecasts for every topic without raw birth iden
       assert.equal(call.options.headers.Authorization, `Bearer ${privateKey}`);
       const body = JSON.parse(call.options.body);
       assert.equal(body.store, false);
-      assert.equal(body.max_completion_tokens, 1200);
+      assert.equal(body.max_completion_tokens, 550);
       assert.deepEqual(body.messages.map(turn => turn.role), ['system', 'user']);
       const context = JSON.parse(body.messages.at(-1).content);
       assert.equal(context.question, message);
@@ -781,7 +789,7 @@ test('live AI requires a full chart and sends derived Jyotish context without ra
     assert.ok(calls[0].options.signal instanceof AbortSignal);
     const body = JSON.parse(calls[0].options.body);
     assert.equal(body.model, 'test-model');
-    assert.equal(body.max_completion_tokens, 1200);
+    assert.equal(body.max_completion_tokens, 550);
     assert.equal(body.store, false);
     assert.deepEqual(body.messages.map(message => message.role), ['system', 'user']);
     const context = JSON.parse(body.messages[1].content);

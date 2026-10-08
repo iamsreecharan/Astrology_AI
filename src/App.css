@@ -1,4 +1,5 @@
-.app-shell { min-height: 100vh; }
+.app-shell { min-height: 100vh; position: relative; isolation: isolate; }
+.app-shell > header, .app-shell > main, .app-shell > footer { position: relative; z-index: 1; }
 .skip-link { position: fixed; top: -80px; left: 20px; z-index: 20; padding: 12px 20px; color: white; background: var(--navy); border-radius: 4px; }
 .skip-link:focus { top: 10px; }
 .site-header { height: 96px; border-bottom: 1px solid #e7e3dc; background: #fcfaf7; }
@@ -337,6 +338,16 @@ h1 em { color: #977347; font-weight: 400; }
 .ai-setup-help summary { color: #938056; font-size: 9px; cursor: pointer; }
 .ai-setup-help p { font-size: 10px; line-height: 1.9; color: #8c9278; margin: 9px 0 2px; }
 .ai-setup-help code { color: #727d5f; font-size: 9px; overflow-wrap: anywhere; }
+.ai-connection-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 25px; border-bottom: 1px solid #e4dfd0; background: #faf8f0; color: #818973; font-size: 9px; line-height: 1.7; }
+.ai-connection-row button { border: 0; background: transparent; padding: 3px 0; color: #8f774c; text-decoration: underline; text-underline-offset: 3px; font-size: 9px; white-space: nowrap; }
+.ai-connection-row button:disabled { color: #989a89; text-decoration: none; }
+.message-calculations { margin-top: 13px; padding-top: 11px; border-top: 1px solid #dfe3d1; }
+.message-calculations > summary { cursor: pointer; color: #8f7e53; font-size: 10px; line-height: 1.8; }
+.message-calculations > summary:focus-visible { outline: 2px solid #aa813f; outline-offset: 4px; border-radius: 2px; }
+.message-calculations .prediction-factors h3, .message-calculations .method-details h3, .message-references h3 { font-size: 10px; line-height: 1.8; font-weight: 500; color: #8f7e53; margin: 0; }
+.message-calculations .prediction-results { margin-top: 14px; padding-top: 0; border-top: 0; }
+.message-calculations .method-details { font-size: 10px; }
+.message-calculations .window-reasons { font-size: 9px; }
 .message-references { margin-top: 13px; padding-top: 11px; border-top: 1px solid #dfe3d1; font-size: 9px; color: #8b957b; line-height: 1.8; }
 .message-references summary { color: #8f7e53; cursor: pointer; }
 .message-references ul { padding-left: 17px; margin: 8px 0 0; }

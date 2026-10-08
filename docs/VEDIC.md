@@ -4,7 +4,9 @@ Astral calculates chart facts before generating an interpretation. A local guide
 
 ## Astronomy and birth inputs
 
-A full profile needs the recorded local birth time, date, place, latitude, longitude, and IANA zone. The [Temporal polyfill](https://github.com/js-temporal/temporal-polyfill) applies historical offsets and rejects ambiguous or nonexistent daylight-saving times. A place label does not geocode itself; presets provide coordinates and custom profiles must supply them.
+A full profile needs the recorded local birth time, date, place, latitude, longitude, and IANA zone. Selecting a birthplace suggestion supplies its coordinates and IANA zone from the bundled GeoNames snapshot. A typed name must be selected or accompanied by manually entered location fields; editing a selection clears its old coordinates. The [Temporal polyfill](https://github.com/js-temporal/temporal-polyfill) applies historical offsets and rejects ambiguous or nonexistent daylight-saving times.
+
+The snapshot contains 234,908 places across 246 country codes and 394 time zones. City and town coordinates identify the settlement, not an exact birth address. Check the region and country for duplicate names, and use manual coordinates and a verified IANA zone where needed. Coverage is limited by the snapshot and does not include every village or hospital. Search reads a local, read-only SQLite file and makes no external geocoding request. The [data notes](../server/data/README.md) describe sources, transformations, and GeoNames CC BY 4.0 attribution.
 
 [Astronomy Engine](https://github.com/cosinekitty/astronomy) calculates geocentric positions for the Sun, Moon, Mercury, Venus, Mars, Jupiter, and Saturn. Sidereal positions use an approximate Lahiri ayanamsha: a mean anchor of 23.245524743° at TT Julian date 2435553.5 advanced with the IAU 2006/P03 precession polynomial associated with Capitaine, Wallace, and Chapront. Nutation adjusts the apparent planetary and ascendant frame. Mean Rahu uses the lunar-node polynomial described by Jean Meeus in *Astronomical Algorithms*; Ketu is opposite Rahu.
 
@@ -71,7 +73,7 @@ It does not determine a partner's behavior, relationship success, wealth, an exa
 
 `server/vedic-knowledge.mjs` contains original concise notes on methods, houses, grahas, nakshatras, and question topics. Selection follows the chart and question. Chat references identify these application notes, not classical-text quotations or verse citations.
 
-The local guide uses rules. Live AI uses an existing OpenAI model, default `gpt-4.1-mini`, with derived chart facts, selected notes, recent conversation, and computed timing windows. Raw profile fields are excluded from structured model context. The prompt asks the model to preserve supplied values and ranges and avoid invented factors. Model mistakes remain possible.
+The local guide uses rules. Chat gives a short answer to the question first, with full topic results and supporting references available under **Calculation details**. Live AI uses an existing OpenAI model, default `gpt-4.1-mini`, with derived chart facts, selected notes, recent conversation, and computed timing windows. Raw profile fields are excluded from structured model context. The prompt asks for concise explanations that preserve supplied values and ranges and avoid invented factors. Model mistakes remain possible.
 
 This is contextual grounding, not custom training on every Vedic text or technique. True nodes, other divisional charts, detailed yogas, strength scores, exact muhurta, and kundli matching are outside the implementation.
 

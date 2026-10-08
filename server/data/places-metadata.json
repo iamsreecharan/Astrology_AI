@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "placeCount": 234908,
+  "countryCount": 246,
+  "timeZoneCount": 394,
+  "regionNameCount": 2752,
+  "placesWithRegion": 230617,
+  "normalizedAlternateNameCount": 856374,
+  "databaseBytes": 51339264,
+  "databaseSha256": "c3b4e4c386fe947265fe149d4892f497ba5d271c864f0322185618961f6357af",
+  "license": "CC BY 4.0",
+  "attribution": "GeoNames geographical database, https://www.geonames.org/",
+  "sources": {
+    "cities": {
+      "snapshot": "geonamescache 3.0.2 cities500.json",
+      "url": "https://pypi.org/project/geonamescache/3.0.2/",
+      "wheelSha256": "b830e8942f2d58c7e68782dcf4dff2ffe8c4104a35ee881ed1ad4023cefcdba4",
+      "citiesSha256": "1523be8c6f083eeee946e1c27a0916474d0f0de4361a15104fcc70218bc4d55e",
+      "countriesSha256": "41c01b0843461207e71ba7530434738a4e7a7c84efd72aba03f547f450ca1ba4"
+    },
+    "regions": {
+      "url": "https://github.com/datasets/world-cities",
+      "commit": "9aed79dc1401599172fe61a8b9a1bdea414acb49",
+      "csvSha256": "2dd022b636b2edf3226e4d52065d9f2f10c1373e1865f50e91518510a2ead9a3",
+      "derivedRegionsSha256": "d86e14473219e92e85d7360da93d7ac36892e12cf6acd08d8e301a96e4550aec"
+    }
+  },
+  "changes": "Normalized alternate names and built a SQLite FTS5 index. Region names were joined by GeoNames id and extended to a country/admin1 code only where the source names agreed.",
+  "coverage": "Populated places in the GeoNames cities500 snapshot. This is a city and town search, not a street-address directory."
+}

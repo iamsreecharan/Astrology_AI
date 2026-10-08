@@ -8,6 +8,7 @@ import { estimateMarriageWindows } from './vedic-timing.mjs';
 import { estimateCareerWindows, describeDifficultPeriods } from './vedic-forecast.mjs';
 import { analyzeLifeArea } from './vedic-life.mjs';
 import { buildVedicMessages, buildVedicLocalReply } from './vedic-knowledge.mjs';
+import { searchPlaces, PLACE_ATTRIBUTION } from './places.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const FOCUSES = new Set(['general', 'love', 'career', 'wellbeing']);
@@ -131,6 +132,7 @@ export async function createApp({
   });
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'astral' }));
   app.get('/api/config', (_req, res) => res.json({ aiEnabled: Boolean(aiKey), model: aiKey ? model : null, signs: SIGNS }));
+  app.get('/api/places', (req, res) => res.json({ places: searchPlaces(req.query.q), attribution: PLACE_ATTRIBUTION }));
   app.post('/api/profile', (req, res) => res.json(validateProfile(req.body, { today: today() })));
   app.post('/api/chart', (req, res) => {
     const profile = validateProfile(req.body?.profile, { today: today() });
@@ -187,7 +189,7 @@ export async function createApp({
         signal: AbortSignal.timeout(20000),
         body: JSON.stringify({
           model,
-          max_completion_tokens: 1200,
+          max_completion_tokens: 550,
           store: false,
           messages: grounded.messages,
         }),

@@ -1,0 +1,11 @@
+.celestial-scene { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; contain: strict; }
+.celestial-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: .54; }
+.celestial-wash { position: absolute; inset: 0; background: radial-gradient(ellipse at 88% 21%, #eadbbd40 0, #eadbbd10 27%, transparent 52%), radial-gradient(ellipse at 2% 76%, #d9e1d124 0, transparent 35%); }
+.celestial-fallback { position: absolute; width: clamp(380px, 43vw, 590px); height: auto; right: -46px; top: 38px; opacity: .31; }
+.celestial-scene.is-ready .celestial-fallback { display: none; }
+.celestial-scene:not(.is-ready) .celestial-canvas { visibility: hidden; }
+@media (max-width: 639px) {
+  .celestial-canvas { opacity: .34; }
+  .celestial-fallback { width: 380px; right: -155px; top: 58px; opacity: .21; }
+}
+@media print { .celestial-scene { display: none; } }

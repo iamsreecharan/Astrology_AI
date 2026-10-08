@@ -22,6 +22,7 @@ const prediction = {
   windows: [{ start: '2027-01-01T00:00:00Z', end: '2029-04-01T00:00:00Z', ageRange: { min: 29.3, max: 31.6 }, reasons: ['Seventh-house ruler Jupiter period', 'Venus subperiod'] }],
   method: ['Adult Vimshottari rule score'], limitations: ['No Navamsa verification'], rawBirthDate: 'PRIVATE PREDICTION EXTRA',
 };
+const wordCount = reply => reply.trim().split(/\s+/).length;
 
 test('chart prompt whitelists derived facts and omits identity and raw birth fields', () => {
   const result = buildVedicMessages(chart, { message: 'What is my birth star?' });
@@ -95,9 +96,10 @@ test('marriage grounding carries only computed ages and requires conditional ran
   const local = buildVedicLocalReply(chart, { message: 'Marriage age?', prediction });
   assert.match(local.reply, /estimated ages 29\.3–31\.6/);
   assert.match(local.reply, /2027-01-01 to 2029-04-01/);
-  assert.match(local.reply, /Seventh-house ruler Jupiter period/);
+  assert.match(local.reply, /seventh-house ruler Jupiter period/i);
   assert.match(local.reply, /not a promised wedding date/);
-  assert.match(local.reply, /rule-based local/);
+  assert.ok(wordCount(local.reply) <= 120);
+  assert.doesNotMatch(local.reply, /rule-based local|Moon rashi|birth nakshatra|mahada/);
 });
 
 test('no computed marriage window does not produce an age or a never-marry claim', () => {
@@ -109,7 +111,8 @@ test('no computed marriage window does not produce an age or a never-marry claim
   const unavailable = buildVedicLocalReply(chart, { message: 'Marriage age?' }).reply;
   assert.match(unavailable, /cannot provide a numeric marriage age/);
   const relationship = buildVedicLocalReply(chart, { message: 'How can I communicate with my partner?', focus: 'love' });
-  assert.match(relationship.reply, /birth nakshatra: Rohini/);
+  assert.match(relationship.reply, /relationship themes/i);
+  assert.doesNotMatch(relationship.reply, /birth nakshatra|Moon rashi/);
   assert.doesNotMatch(relationship.reply, /No marriage timing window/);
   const prompt = buildVedicMessages(chart, { message: 'Marriage age?', prediction: noWindow });
   assert.equal(JSON.parse(prompt.messages.at(-1).content).prediction.status, 'no-window');
@@ -136,14 +139,11 @@ test('history cannot introduce privileged roles or replace the final calculated 
 
 test('local explanation uses actual supplied chart and states unsupported calculations', () => {
   const { reply } = buildVedicLocalReply(chart, { message: 'Please calculate my Navamsa D9 and yogas' });
-  assert.match(reply, /Moon rashi: Vrishabha \(Taurus\)/);
-  assert.match(reply, /birth nakshatra: Rohini, pada 2/);
-  assert.match(reply, /lagna: Kanya \(Virgo\)/);
-  assert.match(reply, /Jupiter mahadasha/);
-  assert.match(reply, /Saturn antardasha/);
+  assert.doesNotMatch(reply, /Rohini|Vrishabha|Jupiter|Saturn/);
   assert.match(reply, /not calculated here/);
   assert.match(reply, /Computed D9\/Navamsa/);
   assert.match(reply, /Venus in Mesha \(Aries\), house 10/);
+  assert.ok(wordCount(reply) <= 80);
   assert.doesNotMatch(reply, /PRIVATE/);
   const prompt = buildVedicMessages(chart, { message: 'Predict every future transit and train yourself' });
   assert.match(prompt.messages[0].content, /not a specially trained or fine-tuned astrologer/);
@@ -191,11 +191,12 @@ test('all forecast topics preserve only their computed fields and answer the sup
     assert.ok(messages.references.length <= 10);
     for (const id of ['moon.birth', 'nakshatra.rohini', 'graha.jupiter', 'graha.saturn']) assert.ok(messages.references.some(entry => entry.id === id), `${topic}: ${id}`);
     const local = buildVedicLocalReply(chart, { message: question, prediction: forecast });
-    assert.match(local.reply, /2027-02-01 to 2027-05-31/, topic);
-    assert.ok(local.reply.includes(`Computed ${topic} period link`), topic);
-    assert.ok(local.reply.includes(`Computed ${topic} house-ruler link`), topic);
-    assert.ok(local.reply.includes(`Traditional ${topic} theme`), topic);
-    assert.match(local.reply, /birth nakshatra: Rohini, pada 2/);
+    if (topic !== 'difficult-periods') assert.match(local.reply, /2027-02-01 to 2027-05-31/, topic);
+    if (topic === 'career') assert.ok(local.reply.includes(`computed ${topic} period link`), topic);
+    else if (topic === 'difficult-periods') assert.ok(local.reply.includes(forecast.currentPhase.name));
+    else assert.ok(local.reply.includes(`Traditional ${topic} theme`), topic);
+    assert.ok(wordCount(local.reply) <= 120, topic);
+    assert.doesNotMatch(local.reply, /birth nakshatra|Moon rashi|rawBirthDate|PRIVATE/, topic);
     assert.doesNotMatch(local.reply, /traditional marriage windows|No marriage timing window/, topic);
     assert.doesNotMatch(local.reply, /PRIVATE/, topic);
   }
@@ -214,16 +215,13 @@ test('interpreted and no-window forecasts preserve themes without invented dates
 });
 
 test('interpreted forecasts report supplied period intervals as themes without event guarantees', () => {
-  for (const topic of ['family', 'difficult-periods']) {
+  for (const topic of ['family', 'education']) {
     const forecast = { ...forecastFor(topic), status: 'interpreted' };
     const result = buildVedicLocalReply(chart, { message: `Explain ${topic}`, prediction: forecast });
-    assert.match(result.reply, /Current\/upcoming calculated period themes/);
+    assert.match(result.reply, /first computed period/);
     assert.match(result.reply, /2027-02-01 to 2027-05-31/);
-    assert.ok(result.reply.includes(`${topic} rule window`));
-    assert.ok(result.reply.includes(`Computed ${topic} period link`));
-    assert.match(result.reply, /Planning and practical effort/);
-    assert.match(result.reply, /not predicted event dates or a guarantee that an event will occur/);
-    if (topic === 'difficult-periods') assert.match(result.reply, /not the guaranteed end of hardship or bad days/);
+    assert.ok(result.reply.includes(`Traditional ${topic} theme`));
+    assert.match(result.reply, /not predicted event dates or guaranteed outcomes/);
     const noWindow = buildVedicLocalReply(chart, { message: `Explain ${topic}`, prediction: { ...forecast, status: 'no-window' } });
     assert.doesNotMatch(noWindow.reply, /2027-02-01 to 2027-05-31/);
   }
@@ -231,11 +229,15 @@ test('interpreted forecasts report supplied period intervals as themes without e
 
 test('difficult-period dates describe a configuration change without promising hardship ends', () => {
   const forecast = forecastFor('difficult-periods');
-  forecast.factors = ['Computed Saturn transit is twelve signs from the natal Moon'];
+  forecast.factors = ['Computed Saturn transit is twelve signs from the natal Moon', 'The current Sade Sati classification is first absent at the monthly sample on 2029-08-01. This is only a sampled transit change; it is not a date when personal hardship will end. Later re-entries can occur.'];
   forecast.currentPhase = { name: 'Sade Sati: first phase', description: 'Computed Saturn sign is twelve relative to Moon' };
   const result = buildVedicLocalReply(chart, { message: 'When will my bad days end?', prediction: forecast });
   assert.match(result.reply, /Sade Sati: first phase/);
   assert.match(result.reply, /not the guaranteed end of hardship or bad days/);
+  assert.match(result.reply, /first sampled exit.*2029-08-01/);
+  assert.match(result.reply, /later re-entries can occur/);
+  assert.doesNotMatch(result.reply, /2027-02-01|2027-05-31|Moon rashi|nakshatra/);
+  assert.ok(wordCount(result.reply) <= 100);
   assert.ok(result.references.some(entry => entry.id === 'topic.difficult-periods'));
   const prompt = buildVedicMessages(chart, { message: 'When will bad days end?', prediction: forecast }).messages[0].content;
   assert.match(prompt, /configuration changing, never as the guaranteed end of hardship/);
@@ -248,8 +250,72 @@ test('relationship references distinguish married life from marriage timing and 
   assert.ok(references.some(entry => entry.id === 'method.navamsa'));
   assert.equal(references.some(entry => entry.id === 'marriage.windows'), false);
   const reply = buildVedicLocalReply(chart, { message: 'What is my birth star, lagna and D9?', prediction: forecastFor('general', 'interpreted') }).reply;
-  assert.match(reply, /birth nakshatra: Rohini, pada 2/);
-  assert.match(reply, /lagna: Kanya \(Virgo\)/);
+  assert.match(reply, /birth nakshatra is Rohini, pada 2/);
+  assert.match(reply, /lagna \(ascendant\) is Kanya \(Virgo\)/);
   assert.match(reply, /Computed D9\/Navamsa/);
   assert.match(reply, /Venus in Mesha \(Aries\), house 10/);
+});
+
+test('simple chart questions answer only the requested facts even with a general forecast attached', () => {
+  const forecast = forecastFor('general', 'interpreted');
+  const star = buildVedicLocalReply(chart, { message: 'What is my birth star?', prediction: forecast });
+  assert.match(star.reply, /Rohini, pada 2/);
+  assert.ok(wordCount(star.reply) <= 25);
+  assert.doesNotMatch(star.reply, /Jupiter|Saturn|Kanya|D9|2027|Vrishabha/);
+  const rashi = buildVedicLocalReply(chart, { message: 'What is my rashi?', prediction: forecast });
+  assert.match(rashi.reply, /Moon rashi is Vrishabha \(Taurus\)/);
+  assert.doesNotMatch(rashi.reply, /Rohini|Kanya|Jupiter|2027/);
+  const lagna = buildVedicLocalReply(chart, { message: 'What is my lagna?', prediction: forecast });
+  assert.match(lagna.reply, /Kanya \(Virgo\)/);
+  assert.doesNotMatch(lagna.reply, /Rohini|Venus|2027/);
+  const dasha = buildVedicLocalReply(chart, { message: 'When does my current dasha end?', prediction: forecast });
+  assert.match(dasha.reply, /Jupiter: 2024-01-01 to 2040-01-01/);
+  assert.match(dasha.reply, /Saturn: 2026-01-01 to 2028-08-01/);
+  assert.doesNotMatch(dasha.reply, /Rohini|Kanya|2027-02-01/);
+});
+
+test('three marriage windows stay brief without dropping computed ages or copying long calculation notes', () => {
+  const computed = {
+    ...prediction,
+    windows: Array.from({ length: 3 }, (_, index) => ({
+      start: `203${index}-01-01`, end: `203${index}-10-31`, ageRange: { min: 33 + index, max: 34 + index },
+      reasons: ['Vimshottari period: Saturn mahadasha / Venus antardasha.',
+        'Jupiter in Karka (Cancer) traditionally aspects Makara (Capricorn), the natal sign of the seventh house.',
+        ...Array.from({ length: 15 }, () => 'Long calculation details belong in the attached structured result rather than every chat response.')],
+    })),
+  };
+  const reply = buildVedicLocalReply(chart, { message: 'When might I marry?', prediction: computed }).reply;
+  for (const window of computed.windows) {
+    assert.ok(reply.includes(`${window.start} to ${window.end}`));
+    assert.ok(reply.includes(`ages ${window.ageRange.min}–${window.ageRange.max}`));
+  }
+  assert.match(reply, /Saturn \/ Venus planetary period.*Jupiter transit links/);
+  assert.match(reply, /conditional estimates/);
+  assert.ok(wordCount(reply) <= 160);
+  assert.doesNotMatch(reply, /Long calculation details|Rohini|rule-based local|computed factors/i);
+  assert.equal(computed.windows[0].reasons.length, 17);
+});
+
+test('a clipped Saturn passage is never presented as a sampled exit or the end of bad days', () => {
+  const forecast = forecastFor('difficult-periods', 'interpreted');
+  forecast.currentPhase = { name: 'Sade Sati — closing passage', description: 'Current calculated classification' };
+  forecast.factors = ['The current conventional Saturn classification remains in monthly samples through the requested horizon; no exit date is supplied.'];
+  forecast.windows = [{ start: '2026-10-08', end: '2036-10-07', label: 'Current closing passage', reasons: ['This window is clipped to the requested horizon; no exit from this passage was found within that horizon.'] }];
+  const reply = buildVedicLocalReply(chart, { message: 'When will my bad days end?', prediction: forecast }).reply;
+  assert.match(reply, /Sade Sati — closing passage/);
+  assert.match(reply, /No sampled exit date/);
+  assert.doesNotMatch(reply, /2036-10-07|2026-10-08|will end|will improve/);
+  assert.match(reply, /not the guaranteed end of hardship/);
+  assert.ok(wordCount(reply) <= 100);
+});
+
+test('model guidance calls for brief answers while keeping full calculation evidence in its context', () => {
+  const result = buildVedicMessages(chart, { message: 'Explain my career briefly', prediction: forecastFor('career') });
+  assert.match(result.messages[0].content, /Lead with the answer/);
+  assert.match(result.messages[0].content, /80–120 words/);
+  assert.match(result.messages[0].content, /Do not add unrelated forecasts or read out the whole chart/);
+  const context = JSON.parse(result.messages.at(-1).content);
+  assert.deepEqual(context.prediction.windows[0].reasons, ['Computed career period link']);
+  assert.deepEqual(context.prediction.method, ['Supplied calculation rule']);
+  assert.deepEqual(context.prediction.limitations, ['Conditional traditional interpretation']);
 });

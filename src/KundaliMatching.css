@@ -1,0 +1,177 @@
+.compatibility-modes { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 26px; }
+.compatibility-modes button { min-height: 44px; padding: 11px 19px; border: 1px solid #dda95b38; border-radius: 23px; color: #c5b8cd; background: #211c34; font-size: 12px; }
+.compatibility-modes button[aria-pressed="true"] { color: #e7f3df; background: #78d0b718; border-color: #78d0b777; }
+.compatibility-modes button:hover { border-color: #dda95b8c; }
+.kundali-matching { padding-bottom: 40px; }
+.kundali-action-icon { width: 17px; height: 17px; flex: 0 0 17px; }
+.kundali-introduction { display: flex; align-items: center; gap: 28px; margin-bottom: 28px; max-width: 810px; }
+.kundali-introduction > svg { width: 104px; flex: 0 0 104px; stroke: #dda95b6e; stroke-width: .8; }
+.kundali-introduction > svg path { stroke: #eed2a2; }
+.kundali-orbit-dot { fill: #dda95b; stroke: #151329; stroke-width: 2px; }
+.kundali-orbit-dot.jade { fill: #78d0b7; }
+.kundali-introduction .eyebrow { color: #ddba88; font-size: 10px; }
+.kundali-introduction h2 { color: #f2e5d2; font-family: var(--serif); font-size: 31px; font-weight: 400; line-height: 1.2; margin: 10px 0 12px; }
+.kundali-introduction p { color: #c2b5cc; font-size: 13px; line-height: 1.85; max-width: 610px; }
+.kundali-form { background: #211b33; border: 1px solid #dda95b3c; border-radius: 26px 3px 26px 3px; padding: 27px; }
+.kundali-birth-note { color: #d9caba; font-size: 12px; line-height: 1.85; margin: 0 0 23px; max-width: 830px; }
+.kundali-people-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.kundali-person { border: 1px solid #d6c5a9; border-radius: 3px 19px 3px 19px; margin: 0; padding: 22px; min-width: 0; background: var(--astral-paper); color: var(--astral-ink); }
+.kundali-person legend { color: #eddbc3; background: #30263c; padding: 8px 13px; border: 1px solid #dda95b68; border-radius: 16px; font-size: 12px; letter-spacing: .3px; }
+.kundali-person-female legend { color: #d3ebdf; background: #243e3b; border-color: #78d0b76e; }
+.kundali-person-marker { margin-right: 9px; color: #dda95b; font-size: 10px; }
+.kundali-person-female .kundali-person-marker { color: #78d0b7; }
+.app-shell .kundali-person .form-field { margin-bottom: 18px; gap: 8px; min-width: 0; }
+.app-shell .kundali-person label { font-size: 12px; line-height: 1.5; color: #5f4e5c; }
+.app-shell .kundali-person input { width: 100%; min-width: 0; max-width: 100%; background: #fff9ef; border: 1px solid #cbbb9f; border-radius: 6px; padding: 12px 11px; min-height: 45px; font-size: 14px; color: #342c40; }
+.app-shell .kundali-person input::placeholder { color: #8b7c88; font-size: 12px; }
+.app-shell .kundali-person small { color: #746574; font-size: 10px; line-height: 1.75; }
+.kundali-date-time { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.kundali-use-profile { display: flex; justify-content: space-between; width: 100%; min-height: 42px; padding: 8px 0; margin-bottom: 12px; border: 0; border-bottom: 1px dashed #bea98a; background: transparent; color: #37695c; text-align: left; font-size: 11px; }
+.kundali-use-profile:hover { color: #714b2c; }
+.kundali-manual-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 42px; padding: 9px 0; text-align: left; font-size: 11px; line-height: 1.65; border: 0; border-top: 1px solid #d6c8b6; background: transparent; color: #815a34; }
+.kundali-manual-toggle > span { font-size: 20px; flex: 0 0 auto; }
+.kundali-manual-fields { padding: 14px 0 0; }
+.kundali-manual-fields .form-field:last-child { margin-bottom: 2px; }
+.kundali-location-ready { color: #426e60; font-size: 10px; line-height: 1.7; margin: 9px 0 0; overflow-wrap: anywhere; }
+.kundali-location-ready > span:first-child { padding-right: 5px; }
+.kundali-location-ready > span:last-child { color: #796a77; }
+.app-shell .kundali-person .birthplace-search-status { color: #496b5d; }
+.app-shell .kundali-person .birthplace-search-error { color: #935c37; }
+.app-shell .kundali-person .birthplace-attribution, .app-shell .kundali-person .birthplace-attribution a { color: #74665d !important; }
+.app-shell .kundali-person .birthplace-results { border-color: #cbbba2; background: #fff9ef; }
+.app-shell .kundali-person .birthplace-result { min-height: 54px; color: #3e5149; }
+.app-shell .kundali-person .birthplace-result.active, .app-shell .kundali-person .birthplace-result:hover { background: #e2e7d9; }
+.kundali-form-bottom { display: flex; align-items: center; justify-content: space-between; gap: 26px; margin-top: 24px; }
+.kundali-form-bottom > p { color: #c5b4c9; font-size: 11px; line-height: 1.85; max-width: 475px; }
+.app-shell .kundali-matching .primary-button { color: #251f32; background: #dda95b; border-color: #dda95b; min-height: 46px; font-size: 12px; gap: 17px; flex-shrink: 0; }
+.app-shell .kundali-matching .primary-button:hover:not(:disabled) { background: #edc589; border-color: #edc589; }
+.app-shell .kundali-matching .primary-button:disabled { opacity: .65; }
+.kundali-privacy { color: #a99ab7; font-size: 10px; line-height: 1.8; margin-top: 18px; }
+.kundali-error { color: #ffe2c1; background: #ad72421a; border: 1px solid #dda95b52; border-radius: 8px; margin-top: 17px; padding: 14px; font-size: 12px; line-height: 1.8; }
+.kundali-results { margin-top: 34px; scroll-margin-top: 32px; outline-offset: 7px; }
+.kundali-score-panel { display: flex; align-items: center; gap: 32px; padding: 32px; background: #f6eddf; color: #352b3f; border: 1px solid #dcc29b; border-radius: 3px 29px 3px 29px; }
+.kundali-score-medallion { display: flex; align-items: center; justify-content: center; flex-direction: column; width: 178px; height: 178px; flex: 0 0 178px; border: 1px solid #b89460; border-radius: 50%; outline: 1px solid #bf9a643a; outline-offset: 8px; background: radial-gradient(circle, #eddfc7 0, #f6eddf 72%); position: relative; }
+.kundali-score-medallion::before { content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #4a8b70; top: 8px; left: 38px; box-shadow: 104px 137px 0 #ad763c; }
+.kundali-score-number { font-family: var(--serif); font-size: 59px; line-height: 1; color: #48364d; white-space: nowrap; }
+.kundali-score-number small { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 18px; color: #8b6e56; }
+.kundali-score-unit { font-size: 9px; letter-spacing: 3px; color: #85613c; margin-top: 13px; }
+.kundali-score-story { min-width: 0; }
+.kundali-score-story .eyebrow { color: #885a31; font-size: 10px; overflow-wrap: anywhere; }
+.kundali-score-story h2 { font-family: var(--serif); font-size: 35px; font-weight: 400; line-height: 1.25; margin: 13px 0 12px; color: #44334b; }
+.kundali-score-story p { font-size: 13px; line-height: 1.8; color: #655866; }
+.kundali-threshold { display: inline-flex; align-items: flex-start; gap: 8px; color: #376450; background: #e0e7d9; border: 1px solid #bbc8af; border-radius: 7px; padding: 9px 12px; margin-top: 15px; font-size: 11px; line-height: 1.7; }
+.kundali-threshold.below { color: #775531; background: #efe0c8; border-color: #d8bd98; }
+.kundali-score-story p.kundali-score-perspective { margin-top: 14px; color: #796371; font-size: 11px; }
+.kundali-matched-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(190px, 1.9fr); gap: 16px; border: 1px solid #78d0b737; border-radius: 13px; background: #25352f5e; margin: 22px 0 35px; padding: 19px 24px; align-items: center; }
+.kundali-matched-counts > div { display: flex; flex-direction: column; gap: 6px; }
+.kundali-matched-counts strong { font-family: var(--serif); font-weight: 400; color: #b6e3ca; font-size: 31px; }
+.kundali-matched-counts span { color: #c0d1c7; font-size: 10px; }
+.kundali-matched-counts p { font-size: 11px; line-height: 1.85; color: #c0c6c2; border-left: 1px solid #78d0b729; padding-left: 20px; }
+.kundali-section-heading { margin-bottom: 20px; }
+.kundali-section-heading .eyebrow, .kundali-benchmark-section > .eyebrow { color: #dab581; font-size: 9px; }
+.kundali-section-heading h3, .kundali-benchmark-section > h3 { font-family: var(--serif); font-size: 29px; font-weight: 400; line-height: 1.35; color: #f1e3d1; margin: 11px 0 9px; }
+.kundali-section-heading p { font-size: 12px; line-height: 1.8; color: #c2b4ca; }
+.kundali-moon-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-bottom: 35px; }
+.kundali-moon-card { padding: 24px; min-width: 0; color: #eadecf; background: #251f37; border: 1px solid #dda95b37; border-radius: 17px 3px 17px 3px; }
+.kundali-moon-role { color: #d4af7e; font-size: 10px; text-transform: uppercase; letter-spacing: 1.6px; }
+.kundali-moon-card h4 { font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.4; margin: 8px 0; overflow-wrap: anywhere; }
+.kundali-moon-card > p { color: #b8a8bf; font-size: 11px; line-height: 1.85; overflow-wrap: anywhere; }
+.kundali-moon-card dl { margin-top: 19px; }
+.kundali-moon-card dl > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 14px; padding: 11px 0; border-top: 1px solid #dda95b24; }
+.kundali-moon-card dt { font-size: 10px; color: #b4a3b8; }
+.kundali-moon-card dd { font-size: 12px; color: #e2cfb0; margin: 0; overflow-wrap: anywhere; }
+.kundali-koota-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 21px; margin-bottom: 36px; }
+.kundali-koota-card { padding: 24px; min-width: 0; background: #f4e9d7; border: 1px solid #d9c19b; border-radius: 3px 19px 3px 19px; color: #453747; }
+.kundali-koota-heading { display: flex; align-items: center; gap: 13px; }
+.kundali-koota-index { color: #a88a67; font-size: 11px; border-right: 1px solid #ccb899; padding-right: 12px; }
+.kundali-koota-heading > div { min-width: 0; }
+.kundali-koota-heading h4 { font-family: var(--serif); font-weight: 400; color: #43334b; font-size: 25px; line-height: 1.3; margin: 0 0 4px; }
+.kundali-koota-heading > strong { margin-left: auto; color: #3c6a57; font-weight: 500; font-size: 27px; white-space: nowrap; }
+.kundali-koota-heading > strong > small { color: #87715f; font-size: 13px; }
+.kundali-koota-status { color: #3b6c57; font-size: 10px; }
+.kundali-koota-partial .kundali-koota-status, .kundali-koota-partial .kundali-koota-heading > strong { color: #8a622e; }
+.kundali-koota-zero .kundali-koota-status, .kundali-koota-zero .kundali-koota-heading > strong { color: #855863; }
+.kundali-score-track { height: 3px; background: #ddceb8; margin: 17px 0; border-radius: 3px; overflow: hidden; }
+.kundali-score-track > span { display: block; height: 100%; background: #4b8b6f; }
+.kundali-koota-partial .kundali-score-track > span { background: #af8445; }
+.kundali-koota-description { color: #715c69; font-size: 12px; line-height: 1.75; }
+.kundali-koota-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 17px 0; padding: 12px 0; border-top: 1px solid #d5c4a9; border-bottom: 1px solid #d5c4a9; }
+.kundali-koota-values > span { color: #4b5b4c; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.kundali-koota-values small { display: block; font-size: 8px; letter-spacing: 1px; color: #917957; margin-bottom: 5px; }
+.kundali-koota-explanation { color: #665463; font-size: 12px; line-height: 1.85; }
+.kundali-koota-method { margin-top: 15px; border-top: 1px dashed #cbb89a; padding-top: 12px; }
+.kundali-koota-method summary { color: #7f562f; font-size: 11px; line-height: 1.8; cursor: pointer; }
+.kundali-koota-method p { color: #6e5c69; font-size: 11px; line-height: 1.85; padding-top: 11px; }
+.kundali-benchmark-section { margin-bottom: 32px; }
+.kundali-benchmark-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 19px 0 16px; }
+.kundali-benchmark-grid > div { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 17px; border: 1px solid #d2ae8033; border-radius: 10px; background: #29223a; }
+.kundali-benchmark-grid > div.active { background: #2c423b; border-color: #78d0b779; }
+.kundali-benchmark-grid strong { font-weight: 500; color: #e7c797; font-size: 13px; }
+.kundali-benchmark-grid span { color: #c2b3c9; font-size: 11px; line-height: 1.65; }
+.kundali-benchmark-grid .active span { color: #cfe6d5; }
+.kundali-benchmark-grid small { color: #96d0b4; font-size: 9px; line-height: 1.8; }
+.kundali-benchmark-section > p { font-size: 11px; line-height: 1.85; color: #b5a6c0; }
+.kundali-report-panel { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 22px; padding: 27px; background: #eddeca; border: 1px solid #d4ba93; border-radius: 3px 22px 3px 22px; }
+.kundali-report-panel > div { flex: 1 1 330px; }
+.kundali-report-panel .eyebrow { color: #84592f; font-size: 9px; }
+.kundali-report-panel h3 { color: #4e354b; font-family: var(--serif); font-size: 27px; font-weight: 400; line-height: 1.3; margin: 11px 0 10px; }
+.kundali-report-panel p { font-size: 12px; line-height: 1.85; color: #695768; max-width: 630px; }
+.kundali-report-panel p.kundali-report-error { flex: 1 1 100%; color: #965237; }
+.kundali-method-notes { border-top: 1px solid #dda95b30; margin-top: 27px; padding-top: 21px; color: #b4a8c1; font-size: 11px; line-height: 1.9; }
+.kundali-method-notes summary { cursor: pointer; color: #d8b17d; }
+.kundali-method-notes p { margin-top: 14px; overflow-wrap: anywhere; }
+.kundali-method-notes ul { padding-left: 18px; margin-top: 14px; }
+.kundali-method-notes li { margin-bottom: 9px; }
+.kundali-sources a { color: #a8d6bb; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.kundali-closing-note { margin: 25px 0 0; color: #c3b4ca; font-family: var(--serif); font-size: 17px; line-height: 1.8; max-width: 860px; }
+@media (max-width: 900px) {
+  .kundali-form, .kundali-score-panel { padding: 24px; }
+  .kundali-person { padding: 19px; }
+  .kundali-date-time { grid-template-columns: 1fr; gap: 0; }
+  .kundali-matched-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kundali-matched-counts p { grid-column: 1 / -1; padding: 12px 0 0; border-left: 0; border-top: 1px solid #78d0b729; }
+  .kundali-benchmark-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 660px) {
+  .kundali-introduction { gap: 17px; align-items: flex-start; }
+  .kundali-introduction > svg { width: 68px; flex-basis: 68px; margin-top: 24px; }
+  .kundali-introduction h2 { font-size: 26px; }
+  .kundali-introduction .eyebrow { font-size: 8px; line-height: 1.8; }
+  .kundali-introduction p { font-size: 12px; }
+  .kundali-form { padding: 21px 16px; }
+  .kundali-birth-note { font-size: 11px; }
+  .kundali-people-grid, .kundali-moon-grid, .kundali-koota-grid { grid-template-columns: 1fr; gap: 23px; }
+  .kundali-person { padding: 21px 17px; }
+  .kundali-date-time { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kundali-form-bottom { flex-direction: column; align-items: stretch; gap: 17px; }
+  .kundali-form-bottom > p { font-size: 11px; }
+  .kundali-form-bottom .primary-button { width: 100%; justify-content: space-between; }
+  .kundali-score-panel { flex-direction: column; align-items: flex-start; gap: 26px; padding: 27px 22px; }
+  .kundali-score-medallion { margin: 8px auto 0; flex-basis: 160px; width: 160px; height: 160px; }
+  .kundali-score-medallion::before { box-shadow: 87px 119px 0 #ad763c; }
+  .kundali-score-story h2 { font-size: 31px; }
+  .kundali-score-story p { font-size: 12px; }
+  .kundali-matched-counts { padding: 20px 17px; gap: 15px 10px; }
+  .kundali-matched-counts span { font-size: 9px; line-height: 1.6; }
+  .kundali-section-heading h3, .kundali-benchmark-section > h3 { font-size: 27px; }
+  .kundali-koota-card, .kundali-moon-card { padding: 22px; }
+  .kundali-report-panel { padding: 24px 21px; }
+  .kundali-report-panel > div { flex-basis: 100%; }
+  .kundali-report-panel .primary-button { width: 100%; justify-content: space-between; }
+  .kundali-closing-note { font-size: 16px; }
+}
+@media (max-width: 370px) {
+  .compatibility-modes { gap: 8px; }
+  .compatibility-modes button { flex: 1 1 100%; text-align: left; padding-inline: 16px; }
+  .kundali-introduction > svg { display: none; }
+  .kundali-date-time { grid-template-columns: 1fr; gap: 0; }
+  .kundali-person legend { font-size: 11px; padding-inline: 10px; }
+  .kundali-koota-card { padding: 20px 18px; }
+  .kundali-koota-heading { gap: 10px; }
+  .kundali-koota-index { padding-right: 8px; }
+  .kundali-koota-heading h4 { font-size: 23px; }
+  .kundali-koota-heading > strong { font-size: 24px; }
+  .kundali-benchmark-grid { gap: 9px; }
+  .kundali-benchmark-grid > div { padding: 14px 12px; }
+  .kundali-benchmark-grid strong { font-size: 12px; line-height: 1.6; }
+}

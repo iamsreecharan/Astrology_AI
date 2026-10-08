@@ -97,13 +97,34 @@ Married life also shows the D9 ascendant, seventh house, its ruler and occupants
 
 It does not determine a partner's behavior, relationship success, wealth, an exam result, travel permission, illness, or treatment. Wellbeing remains reflection on routines and support; financial themes do not establish investment returns. D9 context does not amount to a strength score or a complete relationship assessment.
 
+## Ashta Koota matching
+
+**Compatibility → Kundali matching** calculates a North Indian base score from two complete recorded birth profiles. The server validates both local dates, times, places, coordinates and historical time zones, then recomputes the sidereal Moons. Names label the records and do not affect the score. The screen and English PDF share the same calculation model, without a language-model request or server-side report storage.
+
+| Category | Maximum | Rule in this convention |
+| --- | ---: | --- |
+| Varna | 1 | Moon-sign element classification; historical male/female ordering |
+| Vashya | 2 | Five symbolic groups; Sagittarius and Capricorn split at 15°; directional table |
+| Tara | 3 | Inclusive birth-star counts in both directions; favourable Taras 2, 4, 6, 8 and 9 earn 1.5 each |
+| Yoni | 4 | Fourteen symbolic animal groups and their symmetric pair table |
+| Graha Maitri | 5 | Natural friendship of the Moon-sign lords in both directions |
+| Gana | 6 | Deva, Manushya and Rakshasa star groups; directional table |
+| Bhakoot | 7 | Inclusive Moon-sign counts; 2/12, 5/9 and 6/8 receive zero |
+| Nadi | 8 | Adi, Madhya and Antya star groups; different groups receive eight |
+
+Varna, Vashya and Gana can change when male/female roles are reversed. Vashya and Gana use female rows and male columns in the documented Saravali table convention. The [pinned published reference tables](https://github.com/naturalstupid/PyJHora/blob/48e57d29b47a3143519910a24866758116467485/src/jhora/horoscope/match/compatibility.py) and [Saravali method notes](https://www.saravali.de/articles/ashtakoota.html) identify this variant; the app implements its own calculations. Tara uses the stated favourable nine-Tara positions, with inclusive counting and Janma receiving zero. It does not copy a reference implementation's star-counting algorithm.
+
+The maximum weights sum to 36. Categories are counted separately as full, partial or zero-point matches. A commonly used minimum is 18; displayed bands are below 18, 18 to under 25, 25 to under 33, and 33–36. Half-point totals remain intact. These are traditional screening bands, not probabilities or a recommendation to marry.
+
+No Nadi/Bhakoot cancellation, same-star exception, Manglik assessment, D9 relationship-strength analysis or South Indian ten-porutham adjustment is applied. A full Jathakam review may use those methods and produce a different assessment. The app preserves the calculator's unrounded Moon sign and pada classifications at rounding boundaries and includes its approximation warnings. Birth times and positions near sign, star, pada or Vashya boundaries need verification. Nadi does not establish genetics, illness, fertility or future children; the score does not determine relationship success.
+
 ## Notes and AI
 
 `server/vedic-knowledge.mjs` contains original concise notes on methods, houses, grahas, nakshatras, and question topics. Selection follows the chart and question. Chat references identify these application notes, not classical-text quotations or verse citations.
 
 The local guide uses rules. Chat gives a short answer to the question first, with full topic results and supporting references available under **Calculation details**. Live AI uses an existing OpenAI model, default `gpt-4.1-mini`, with derived chart facts, selected notes, recent conversation, and computed timing windows. Raw profile fields are excluded from structured model context. The prompt asks for concise explanations that preserve supplied values and ranges and avoid invented factors. Model mistakes remain possible.
 
-This is contextual grounding, not custom training on every Vedic text or technique. True nodes, other divisional charts, detailed yogas, strength scores, exact muhurta, and kundli matching are outside the implementation.
+This is contextual grounding, not custom training on every Vedic text or technique. True nodes, other divisional charts, detailed yogas, strength scores and exact muhurta are outside the implementation. The separate Compatibility page calculates the stated 36-point matching method; chat has no second recorded birth profile and must not invent a couple's score.
 
 ## Verification
 

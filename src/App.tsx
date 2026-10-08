@@ -12,6 +12,7 @@ import './AstralTheme.css';
 const CelestialScene = lazy(() => import('./CelestialScene'));
 const AiYogi = lazy(() => import('./AiYogi'));
 const About = lazy(() => import('./About'));
+const KundaliMatching = lazy(() => import('./KundaliMatching'));
 
 type Page = 'today' | 'chart' | 'compatibility' | 'chat' | 'about';
 type Focus = 'general' | 'love' | 'career' | 'wellbeing';
@@ -269,6 +270,7 @@ export default function App() {
   const [signA, setSignA] = useState('gemini');
   const [signB, setSignB] = useState('libra');
   const [compatibility, setCompatibility] = useState<Compatibility | null>(null);
+  const [compatibilityMode, setCompatibilityMode] = useState<'kundali' | 'sun-signs'>('kundali');
   const [compatibilityLoading, setCompatibilityLoading] = useState(false);
   const [compatibilityError, setCompatibilityError] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -707,13 +709,15 @@ export default function App() {
       </>}
 
       {page === 'compatibility' && <>
-        <section className="page-heading"><div><p className="eyebrow"><span className="tiny-star">✦</span> TWO SIGNS. NEW PERSPECTIVES.</p><h1>The art of <em>connection.</em></h1><p className="heading-description">Explore what comes easily — and where you can grow together.</p></div><div className="heading-decoration" aria-hidden="true">♡</div></section>
-        <div className="compatibility-layout">
+        <section className="page-heading"><div><p className="eyebrow"><span className="tiny-star">✦</span> TWO PEOPLE. A SHARED POSSIBILITY.</p><h1>The art of <em>connection.</em></h1><p className="heading-description">Explore traditional Kundali matching, with every calculation explained.</p></div><div className="heading-decoration" aria-hidden="true">♡</div></section>
+        <div className="compatibility-modes" aria-label="Compatibility calculation"><button type="button" aria-pressed={compatibilityMode === 'kundali'} onClick={() => setCompatibilityMode('kundali')}>Kundali matching · 36 gunas</button><button type="button" aria-pressed={compatibilityMode === 'sun-signs'} onClick={() => setCompatibilityMode('sun-signs')}>Sun-sign reflection</button></div>
+        <Suspense fallback={<p role="status">Opening the matching guide…</p>}><div hidden={compatibilityMode !== 'kundali'}><KundaliMatching savedProfile={isSaved && isPersonalProfile ? profile : null} active={compatibilityMode === 'kundali'} /></div></Suspense>
+        {compatibilityMode === 'sun-signs' && <div className="compatibility-layout">
           <section className="pairing-card"><span className="eyebrow">EXPLORE A PAIRING</span><div className="pair-symbols" aria-hidden="true"><span>{`${signALabel?.symbol || '✧'}\uFE0E`}</span><Icon name="star" size={24} /><span>{`${signBLabel?.symbol || '✧'}\uFE0E`}</span></div><form onSubmit={findCompatibility}><div className="form-field"><label htmlFor="sign-a">Your sign</label><select id="sign-a" value={signA} onChange={event => changeSign('a', event.target.value)}>{signOptions.map(sign => <option value={sign.id} key={sign.id}>{sign.symbol} {sign.name}</option>)}</select></div><div className="form-field"><label htmlFor="sign-b">Their sign</label><select id="sign-b" value={signB} onChange={event => changeSign('b', event.target.value)}>{signOptions.map(sign => <option value={sign.id} key={sign.id}>{sign.symbol} {sign.name}</option>)}</select></div><button type="submit" className="primary-button full-width" disabled={compatibilityLoading}>{compatibilityLoading ? 'Exploring your connection…' : 'Explore your connection'}<Icon name="arrow" size={18} /></button></form><p className="pairing-note">Sun signs offer a starting point for reflection. Your choices, communication, and lived experience shape your relationships.</p></section>
           <section className="compatibility-result" aria-live="polite" aria-busy={compatibilityLoading}>
             {compatibilityLoading ? <LoadingReading /> : compatibilityError ? <ErrorNotice message={compatibilityError} onRetry={() => void findCompatibility()} /> : compatibility ? <><span className="eyebrow">{compatibility.signA.name.toUpperCase()} + {compatibility.signB.name.toUpperCase()}</span><h2>{compatibility.headline}</h2><p className="compatibility-summary">{compatibility.summary}</p><div className="connection-columns"><div><h3><Icon name="sun" size={18} /> Your natural strengths</h3><ul>{compatibility.strengths.map((strength, index) => <li key={index}>{strength}</li>)}</ul></div><div><h3><Icon name="leaf" size={18} /> Room to grow</h3><ul>{compatibility.challenges.map((challenge, index) => <li key={index}>{challenge}</li>)}</ul></div></div><div className="conversation-card"><span className="eyebrow">START A REAL CONVERSATION</span><blockquote>“{compatibility.conversationStarter}”</blockquote></div></> : <div className="connection-empty"><div className="connection-orbits" aria-hidden="true"><span>✧</span><span>✦</span></div><h2>Every connection has<br />its own <em>constellation.</em></h2><p>Choose two signs to discover shared strengths, different rhythms, and a question worth asking.</p><span className="small-tag">CURIOSITY OVER CERTAINTY</span></div>}
           </section>
-        </div>
+        </div>}
       </>}
 
       {page === 'chat' && <>

@@ -13,6 +13,8 @@ import { installVoiceRoutes, languageOf } from './voice.mjs';
 import { buildHoroscopeReport } from './horoscope-report.mjs';
 import { replyMatchesLanguage, retryLanguageInstruction } from './chat-language.mjs';
 import { attachPredictionSupport } from './prediction-support.mjs';
+import { buildKundaliMatch } from './kundali-matching.mjs';
+import { buildKundaliReport } from './kundali-report.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const FOCUSES = new Set(['general', 'love', 'career', 'wellbeing']);
@@ -200,6 +202,15 @@ export async function createApp({
       throw badRequest('Select two valid zodiac signs.');
     }
     res.json(buildCompatibility(req.body.signA, req.body.signB));
+  });
+  app.post('/api/kundali-match', (req, res) => {
+    res.json(buildKundaliMatch(req.body, { today: today() }));
+  });
+  app.post('/api/kundali-report', async (req, res) => {
+    const { model, pdf } = await buildKundaliReport(req.body, { today: today() });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${model.filename}"`);
+    res.send(pdf);
   });
   app.post('/api/chat', async (req, res) => {
     const asOf = today();

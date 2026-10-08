@@ -25,6 +25,7 @@ The visual theme combines an indigo planetarium with ivory reading panels, coppe
 - Tells the story behind Indian sky-watching, timekeeping, and chart interpretation in **About**, with historical references and calculation notes.
 - Opens with a moving 3D planetary welcome and a skippable profile invitation held by AI Yogi, then keeps animated Saturn, Earth, Jupiter, Mars, the Moon, and twinkling stars behind the app. Reduced-motion preferences get a static scene; WebGL has an animated SVG fallback.
 - Keeps Western calendar sun-sign daily reflections and compatibility available for date-only profiles.
+- Compares two recorded birth profiles through the eight Ashta Koota categories, with a score out of 36, traditional benchmark bands and a downloadable English Kundali matching report.
 - Saves profiles in the current browser, with controls to edit or remove them.
 
 These are traditional chart interpretations and limited timing rules, not validated forecasts. A window does not promise a marriage, job, financial result, or an end to hardship. The [method notes](docs/VEDIC.md) explain each method.
@@ -70,6 +71,14 @@ Birth Panchanga basics include civil weekday, tithi and paksha, yoga, karana, an
 The career section also lists individual dates to consider for applications and interviews, in **DD-MM-YYYY**, with nakshatra, Tarabala, Chandrabala, tithi and reasons. These use a noon sample in your saved birth time zone; check your current location before scheduling. They are limited traditional planning suggestions, rather than exact appointment times or promised job dates. Nearer periods come first, and a stronger later career period is not a reason to delay applying now.
 
 PDF generation works without an AI key and recalculates the chart on the server. The report contains your entered birth details and stays in your own downloads; the app does not save a copy or send it to a language model. A date-only or demonstration profile cannot download a personal report. Bundled licensed fonts keep English text searchable and support common Indian and world scripts in entered names. Calculation methods and warnings are included, and timing windows remain conditional traditional estimates.
+
+## Match two Kundalis
+
+Open **Compatibility → Kundali matching** and enter each person's name, recorded birth date and time, and birthplace. Select a place suggestion to fill its coordinates and historical time zone, or enter those manually. Birthplace is needed to interpret the local birth time correctly. Names identify the records; the score comes from calculated sidereal Moon signs and birth stars.
+
+The result breaks down **Varna (1), Vashya (2), Tara (3), Yoni (4), Graha Maitri (5), Gana (6), Bhakoot (7), and Nadi (8)**. It shows the points awarded, a short calculation explanation, and how many categories received full, partial or zero points. **Download matching PDF** includes both birth records, the eight-category table, the benchmark and the reasons behind each score. Calculations and downloads need no AI key and do not send the records to a model or store a server-side report.
+
+The displayed bands are below 18, 18 to under 25, 25 to under 33, and 33–36. They correspond to below the common minimum, acceptable, good and excellent **traditional scores**. The common 18-point benchmark and the detailed rules vary between astrologers. This is a named North Indian Ashta Koota method, rather than every form of Jathakam matching; its Nadi and Bhakoot categories do not establish health, fertility or relationship success. Both partners' consent, communication and circumstances matter. Western sun-sign reflections remain available beside Kundali matching.
 
 ## Enable Vedic AI
 
@@ -123,6 +132,8 @@ Provider tests use controlled responses to check grounding, multilingual convers
 | `POST /api/voice` | Speak `{ text, language }` as MP3, up to 2,000 characters per request |
 | `POST /api/reading` | Create a local daily reflection |
 | `POST /api/compatibility` | Reflect on two Western sun signs |
+| `POST /api/kundali-match` | Calculate Ashta Koota scores from `{ male, female }`, each a complete birth profile |
+| `POST /api/kundali-report` | Download the calculated English matching PDF from the same two profiles |
 
 A full profile looks like this:
 
@@ -170,6 +181,8 @@ The hosted service has no account authentication or per-user AI quotas. POST req
 - `server/vedic-chart.mjs`: sidereal charts, D9, periods, and transits.
 - `server/vedic-timing.mjs`: marriage-window rules.
 - `server/prediction-support.mjs`: relative timing support and distinct interpretation, phase and planning labels.
+- `server/kundali-matching.mjs`: the eight-category, 36-point matching method.
+- `server/kundali-report.mjs`: the calculated English compatibility PDF.
 - `server/vedic-forecast.mjs`: career windows and Saturn phase changes.
 - `server/vedic-life.mjs`: house-based life topics and dasha themes.
 - `server/vedic-knowledge.mjs`: original notes and grounded chat context.

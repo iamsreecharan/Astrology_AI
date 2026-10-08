@@ -16,11 +16,12 @@ export type Birthplace = {
 type PlaceResponse = { places: Birthplace[]; attribution: { label: string; url: string } };
 type SearchState = 'idle' | 'loading' | 'success' | 'error';
 
-export default function BirthplaceAutocomplete({ value, selected, onQueryChange, onSelect }: {
+export default function BirthplaceAutocomplete({ value, selected, onQueryChange, onSelect, inputId = 'profile-place' }: {
   value: string;
   selected: boolean;
   onQueryChange: (value: string) => void;
   onSelect: (place: Birthplace) => void;
+  inputId?: string;
 }) {
   const listId = useId();
   const hintId = useId();
@@ -131,8 +132,8 @@ export default function BirthplaceAutocomplete({ value, selected, onQueryChange,
 
   return <div className="form-field birthplace-search" ref={containerRef}
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
-    <label htmlFor="profile-place">Place of birth</label>
-    <input id="profile-place" type="text" value={value} maxLength={120} required autoComplete="off" spellCheck={false}
+    <label htmlFor={inputId}>Place of birth</label>
+    <input id={inputId} type="text" value={value} maxLength={120} required autoComplete="off" spellCheck={false}
       placeholder="Search anywhere — city, town or village"
       role="combobox" aria-autocomplete="list" aria-expanded={open && places.length > 0} aria-controls={listId}
       aria-activedescendant={open && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}

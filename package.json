@@ -1,0 +1,28 @@
+{
+  "name": "astral-astrology-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A personal astrology reflection app with optional live AI chat.",
+  "engines": { "node": ">=24.5.0 <25" },
+  "scripts": {
+    "dev": "NODE_ENV=development node --watch --use-env-proxy --env-file-if-exists=.env server/index.mjs",
+    "build": "tsc --noEmit && vite build",
+    "start": "NODE_ENV=production node --use-env-proxy --env-file-if-exists=.env server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run build && npm test"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.3"
+  }
+}

@@ -11,6 +11,7 @@ import { buildVedicMessages, buildVedicLocalReply, buildYogiLocalReply } from '.
 import { searchPlaces, PLACE_ATTRIBUTION } from './places.mjs';
 import { installVoiceRoutes, languageOf } from './voice.mjs';
 import { buildHoroscopeReport } from './horoscope-report.mjs';
+import { replyMatchesLanguage, retryLanguageInstruction } from './chat-language.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const FOCUSES = new Set(['general', 'love', 'career', 'wellbeing']);
@@ -236,7 +237,7 @@ export async function createApp({
     if (!chart && assistant !== 'yogi') throw badRequest(missingBirthDetails);
     const grounded = buildVedicMessages(chart, { message, focus, history, prediction, assistant, language });
     try {
-      const response = await fetchImpl('https://api.openai.com/v1/chat/completions', {
+      const requestAnswer = messages => fetchImpl('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${aiKey}` },
         signal: AbortSignal.timeout(20000),
@@ -244,17 +245,28 @@ export async function createApp({
           model,
           max_completion_tokens: 550,
           store: false,
-          messages: grounded.messages,
+          messages,
         }),
       });
+      let response = await requestAnswer(grounded.messages);
       if (!response.ok) {
         // Provider error bodies may echo private request details, so keep them out of logs.
         return res.status(502).json({ error: 'The AI provider could not complete this request. Check the configured key, model, and billing, or switch to Local reflection.' });
       }
-      const data = await response.json();
-      const reply = data?.choices?.[0]?.message?.content;
+      let data = await response.json();
+      let reply = data?.choices?.[0]?.message?.content;
       if (typeof reply !== 'string' || !reply.trim()) throw new Error('Empty provider response');
-      return res.json({ reply: reply.trim(), source: 'ai', references: grounded.references, ...(prediction ? { prediction } : {}) });
+      if (!replyMatchesLanguage(reply, { language: grounded.responseLanguage })) {
+        response = await requestAnswer([...grounded.messages, { role: 'system', content: retryLanguageInstruction(grounded.responseLanguage) }]);
+        if (!response.ok) throw new Error('Language correction unavailable');
+        data = await response.json();
+        reply = data?.choices?.[0]?.message?.content;
+        if (typeof reply !== 'string' || !reply.trim()) throw new Error('Empty provider response');
+        if (!replyMatchesLanguage(reply, { language: grounded.responseLanguage })) {
+          return res.status(502).json({ error: 'The AI could not answer in the requested language. Please try again or select a language.' });
+        }
+      }
+      return res.json({ reply: reply.trim(), source: 'ai', responseLanguage: grounded.responseLanguage, references: grounded.references, ...(prediction ? { prediction } : {}) });
     } catch {
       return res.status(502).json({ error: 'Live AI is temporarily unavailable. Try again or switch to Local reflection.' });
     }

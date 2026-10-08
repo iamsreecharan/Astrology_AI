@@ -87,7 +87,7 @@ test('natural speech uses the exact visible text, a calm voice, language, and on
     assert.ok(call.options.signal instanceof AbortSignal);
     const body = JSON.parse(call.options.body);
     assert.equal(body.model, 'test-tts-model');
-    assert.equal(body.voice, 'sage');
+    assert.equal(body.voice, 'onyx');
     assert.equal(body.input, text);
     assert.equal(body.response_format, 'mp3');
     assert.match(body.instructions, /warm, calm, natural/);
@@ -296,6 +296,181 @@ test('Auto preserves detected spoken language through transcription, chat and na
   });
 });
 
+test('an English spoken married-life question corrects Hindi before showing or speaking the answer', async () => {
+  const calls = [];
+  const question = 'How might my married life be?';
+  const wrongAnswer = 'आपके वैवाहिक जीवन में धैर्य और समझ उपयोगी हो सकती है।';
+  const answer = 'Your chart suggests prioritizing clear expectations and shared responsibilities in married life.';
+  let answerCalls = 0;
+  const audioBytes = Buffer.from('ID3corrected-English-answer');
+  await withServer({ aiKey: serverKey, fetchImpl: async (url, options) => {
+    calls.push({ url, options });
+    if (url.endsWith('/audio/transcriptions')) return Response.json({ text: question });
+    if (url.endsWith('/audio/speech')) return new Response(audioBytes, { headers: { 'Content-Type': 'audio/mpeg' } });
+    const body = JSON.parse(options.body);
+    if (body.response_format) return Response.json({ choices: [{ message: { content: '{"topic":"married-life"}' } }] });
+    answerCalls++;
+    return Response.json({ choices: [{ message: { content: answerCalls === 1 ? wrongAnswer : answer } }] });
+  } }, async ({ audio, post }) => {
+    const transcript = await audio('/api/transcribe?language=auto');
+    assert.equal(transcript.status, 200);
+    const recognized = await transcript.json();
+    assert.equal(recognized.text, question);
+    assert.equal(calls[0].options.body.get('language'), null);
+    const chat = await post('/api/chat', {
+      assistant: 'yogi', profile: birthProfile, message: recognized.text, mode: 'ai', language: 'auto',
+      history: [{ role: 'user', content: 'मेरा वैवाहिक जीवन कैसा रहेगा?' }, { role: 'assistant', content: wrongAnswer }],
+    });
+    assert.equal(chat.status, 200);
+    const result = await chat.json();
+    assert.equal(result.reply, answer);
+    assert.equal(result.responseLanguage, 'en');
+    assert.equal(result.prediction.topic, 'married-life');
+    assert.equal(answerCalls, 2);
+    const speech = await post('/api/voice', { text: result.reply, language: result.responseLanguage });
+    assert.equal(speech.status, 200);
+    assert.deepEqual(Buffer.from(await speech.arrayBuffer()), audioBytes);
+    const speechCalls = calls.filter(call => call.url.endsWith('/audio/speech'));
+    assert.equal(speechCalls.length, 1, 'The rejected Hindi answer must never be sent for speech.');
+    const spoken = JSON.parse(speechCalls[0].options.body);
+    assert.equal(spoken.input, answer, 'Natural voice reads the same corrected text that the user sees.');
+    assert.match(spoken.instructions, /language identified by en\b/);
+    assert.equal(spoken.voice, 'onyx');
+    assert.match(spoken.instructions, /Do not translate or replace/);
+    assert.equal(spoken.input.includes(wrongAnswer), false);
+    const completionCalls = calls.filter(call => call.url.endsWith('/chat/completions'));
+    assert.equal(completionCalls.length, 3, 'One intent classification plus two bounded answer attempts.');
+    const original = JSON.parse(completionCalls[1].options.body);
+    const corrected = JSON.parse(completionCalls[2].options.body);
+    assert.equal(JSON.parse(original.messages.at(-1).content).responseLanguage, 'en');
+    assert.deepEqual(JSON.parse(corrected.messages.findLast(turn => turn.role === 'user').content), JSON.parse(original.messages.at(-1).content));
+  });
+});
+
+test('Auto Hindi and Telugu speech keep the spoken language through visible answers and natural voice', async () => {
+  const cases = [
+    ['नक्षत्र का अर्थ क्या है?', 'नक्षत्र चंद्रमा की स्थिति को दर्शाने वाले सत्ताईस पारंपरिक आकाश विभागों में से एक है।', 'auto'],
+    ['నక్షత్రం అంటే ఏమిటి?', 'నక్షత్రం చంద్రుని స్థానాన్ని సూచించే ఇరవై ఏడు సంప్రదాయ ఆకాశ విభాగాలలో ఒకటి.', 'te'],
+  ];
+  for (const [question, answer, expectedLanguage] of cases) {
+    const calls = [];
+    await withServer({ aiKey: serverKey, fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      if (url.endsWith('/audio/transcriptions')) return Response.json({ text: question });
+      if (url.endsWith('/audio/speech')) return new Response(Buffer.from('ID3fixture'), { headers: { 'Content-Type': 'audio/mpeg' } });
+      return Response.json({ choices: [{ message: { content: answer } }] });
+    } }, async ({ audio, post }) => {
+      const transcript = await audio('/api/transcribe?language=auto');
+      assert.equal(transcript.status, 200);
+      const recognized = await transcript.json();
+      assert.equal(recognized.text, question);
+      assert.equal(calls[0].options.body.get('language'), null);
+      const chat = await post('/api/chat', {
+        assistant: 'yogi', profile: null, message: recognized.text, language: 'auto', mode: 'ai',
+        history: [{ role: 'user', content: 'What is a birth star?' }, { role: 'assistant', content: 'I can explain that in English.' }],
+      });
+      assert.equal(chat.status, 200);
+      const result = await chat.json();
+      assert.equal(result.reply, answer);
+      assert.equal(result.responseLanguage, expectedLanguage);
+      const speech = await post('/api/voice', { text: result.reply, language: result.responseLanguage });
+      assert.equal(speech.status, 200);
+      await speech.arrayBuffer();
+      assert.equal(calls.length, 3);
+      const spoken = JSON.parse(calls[2].options.body);
+      assert.equal(spoken.input, result.reply);
+      assert.equal(spoken.voice, 'onyx');
+      assert.match(spoken.instructions, expectedLanguage === 'auto' ? /Speak in the language of the text/ : new RegExp(`language identified by ${expectedLanguage}\\b`));
+    });
+  }
+});
+
+test('an explicit Hindi selection corrects an English answer before natural speech', async () => {
+  const calls = [];
+  const answer = 'नक्षत्र चंद्रमा की स्थिति को दर्शाने वाला आकाश का एक पारंपरिक विभाग है।';
+  let answerCalls = 0;
+  await withServer({ aiKey: serverKey, fetchImpl: async (url, options) => {
+    calls.push({ url, options });
+    if (url.endsWith('/audio/speech')) return new Response(Buffer.from('ID3fixture'), { headers: { 'Content-Type': 'audio/mpeg' } });
+    answerCalls++;
+    return Response.json({ choices: [{ message: { content: answerCalls === 1 ? 'A nakshatra is a traditional lunar division.' : answer } }] });
+  } }, async ({ post }) => {
+    const chat = await post('/api/chat', { assistant: 'yogi', profile: null, message: 'What is a nakshatra?', language: 'HI-in', mode: 'ai' });
+    assert.equal(chat.status, 200);
+    const result = await chat.json();
+    assert.equal(result.reply, answer);
+    assert.equal(result.responseLanguage, 'hi-IN');
+    assert.equal(answerCalls, 2);
+    const speech = await post('/api/voice', { text: result.reply, language: result.responseLanguage });
+    assert.equal(speech.status, 200);
+    await speech.arrayBuffer();
+    const spoken = JSON.parse(calls[2].options.body);
+    assert.equal(spoken.input, answer);
+    assert.match(spoken.instructions, /language identified by hi-IN/);
+  });
+});
+
+test('one Auto voice conversation switches English to Telugu and back to English on each current turn', async () => {
+  const turns = [
+    ['What is a birth star?', 'A birth star is the lunar division occupied by the Moon at birth.', 'en'],
+    ['నక్షత్రం అంటే ఏమిటి?', 'నక్షత్రం చంద్రుని స్థానాన్ని సూచించే సంప్రదాయ ఆకాశ విభాగం.', 'te'],
+    ['How is a birth star calculated?', 'The calculation uses the Moon’s sidereal longitude at the recorded birth time.', 'en'],
+  ];
+  const calls = [];
+  let currentTurn = -1;
+  await withServer({ aiKey: serverKey, fetchImpl: async (url, options) => {
+    calls.push({ url, options });
+    if (url.endsWith('/audio/transcriptions')) {
+      currentTurn++;
+      return Response.json({ text: turns[currentTurn][0] });
+    }
+    if (url.endsWith('/audio/speech')) return new Response(Buffer.from('ID3fixture'), { headers: { 'Content-Type': 'audio/mpeg' } });
+    return Response.json({ choices: [{ message: { content: turns[currentTurn][1] } }] });
+  } }, async ({ audio, post }) => {
+    const history = [];
+    for (const [question, answer, expectedLanguage] of turns) {
+      const transcript = await audio('/api/transcribe?language=auto');
+      assert.equal(transcript.status, 200);
+      const recognized = await transcript.json();
+      assert.equal(recognized.text, question);
+      const chat = await post('/api/chat', { assistant: 'yogi', profile: null, message: recognized.text, history, language: 'auto', mode: 'ai' });
+      assert.equal(chat.status, 200);
+      const result = await chat.json();
+      assert.equal(result.reply, answer);
+      assert.equal(result.responseLanguage, expectedLanguage);
+      const speech = await post('/api/voice', { text: result.reply, language: result.responseLanguage });
+      assert.equal(speech.status, 200);
+      await speech.arrayBuffer();
+      const spoken = JSON.parse(calls.at(-1).options.body);
+      assert.equal(spoken.input, result.reply);
+      assert.equal(spoken.voice, 'onyx');
+      assert.match(spoken.instructions, new RegExp(`language identified by ${expectedLanguage}\\b`));
+      history.push({ role: 'user', content: question }, { role: 'assistant', content: result.reply });
+    }
+    const transcriptions = calls.filter(call => call.url.endsWith('/audio/transcriptions'));
+    assert.equal(transcriptions.length, 3);
+    assert.ok(transcriptions.every(call => call.options.body.get('language') === null), 'Auto does not lock later microphone turns to the first language.');
+    const completions = calls.filter(call => call.url.endsWith('/chat/completions')).map(call => JSON.parse(call.options.body));
+    assert.deepEqual(completions.map(body => JSON.parse(body.messages.at(-1).content).responseLanguage), ['en', 'te', 'en']);
+    assert.deepEqual(completions[2].messages.slice(1, -1), history.slice(0, 4), 'English is selected even while the immediately preceding assistant turn is Telugu.');
+    assert.equal(calls.length, 9, 'Three turns need three transcriptions, three answers, and three speech requests.');
+  });
+});
+
+test('Yogi rejects a repeated wrong-language answer instead of offering it for speech', async () => {
+  let calls = 0;
+  const wrongAnswer = 'నక్షత్రం చంద్రుని స్థానాన్ని సూచించే విభాగం.';
+  await withServer({ aiKey: serverKey, fetchImpl: async () => {
+    calls++;
+    return Response.json({ choices: [{ message: { content: wrongAnswer } }] });
+  } }, async ({ post }) => {
+    const result = await expectError(await post('/api/chat', { assistant: 'yogi', profile: null, message: 'What is a nakshatra?', mode: 'ai', language: 'auto' }), 502);
+    assert.equal(calls, 2);
+    assert.equal(JSON.stringify(result).includes(wrongAnswer), false);
+    assert.match(result.error, /language|English/i);
+  });
+});
+
 test('an explicit English selection overrides a non-English question and history', async () => {
   const calls = [];
   const answer = 'A nakshatra is one of the twenty-seven traditional lunar divisions.';
@@ -340,7 +515,7 @@ test('AI Yogi missing full birth details requests them before personalized chart
   const calls = [];
   await withServer({ aiKey: serverKey, fetchImpl: async (_url, options) => {
     calls.push(options);
-    return Response.json({ choices: [{ message: { content: 'Please add your recorded birth time and place before a personal timing estimate.' } }] });
+    return Response.json({ choices: [{ message: { content: 'व्यक्तिगत समय का अनुमान लगाने से पहले अपनी जन्म तिथि, दर्ज जन्म समय और जन्म स्थान जोड़ें।' } }] });
   } }, async ({ post }) => {
     const response = await post('/api/chat', { assistant: 'yogi', profile: { name: birthProfile.name, birthDate: birthProfile.birthDate }, message: 'When will I get married?', mode: 'ai', language: 'hi-IN' });
     assert.equal(response.status, 200);

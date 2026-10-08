@@ -775,6 +775,129 @@ test('marriage questions transparently explain a calculated no-window result', a
   });
 });
 
+test('an English married-life question recovers a Hindi provider answer without inheriting Hindi history', async () => {
+  const calls = [];
+  const wrongAnswer = 'आपके विवाह जीवन में सहयोग और समझ बढ़ सकती है।';
+  const answer = 'Your calculated chart suggests focusing on shared expectations and patient communication in married life.';
+  const history = [
+    { role: 'user', content: 'मेरा वैवाहिक जीवन कैसा रहेगा?' },
+    { role: 'assistant', content: wrongAnswer },
+  ];
+  await withServer({ aiKey: privateKey, fetchImpl: async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return Response.json({ choices: [{ message: { content: calls.length === 1 ? wrongAnswer : answer } }] });
+  } }, async ({ post }) => {
+    const response = await post('/api/chat', { profile: vedicProfile, message: 'How might my married life be?', history, mode: 'ai' });
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.reply, answer);
+    assert.equal(result.source, 'ai');
+    assert.equal(result.responseLanguage, 'en');
+    assert.equal(result.prediction.topic, 'married-life');
+    assert.equal(calls.length, 2, 'A mismatched provider answer receives one bounded correction attempt.');
+    assert.match(calls[0].messages[0].content, /English/);
+    assert.match(calls[0].messages[0].content, /first sentence a direct, natural, conditional answer to the exact prediction or clarification asked/);
+    assert.match(calls[0].messages[0].content, /married-life quality, describe the relationship outlook first/);
+    assert.match(calls[0].messages[0].content, /do not add unrelated timelines to a question about relationship quality/);
+    assert.deepEqual(calls[0].messages.slice(1, -1), history);
+    const firstContext = JSON.parse(calls[0].messages.at(-1).content);
+    const secondContext = JSON.parse(calls[1].messages.findLast(turn => turn.role === 'user').content);
+    assert.equal(firstContext.question, 'How might my married life be?');
+    assert.equal(firstContext.responseLanguage, 'en');
+    assert.deepEqual(secondContext, firstContext, 'Correcting language must preserve the calculated chart and forecast.');
+    for (const call of calls) {
+      assert.equal(call.store, false);
+      for (const raw of [privateKey, ...Object.values(vedicProfile).map(String)]) assert.equal(JSON.stringify(call).includes(raw), false);
+    }
+  });
+});
+
+test('Astral Auto uses the current English question and English fallback instead of earlier Telugu replies', async () => {
+  const calls = [];
+  const answer = 'I can explain the supplied chart in English.';
+  const history = [
+    { role: 'user', content: 'నా వివాహ జీవితం ఎలా ఉంటుంది?' },
+    { role: 'assistant', content: 'మీ సంబంధంలో పరస్పర అవగాహన ముఖ్యం.' },
+  ];
+  await withServer({ aiKey: privateKey, fetchImpl: async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return Response.json({ choices: [{ message: { content: answer } }] });
+  } }, async ({ post }) => {
+    for (const message of ['How might my married life be?', 'Hi', 'Charan', 'Shukra mahadasha']) {
+      const response = await post('/api/chat', { profile: vedicProfile, message, history, mode: 'ai', language: 'auto' });
+      assert.equal(response.status, 200, message);
+      const result = await response.json();
+      assert.equal(result.reply, answer);
+      const expectedLanguage = message === 'Charan' ? 'auto' : 'en';
+      assert.equal(result.responseLanguage, expectedLanguage, message);
+      assert.equal(JSON.parse(calls.at(-1).messages.at(-1).content).responseLanguage, expectedLanguage);
+      assert.match(calls.at(-1).messages[0].content, /English is the default/);
+    }
+    assert.equal(calls.length, 4, 'Correct English answers do not need correction requests.');
+  });
+});
+
+test('Astral Auto keeps clear Hindi and Telugu questions in their own language', async () => {
+  const cases = [
+    ['मेरा वैवाहिक जीवन कैसा रहेगा?', 'आपकी जन्म कुंडली के अनुसार आपसी समझ और सहयोग पर ध्यान देना उपयोगी हो सकता है।', 'auto'],
+    ['నా వివాహ జీవితం ఎలా ఉంటుంది?', 'మీ జన్మ చక్రం ప్రకారం పరస్పర అవగాహన మరియు సహకారంపై దృష్టి పెట్టడం ఉపయోగకరం.', 'te'],
+  ];
+  for (const [question, answer, expectedLanguage] of cases) {
+    const calls = [];
+    await withServer({ aiKey: privateKey, fetchImpl: async (_url, options) => {
+      calls.push(JSON.parse(options.body));
+      return Response.json({ choices: [{ message: { content: answer } }] });
+    } }, async ({ post }) => {
+      const response = await post('/api/chat', {
+        profile: vedicProfile, message: question, mode: 'ai', language: 'auto',
+        history: [{ role: 'user', content: 'Please explain my chart.' }, { role: 'assistant', content: 'We can explore your calculated chart.' }],
+      });
+      assert.equal(response.status, 200);
+      const result = await response.json();
+      assert.equal(result.reply, answer);
+      assert.equal(result.responseLanguage, expectedLanguage);
+      assert.equal(calls.length, 1);
+      assert.equal(JSON.parse(calls[0].messages.at(-1).content).responseLanguage, expectedLanguage);
+    });
+  }
+});
+
+test('a repeated wrong-language answer is not returned as a successful Astral reply', async () => {
+  let calls = 0;
+  const wrongAnswer = 'आपके विवाह जीवन में सहयोग और समझ बढ़ सकती है।';
+  await withServer({ aiKey: privateKey, fetchImpl: async () => {
+    calls++;
+    return Response.json({ choices: [{ message: { content: wrongAnswer } }] });
+  } }, async ({ post }) => {
+    const result = await expectError(await post('/api/chat', { profile: vedicProfile, message: 'How might my married life be?', mode: 'ai' }), 502);
+    assert.equal(calls, 2, 'Correction cannot enter an unbounded provider retry loop.');
+    assert.equal(JSON.stringify(result).includes(wrongAnswer), false);
+    assert.match(result.error, /language|English/i);
+  });
+});
+
+test('provider failures during language correction return sanitized errors', async t => {
+  const privateDetail = `private-language-correction:${privateKey}:${vedicProfile.name}`;
+  for (const [name, failure] of [
+    ['rejected correction', async () => new Response(privateDetail, { status: 429 })],
+    ['network correction failure', async () => { throw new Error(privateDetail); }],
+  ]) {
+    await t.test(name, async () => {
+      let calls = 0;
+      await withServer({ aiKey: privateKey, fetchImpl: async () => {
+        calls++;
+        return calls === 1
+          ? Response.json({ choices: [{ message: { content: 'आपका वैवाहिक जीवन समझ और सहयोग पर आधारित हो सकता है।' } }] })
+          : failure();
+      } }, async ({ post }) => {
+        const result = await expectError(await post('/api/chat', { profile: vedicProfile, message: 'How might my married life be?', mode: 'ai' }), 502);
+        assert.equal(calls, 2);
+        for (const raw of [privateDetail, privateKey, vedicProfile.name]) assert.equal(JSON.stringify(result).includes(raw), false);
+      });
+    });
+  }
+});
+
 test('chat rejects invalid roles, oversized history, and unsupported history shapes', async () => {
   await withServer({}, async ({ post }) => {
     const invalidHistories = [

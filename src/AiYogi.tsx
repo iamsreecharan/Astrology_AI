@@ -9,7 +9,7 @@ export type YogiProfile = { name: string; birthDate: string; birthTime?: string;
 type YogiProps = { profile: YogiProfile | null; aiEnabled: boolean; onEditProfile: () => void };
 type Reference = { id: string; title: string };
 type Prediction = { topic?: string; searchWindows?: CareerSearchWindow[]; searchHorizonEnd?: string; planningDates?: CareerPlanningDates; factors?: string[]; themes?: string[]; method?: string[]; limitations?: string[]; windows?: { start: string; end: string; label?: string; reasons?: string[] }[] };
-type Message = { id: number; role: 'user' | 'assistant'; text: string; source?: 'local' | 'ai'; references?: Reference[]; prediction?: Prediction };
+type Message = { id: number; role: 'user' | 'assistant'; text: string; source?: 'local' | 'ai'; responseLanguage?: string; references?: Reference[]; prediction?: Prediction };
 type AvatarState = 'idle' | 'listening' | 'thinking' | 'speaking';
 type Meter = { context: AudioContext; ownsContext: boolean; frame: number | null; source: MediaStreamAudioSourceNode | AudioBufferSourceNode; analyser: AnalyserNode };
 
@@ -22,6 +22,10 @@ const LANGUAGES = [
 ] as const;
 const MAX_RECORDING_BYTES = 8 * 1024 * 1024;
 const MAX_RECORDING_SECONDS = 45;
+
+function answerLanguage(value: unknown, requestedLanguage: string): string {
+  return typeof value === 'string' && (value === 'auto' || /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(value)) ? value : requestedLanguage;
+}
 
 function voiceChunks(text: string): string[] {
   const chunks: string[] = [];
@@ -84,6 +88,7 @@ function CalculationDetails({ message }: { message: Message }) {
 export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps) {
   const [open, setOpen] = useState(false);
   const [language, setLanguage] = useState('auto');
+  const languageRef = useRef('auto');
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -297,6 +302,15 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
     }, 200);
   }
 
+  function changeLanguage(next: string) {
+    languageRef.current = next;
+    cancelConversation();
+    setLanguage(next);
+    setError('');
+    setVoiceError('');
+    listenAgain();
+  }
+
   function beginConversation() {
     if (!aiEnabled || !openRef.current) return;
     endConversation();
@@ -332,7 +346,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
         try {
           const response = await checkedResponse(await fetch('/api/voice', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, language }), signal: controller.signal,
+            body: JSON.stringify({ text, language: message.responseLanguage ?? 'auto' }), signal: controller.signal,
           }));
           bytes = await response.arrayBuffer();
         } finally { window.clearTimeout(timeout); }
@@ -414,7 +428,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
     }
   }
 
-  async function askQuestion(question: string, retry = false, existingController?: AbortController, existingRequestId?: number) {
+  async function askQuestion(question: string, retry = false, existingController?: AbortController, existingRequestId?: number, requestedLanguage = languageRef.current) {
     const text = question.trim();
     if (!text || !openRef.current) return;
     if (text.length > 1000) {
@@ -437,12 +451,12 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
     try {
       const response = await checkedResponse(await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
-        body: JSON.stringify({ profile: profileSnapshot(profile), assistant: 'yogi', mode: aiEnabled ? 'ai' : 'local', language, message: text, history }),
+        body: JSON.stringify({ profile: profileSnapshot(profile), assistant: 'yogi', mode: aiEnabled ? 'ai' : 'local', language: requestedLanguage, message: text, history }),
       }));
-      const answer = await response.json() as { reply: string; source: 'local' | 'ai'; references?: Reference[]; prediction?: Prediction };
+      const answer = await response.json() as { reply: string; source: 'local' | 'ai'; responseLanguage?: string; references?: Reference[]; prediction?: Prediction };
       if (typeof answer.reply !== 'string' || !answer.reply.trim()) throw new Error('No answer was returned. Please try again.');
       if (requestId !== requestIdRef.current || !openRef.current) return;
-      const message: Message = { id: ++messageIdRef.current, role: 'assistant', text: answer.reply, source: answer.source, references: answer.references, prediction: answer.prediction };
+      const message: Message = { id: ++messageIdRef.current, role: 'assistant', text: answer.reply, source: answer.source, responseLanguage: answerLanguage(answer.responseLanguage, requestedLanguage), references: answer.references, prediction: answer.prediction };
       updateMessages([...messagesRef.current, message]);
       setLoading(false);
       if (aiEnabled && answer.source === 'ai' && document.visibilityState !== 'hidden') void playVoice(message);
@@ -458,7 +472,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
     }
   }
 
-  async function transcribeRecording(blob: Blob) {
+  async function transcribeRecording(blob: Blob, requestedLanguage: string) {
     const requestId = ++requestIdRef.current;
     const controller = new AbortController();
     requestRef.current?.abort();
@@ -467,7 +481,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
     setError('');
     const timeout = window.setTimeout(() => controller.abort(), 60000);
     try {
-      const response = await checkedResponse(await fetch(`/api/transcribe?language=${encodeURIComponent(language)}`, {
+      const response = await checkedResponse(await fetch(`/api/transcribe?language=${encodeURIComponent(requestedLanguage)}`, {
         method: 'POST', headers: { 'Content-Type': blob.type || 'audio/webm' }, body: blob, signal: controller.signal,
       }));
       const body = await response.json() as { text?: string };
@@ -480,7 +494,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
         return;
       }
       window.clearTimeout(timeout);
-      await askQuestion(body.text, false, controller, requestId);
+      await askQuestion(body.text, false, controller, requestId, requestedLanguage);
     } catch (cause) {
       if (requestId !== requestIdRef.current || !openRef.current) return;
       const errorMessage = controller.signal.aborted ? 'The recording took too long to transcribe. Please try again or type your question.' : cause instanceof Error ? cause.message : 'The recording couldn’t be transcribed. You can type your question instead.';
@@ -521,6 +535,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
       return;
     }
     const micId = ++micIdRef.current;
+    const recordingLanguage = languageRef.current;
     setMicPending(true);
     let stream: MediaStream | null = null;
     try {
@@ -566,7 +581,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
           setError('The recording was empty. Try again or type your question.');
           return;
         }
-        void transcribeRecording(blob);
+        void transcribeRecording(blob, recordingLanguage);
       };
       recorder.start(1000);
       setMicPending(false);
@@ -637,12 +652,6 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
   }, [aiEnabled]);
 
   useEffect(() => {
-    if (!conversationRef.current) return;
-    cancelConversation();
-    listenAgain();
-  }, [language]);
-
-  useEffect(() => {
     mountedRef.current = true;
     const pauseOnHide = () => {
       if (document.visibilityState !== 'hidden') return;
@@ -672,7 +681,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
           <span className="yogi-avatar-status" role="status"><span aria-hidden="true" />{avatarStatus}</span>
         </div>
         <p id="yogi-description" className="yogi-description">Ask about the stars, life, or something you’d like explained. Speak or type in your language.</p>
-        <div className="yogi-controls"><label htmlFor="yogi-language">Conversation language</label><select id="yogi-language" value={language} disabled={busy} onChange={event => { stopVoice(); setVoiceError(''); setLanguage(event.target.value); }}>{LANGUAGES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><span className="yogi-mode"><span aria-hidden="true" />{aiEnabled ? 'Live Vedic AI' : 'Local guide · English'}</span></div>
+        <div className="yogi-controls"><label htmlFor="yogi-language">Conversation language</label><select id="yogi-language" value={language} onChange={event => changeLanguage(event.target.value)}>{LANGUAGES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><span className="yogi-mode"><span aria-hidden="true" />{aiEnabled ? 'Live Vedic AI' : 'Local guide · English'}</span></div>
         {!hasBirthDetails && <button type="button" className="yogi-profile-link" onClick={() => { closeAssistant(); onEditProfile(); }}>{profile ? 'Add birth time and place for personal Vedic answers' : 'Add your birth details for personal Vedic answers'}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button>}
         <div ref={transcriptRef} className="yogi-transcript" role="log" aria-label="AI Yogi conversation" aria-live="polite" aria-relevant="additions text">
           {!messages.length && <div className="yogi-greeting"><span aria-hidden="true">✧</span><p>Namaste. What’s on your mind?</p><small>{aiEnabled ? 'I’ll start in English and switch to the language you speak or select. Every reply has words you can read and a voice you can hear.' : 'The local guide can share short Vedic notes in English. Live voice becomes available when this server’s AI connection is configured.'}</small></div>}

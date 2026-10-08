@@ -205,9 +205,14 @@ body { background: var(--astral-night); color: #eee5d7; }
 .app-shell .transit-section > summary > span { color: #7b674f; }
 
 .app-shell .forecast-section { background: #eee1cc; border-color: #c5aa83; }
+.app-shell .forecast-section .chart-section-heading { flex-direction: column; align-items: flex-start; gap: 20px; }
+.app-shell .forecast-section .chart-section-heading > div:first-child { min-width: 0; width: 100%; }
+.app-shell .forecast-topic-control { width: min(100%, 360px); min-width: 0; padding: 13px 15px; gap: 9px; border: 1px solid #a3b7a5; border-left: 3px solid #588575; border-radius: 3px 16px 3px 16px; background: #dbe4d77a; }
 .app-shell :is(.forecast-context, .forecast-topic-control label, .marriage-window .eyebrow) { color: #845833; }
+.app-shell .forecast-topic-control label { color: #315b50; font-size: 12px; font-weight: 600; line-height: 1.5; }
 .app-shell .forecast-intro { color: #675d68; }
-.app-shell .forecast-topic-control select { background: #fcf4e7; border-color: #c9b18c; color: #514451; border-radius: 14px; }
+.app-shell .forecast-topic-control select { min-height: 44px; font-size: 14px; background: #fcf4e7; border-color: #588575; color: #403449; border-radius: 10px; }
+.app-shell .forecast-topic-control select:focus-visible { outline: 2px solid #315b50; outline-offset: 3px; }
 .app-shell .current-phase-card { background: #dbe4d7; border-color: #a3bfae; border-radius: 3px 16px 3px 16px; }
 .app-shell .current-phase-card > .eyebrow { color: #486b57; }
 .app-shell .current-phase-card h3 { color: #315b50; }

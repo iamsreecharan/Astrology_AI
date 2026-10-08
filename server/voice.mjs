@@ -1,4 +1,5 @@
 import express from 'express';
+import { responseLanguageFor } from './chat-language.mjs';
 
 const AUDIO_TYPES = new Map([
   ['audio/webm', 'webm'], ['audio/mp4', 'mp4'], ['audio/m4a', 'm4a'],
@@ -91,13 +92,14 @@ export function installVoiceRoutes(app, {
       throw requestError('Speech text must contain 1–2,000 characters without control characters.');
     }
     if (!aiKey) return res.status(503).json({ error: 'Natural voice needs the server AI connection. The written answer is still available.' });
+    const responseLanguage = responseLanguageFor(text, language, { allowLanguageRequests: false });
     try {
       const response = await fetchImpl('https://api.openai.com/v1/audio/speech', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${aiKey}` },
         signal: AbortSignal.timeout(30000),
         body: JSON.stringify({
-          model: ttsModel, voice: 'sage', input: text, response_format: 'mp3',
-          instructions: `Read the supplied text faithfully, without additions. Do not translate or replace the supplied words. Use a warm, calm, natural conversational voice with clear pronunciation and gentle pacing. ${language === 'auto' ? 'Speak in the language of the text. If the text’s language is ambiguous, use English. Names or Vedic terms alone do not imply a regional language. Preserve natural pronunciation of names and Vedic terms.' : `Speak naturally in the language identified by ${language}, pronouncing names and Vedic terms clearly.`} Avoid a theatrical or preachy delivery.`,
+          model: ttsModel, voice: 'onyx', input: text, response_format: 'mp3',
+          instructions: `Read the supplied text faithfully, without additions. Do not translate or replace the supplied words. Use a warm, calm, natural male conversational voice with clear pronunciation and gentle pacing. ${language === 'auto' ? 'Speak in the language of the text. If the text’s language is ambiguous, use English. Names or Vedic terms alone do not imply a regional language. Preserve natural pronunciation of names and Vedic terms.' : `Speak naturally in the language identified by ${language}, pronouncing names and Vedic terms clearly.`} ${responseLanguage === 'auto' ? '' : `The response language for this answer is ${responseLanguage}${responseLanguage.startsWith('en') ? ' (English)' : ''}; use its pronunciation, without translating the text.`} Avoid a theatrical or preachy delivery.`,
         }),
       });
       if (!response.ok) throw new Error('Provider rejected speech');

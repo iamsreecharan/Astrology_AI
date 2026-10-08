@@ -26,6 +26,7 @@ const DASHA = Object.freeze([
   { lord: 'Jupiter', years: 16 }, { lord: 'Saturn', years: 19 }, { lord: 'Mercury', years: 17 },
 ]);
 const PLANET_BODIES = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+const PLANET_NAMES = Object.freeze([...PLANET_BODIES, 'Rahu', 'Ketu']);
 const BIRTH_FIELDS = ['birthTime', 'birthPlace', 'latitude', 'longitude', 'timeZone'];
 
 function badRequest(message) {
@@ -177,23 +178,36 @@ function meanLunarNode(date) {
   return normalizeDegrees(125.04452 - 1934.136261 * t + 0.0020708 * t * t + t * t * t / 450000);
 }
 
-function siderealPositions(date) {
+function siderealPositions(date, names = PLANET_NAMES) {
   const time = Astronomy.MakeTime(date);
   const meanAyanamsha = approximateLahiriAyanamsha(date);
   const trueAyanamsha = meanAyanamsha + Astronomy.e_tilt(time).dpsi / 3600;
-  const positions = PLANET_BODIES.map((name) => {
+  const rahu = names.some(name => name === 'Rahu' || name === 'Ketu')
+    ? normalizeDegrees(meanLunarNode(date) - meanAyanamsha) : null;
+  return names.map((name) => {
+    if (name === 'Rahu') return { name, longitude: rahu };
+    if (name === 'Ketu') return { name, longitude: normalizeDegrees(rahu + 180) };
     const tropical = name === 'Moon'
       ? Astronomy.EclipticGeoMoon(time).lon
       : Astronomy.Ecliptic(Astronomy.GeoVector(Astronomy.Body[name], time, true)).elon;
     return { name, longitude: normalizeDegrees(tropical - trueAyanamsha) };
   });
-  const rahu = normalizeDegrees(meanLunarNode(date) - meanAyanamsha);
-  positions.push({ name: 'Rahu', longitude: rahu }, { name: 'Ketu', longitude: normalizeDegrees(rahu + 180) });
-  return positions;
 }
 
 function signedDelta(after, before) {
   return normalizeDegrees(after - before + 180) - 180;
+}
+
+function planetPosition(planet, ascendantSign) {
+  const signIndex = Math.floor(planet.longitude / 30);
+  return {
+    name: planet.name,
+    rashi: RASHIS[signIndex],
+    signIndex,
+    longitude: roundLongitude(planet.longitude),
+    degreeInSign: Math.min(29.999999, round(planet.longitude % 30)),
+    house: (signIndex - ascendantSign + 12) % 12 + 1,
+  };
 }
 
 function planetsAt(date, ascendantSign) {
@@ -201,22 +215,15 @@ function planetsAt(date, ascendantSign) {
   const before = siderealPositions(new Date(date.getTime() - DAY_MS / 4));
   const after = siderealPositions(new Date(date.getTime() + DAY_MS / 4));
   return positions.map((planet, index) => {
-    const signIndex = Math.floor(planet.longitude / 30);
     return {
-      name: planet.name,
-      rashi: RASHIS[signIndex],
-      signIndex,
-      longitude: roundLongitude(planet.longitude),
-      degreeInSign: Math.min(29.999999, round(planet.longitude % 30)),
-      house: (signIndex - ascendantSign + 12) % 12 + 1,
+      ...planetPosition(planet, ascendantSign),
       retrograde: planet.name === 'Rahu' || planet.name === 'Ketu'
         ? true : signedDelta(after[index].longitude, before[index].longitude) < 0,
     };
   });
 }
 
-/** Transit houses use the natal ascendant sign, not a transit ascendant. */
-export function calculateTransitPlanets(date, ascendantSign = 0) {
+function validateTransitInputs(date, ascendantSign) {
   validDate(date, 'Transit date');
   if (!Number.isInteger(ascendantSign) || ascendantSign < 0 || ascendantSign > 11) {
     throw badRequest('The natal ascendant sign index must be between 0 and 11.');
@@ -224,7 +231,22 @@ export function calculateTransitPlanets(date, ascendantSign = 0) {
   if (date.getUTCFullYear() < 1900 || date.getUTCFullYear() > 2100) {
     throw badRequest('Transit calculations support dates between 1900 and 2100.');
   }
+}
+
+/** Transit houses use the natal ascendant sign, not a transit ascendant. */
+export function calculateTransitPlanets(date, ascendantSign = 0) {
+  validateTransitInputs(date, ascendantSign);
   return planetsAt(date, ascendantSign);
+}
+
+/** Forecasts need selected instantaneous positions, without retrograde sampling. */
+export function calculateTransitPositions(date, ascendantSign = 0, names = PLANET_NAMES) {
+  validateTransitInputs(date, ascendantSign);
+  if (!Array.isArray(names) || !names.length || names.length > PLANET_NAMES.length
+    || names.some(name => !PLANET_NAMES.includes(name)) || new Set(names).size !== names.length) {
+    throw badRequest('Choose distinct supported transit planets.');
+  }
+  return siderealPositions(date, names).map(planet => planetPosition(planet, ascendantSign));
 }
 
 /** Classical ninefold D9 division; houses are relative to the D9 ascendant. */

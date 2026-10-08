@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import BirthplaceAutocomplete from './BirthplaceAutocomplete';
 import type { Birthplace } from './BirthplaceAutocomplete';
@@ -9,7 +9,7 @@ import type { CareerPlanningDates, CareerSearchWindow } from './CareerTiming';
 import './App.css';
 import './AstralTheme.css';
 
-const CelestialScene = lazy(() => import('./CelestialScene'));
+const CelestialScene = memo(lazy(() => import('./CelestialScene')));
 const AiYogi = lazy(() => import('./AiYogi'));
 const About = lazy(() => import('./About'));
 const KundaliMatching = lazy(() => import('./KundaliMatching'));
@@ -163,11 +163,11 @@ function LoadingReading() {
   return <div className="reading-loading" role="status" aria-label="Loading your daily reading"><div className="skeleton skeleton-label" /><div className="skeleton skeleton-title" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line shorter" /><span className="loading-caption">Finding a little perspective for your day…</span></div>;
 }
 
-function PlanetTable({ planets, navamsa }: { planets: Planet[]; navamsa?: Planet[] }) {
+const PlanetTable = memo(function PlanetTable({ planets, navamsa }: { planets: Planet[]; navamsa?: Planet[] }) {
   return <div className="planet-table-scroll" tabIndex={0} role="region" aria-label="Planet positions table"><table className="planet-table"><thead><tr><th scope="col">Graha</th><th scope="col">D1 rashi</th>{navamsa && <th scope="col">D9 rashi</th>}<th scope="col">Sidereal longitude</th><th scope="col">Within sign</th><th scope="col">House</th><th scope="col">Motion</th></tr></thead><tbody>{planets.map(planet => <tr key={planet.name}><th scope="row">{planet.name}</th><td>{planet.rashi}</td>{navamsa && <td>{navamsa.find(item => item.name === planet.name)?.rashi || '—'}</td>}<td>{degrees(planet.longitude)}</td><td>{degrees(planet.degreeInSign)}</td><td>{planet.house}</td><td><span className={planet.retrograde ? 'motion-tag retrograde' : 'motion-tag'}>{planet.retrograde === null ? '—' : planet.retrograde ? 'Retrograde' : 'Direct'}</span></td></tr>)}</tbody></table></div>;
-}
+});
 
-function PredictionResults({ prediction, compact = false, insideDetails = false }: { prediction: Prediction; compact?: boolean; insideDetails?: boolean }) {
+const PredictionResults = memo(function PredictionResults({ prediction, compact = false, insideDetails = false }: { prediction: Prediction; compact?: boolean; insideDetails?: boolean }) {
   const topic = predictionTopics.find(item => item.id === prediction.topic);
   const isMarriage = prediction.topic === 'marriage';
   const isInterpretation = prediction.status === 'interpreted';
@@ -209,7 +209,7 @@ function PredictionResults({ prediction, compact = false, insideDetails = false 
       ? <section className="method-details"><h3>Method and interpretation limits</h3><p>{prediction.seventhHouse && <>Seventh house: {prediction.seventhHouse.rashi} · lord: {prediction.seventhHouse.lord}. </>}Calculated as of {formatDate(prediction.asOf)}.</p><ul>{prediction.method.map((item, index) => <li key={`method-${index}`}>{item}</li>)}{prediction.limitations.map((item, index) => <li key={`limit-${index}`}>{item}</li>)}</ul></section>
       : <details className="method-details"><summary>Method and interpretation limits</summary><p>{prediction.seventhHouse && <>Seventh house: {prediction.seventhHouse.rashi} · lord: {prediction.seventhHouse.lord}. </>}Calculated as of {formatDate(prediction.asOf)}.</p><ul>{prediction.method.map((item, index) => <li key={`method-${index}`}>{item}</li>)}{prediction.limitations.map((item, index) => <li key={`limit-${index}`}>{item}</li>)}</ul></details>)}
   </div>;
-}
+});
 
 export default function App() {
   const [introMotion, setIntroMotion] = useState<boolean | null>(null);
@@ -229,12 +229,14 @@ export default function App() {
   const [config, setConfig] = useState<Config | null>(null);
   const [configError, setConfigError] = useState('');
   const [configRetry, setConfigRetry] = useState(0);
+  const configInFlightRef = useRef(false);
   const [configLoading, setConfigLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isSaved, setIsSaved] = useState(Boolean(initialProfile));
   const [isPersonalProfile, setIsPersonalProfile] = useState(Boolean(initialProfile));
   const [profileError, setProfileError] = useState('');
   const [profileRetry, setProfileRetry] = useState(0);
+  const profileRequestRef = useRef<AbortController | null>(null);
   const [focus, setFocus] = useState<Focus>('general');
   const [reading, setReading] = useState<Reading | null>(null);
   const [readingLoading, setReadingLoading] = useState(true);
@@ -255,6 +257,7 @@ export default function App() {
   const [chartLoading, setChartLoading] = useState(false);
   const [chartError, setChartError] = useState('');
   const [chartRetry, setChartRetry] = useState(0);
+  const [chartRequestedFor, setChartRequestedFor] = useState<Profile | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState('');
   const reportRequestRef = useRef<AbortController | null>(null);
@@ -285,7 +288,9 @@ export default function App() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const messageIdRef = useRef(0);
   const compatibilityRequestRef = useRef(0);
+  const compatibilityAbortRef = useRef<AbortController | null>(null);
   const chatRequestRef = useRef(0);
+  const chatAbortRef = useRef<AbortController | null>(null);
   const today = new Date();
   const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const dateLabel = today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
@@ -348,6 +353,7 @@ export default function App() {
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
+    configInFlightRef.current = true;
     setConfigError('');
     setConfigLoading(true);
     api<Config>('/api/config', undefined, controller.signal).then(data => {
@@ -356,46 +362,63 @@ export default function App() {
       }
     }).catch(error => {
       if (active) { setConfigError(error.message); setConfig(null); }
-    }).finally(() => { if (active) setConfigLoading(false); });
-    return () => { active = false; controller.abort(); };
+    }).finally(() => { if (active) { configInFlightRef.current = false; setConfigLoading(false); } });
+    return () => { active = false; configInFlightRef.current = false; controller.abort(); };
   }, [configRetry]);
 
   useEffect(() => {
-    const refresh = () => { if (document.visibilityState === 'visible') setConfigRetry(value => value + 1); };
+    let timer: number | undefined;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible' || configInFlightRef.current) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (document.visibilityState === 'visible' && !configInFlightRef.current) setConfigRetry(value => value + 1);
+      }, 100);
+    };
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
-    return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
+    return () => { window.clearTimeout(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
   }, []);
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
+    profileRequestRef.current = controller;
     setProfileError('');
-    api<Profile>('/api/profile', profileInputRef.current).then(data => {
-      if (active) { setProfile(data); setSignA(data.sign.id); }
-    }).catch(error => { if (active) { setProfileError(error.message); setReadingLoading(false); } });
-    return () => { active = false; };
+    api<Profile>('/api/profile', profileInputRef.current, controller.signal).then(data => {
+      if (active && !controller.signal.aborted) { setProfile(data); setSignA(data.sign.id); }
+    }).catch(error => { if (active && !controller.signal.aborted) { setProfileError(error.message); setReadingLoading(false); } }).finally(() => {
+      if (profileRequestRef.current === controller) profileRequestRef.current = null;
+    });
+    return () => { active = false; controller.abort(); if (profileRequestRef.current === controller) profileRequestRef.current = null; };
   }, [initialProfile, profileRetry]);
 
   useEffect(() => {
     if (!profile) return;
     let active = true;
+    const controller = new AbortController();
     setReadingLoading(true);
     setReadingError('');
-    api<Reading>('/api/reading', { profile: profilePayload(profile), focus, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).then(data => {
+    api<Reading>('/api/reading', { profile: profilePayload(profile), focus, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }, controller.signal).then(data => {
       if (active) { setReading(data); setReadingLoading(false); }
     }).catch(error => { if (active) { setReadingError(error.message); setReadingLoading(false); } });
-    return () => { active = false; };
+    return () => { active = false; controller.abort(); };
   }, [profile, focus, readingRetry]);
+
+  useEffect(() => {
+    if (page === 'chart' && profile) setChartRequestedFor(profile);
+  }, [page, profile]);
 
   useEffect(() => {
     let active = true;
     setChart(null);
     setChartError('');
-    if (!profile || !hasBirthDetails(profile)) { setChartLoading(false); return; }
+    if (!profile || profile !== chartRequestedFor || !hasBirthDetails(profile)) { setChartLoading(false); return; }
     setChartLoading(true);
-    api<VedicChart>('/api/chart', { profile: profilePayload(profile) }).then(data => { if (active) setChart(data); }).catch(error => { if (active) setChartError(error.message); }).finally(() => { if (active) setChartLoading(false); });
-    return () => { active = false; };
-  }, [profile, chartRetry]);
+    const controller = new AbortController();
+    api<VedicChart>('/api/chart', { profile: profilePayload(profile) }, controller.signal).then(data => { if (active) setChart(data); }).catch(error => { if (active) setChartError(error.message); }).finally(() => { if (active) setChartLoading(false); });
+    return () => { active = false; controller.abort(); };
+  }, [profile, chartRequestedFor, chartRetry]);
 
   useEffect(() => {
     ++reportIdRef.current;
@@ -414,12 +437,12 @@ export default function App() {
     let active = true;
     setPrediction(null);
     setPredictionError('');
-    if (!profile || !hasBirthDetails(profile)) { setPredictionLoading(false); return; }
+    if (!profile || profile !== chartRequestedFor || !hasBirthDetails(profile)) { setPredictionLoading(false); return; }
     setPredictionLoading(true);
     const controller = new AbortController();
     api<Prediction>('/api/prediction', { profile: profilePayload(profile), topic: predictionTopic }, controller.signal).then(data => { if (active) setPrediction(data); }).catch(error => { if (active) setPredictionError(error.message); }).finally(() => { if (active) setPredictionLoading(false); });
     return () => { active = false; controller.abort(); };
-  }, [profile, predictionRetry, predictionTopic]);
+  }, [profile, chartRequestedFor, predictionRetry, predictionTopic]);
 
   useEffect(() => {
     if (editorOpen && !dialogRef.current?.open) {
@@ -432,6 +455,21 @@ export default function App() {
   useEffect(() => {
     if (page === 'chat') chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, chatLoading, page]);
+
+  useEffect(() => {
+    ++compatibilityRequestRef.current;
+    compatibilityAbortRef.current?.abort();
+    setCompatibility(null);
+    setCompatibilityLoading(false);
+    setCompatibilityError('');
+  }, [signA, signB]);
+
+  useEffect(() => () => {
+    ++chatRequestRef.current;
+    ++compatibilityRequestRef.current;
+    chatAbortRef.current?.abort();
+    compatibilityAbortRef.current?.abort();
+  }, []);
 
   function openProfileEditor() {
     setNameInput(currentName);
@@ -467,12 +505,14 @@ export default function App() {
     if (includeBirthDetails) Object.assign(input, { birthTime: timeInput, birthPlace: placeInput.trim(), latitude: Number(latitudeInput), longitude: Number(longitudeInput), timeZone: timeZoneInput.trim() });
     try {
       const data = await api<Profile>('/api/profile', input);
+      profileRequestRef.current?.abort();
       profileInputRef.current = input;
       setProfile(data);
       setIsPersonalProfile(true);
       setProfileError('');
       setSignA(data.sign.id);
       ++chatRequestRef.current;
+      chatAbortRef.current?.abort();
       setMessages([]);
       setChatLoading(false);
       setChatError('');
@@ -508,11 +548,13 @@ export default function App() {
     setTimeZoneInput('');
     setSaveError('');
     ++chatRequestRef.current;
+    chatAbortRef.current?.abort();
     setMessages([]);
     setChatLoading(false);
     setChatError('');
     setProfileError('');
-    api<Profile>('/api/profile', sampleProfile).then(data => { setProfile(data); setSignA(data.sign.id); }).catch(error => setProfileError(error.message));
+    profileRequestRef.current?.abort();
+    setProfileRetry(value => value + 1);
   }
 
   async function downloadReport() {
@@ -561,19 +603,23 @@ export default function App() {
   async function findCompatibility(event?: FormEvent) {
     event?.preventDefault();
     const requestId = ++compatibilityRequestRef.current;
+    compatibilityAbortRef.current?.abort();
+    const controller = new AbortController();
+    compatibilityAbortRef.current = controller;
     setCompatibilityLoading(true);
     setCompatibilityError('');
     setCompatibility(null);
     try {
-      const result = await api<Compatibility>('/api/compatibility', { signA, signB });
+      const result = await api<Compatibility>('/api/compatibility', { signA, signB }, controller.signal);
       if (requestId === compatibilityRequestRef.current) setCompatibility(result);
     } catch (error) {
       if (requestId === compatibilityRequestRef.current) setCompatibilityError(error instanceof Error ? error.message : 'Couldn’t explore this pairing. Please try again.');
-    } finally { if (requestId === compatibilityRequestRef.current) setCompatibilityLoading(false); }
+    } finally { if (compatibilityAbortRef.current === controller) compatibilityAbortRef.current = null; if (requestId === compatibilityRequestRef.current) setCompatibilityLoading(false); }
   }
 
   function changeSign(which: 'a' | 'b', value: string) {
     ++compatibilityRequestRef.current;
+    compatibilityAbortRef.current?.abort();
     if (which === 'a') setSignA(value); else setSignB(value);
     setCompatibility(null);
     setCompatibilityLoading(false);
@@ -584,6 +630,9 @@ export default function App() {
     const text = message.trim();
     if (!text || !profile || chatLoading) return;
     const requestId = ++chatRequestRef.current;
+    chatAbortRef.current?.abort();
+    const controller = new AbortController();
+    chatAbortRef.current = controller;
     if (!retry) lastHistoryRef.current = messages.slice(-6).map(item => ({ role: item.role, content: item.text.slice(0, 1000) }));
     setLastChat(text);
     setChatError('');
@@ -593,10 +642,10 @@ export default function App() {
     try {
       const result = await api<{ reply: string; source: 'local' | 'ai'; references?: Reference[]; prediction?: Prediction }>('/api/chat', {
         profile: profilePayload(profile), message: text, focus, mode: chatMode, history: lastHistoryRef.current,
-      });
+      }, controller.signal);
       if (requestId === chatRequestRef.current) setMessages(previous => [...previous, { id: ++messageIdRef.current, role: 'assistant', text: result.reply, source: result.source, references: result.references, prediction: result.prediction }]);
     } catch (error) { if (requestId === chatRequestRef.current) setChatError(error instanceof Error ? error.message : 'Your reflection couldn’t be created. Please try again.'); }
-    finally { if (requestId === chatRequestRef.current) setChatLoading(false); }
+    finally { if (chatAbortRef.current === controller) chatAbortRef.current = null; if (requestId === chatRequestRef.current) setChatLoading(false); }
   }
 
   const selectedPredictionTopic = predictionTopics.find(topic => topic.id === predictionTopic)!;

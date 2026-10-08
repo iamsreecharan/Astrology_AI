@@ -1,4 +1,4 @@
-import { calculateTransitPlanets, validateBirthDetails } from './vedic-chart.mjs';
+import { calculateTransitPositions, validateBirthDetails } from './vedic-chart.mjs';
 import { calculateCareerPlanningDates } from './career-planning-dates.mjs';
 
 const RASHIS = Object.freeze([
@@ -136,7 +136,9 @@ function limits(chart, extra) {
 }
 
 function transitPlanet(transitProvider, sample, ascendantSign, name) {
-  const positions = transitProvider(new Date(sample), ascendantSign);
+  const positions = transitProvider === calculateTransitPositions
+    ? transitProvider(new Date(sample), ascendantSign, [name])
+    : transitProvider(new Date(sample), ascendantSign);
   const planet = Array.isArray(positions) ? positions.find((position) => position.name === name) : null;
   if (!validSign(planet?.signIndex)) throw new Error(`The ephemeris did not supply a valid ${name} transit sign.`);
   return planet;
@@ -201,8 +203,8 @@ function careerSearchWindows(profile, ascendantSign, start, end, transitProvider
 
 /** Explicit traditional career heuristic; the ephemeris supplies every transit. */
 export function estimateCareerWindows(profile, chart, {
-  asOf = new Date(), horizonYears = 3, transitProvider = calculateTransitPlanets,
-  planningTransitProvider = calculateTransitPlanets,
+  asOf = new Date(), horizonYears = 3, transitProvider = calculateTransitPositions,
+  planningTransitProvider = calculateTransitPositions,
 } = {}) {
   const { now, end: horizonEnd, ascendantSign, timeline } = prepare(profile, chart, asOf, horizonYears, transitProvider);
   const tenthSign = (ascendantSign + 9) % 12;
@@ -328,7 +330,7 @@ function saturnPhase(saturnSign, moonSign) {
  * A chart phase changing cannot establish a date when real hardship will stop.
  */
 export function describeDifficultPeriods(profile, chart, {
-  asOf = new Date(), horizonYears = 10, transitProvider = calculateTransitPlanets,
+  asOf = new Date(), horizonYears = 10, transitProvider = calculateTransitPositions,
 } = {}) {
   const { now, end: horizonEnd, ascendantSign, timeline } = prepare(profile, chart, asOf, horizonYears, transitProvider);
   const moon = chart.planets.find((planet) => planet.name === 'Moon');

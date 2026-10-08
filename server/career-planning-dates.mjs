@@ -1,5 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill';
-import { calculateTransitPlanets, normalizeDegrees, validateBirthDetails } from './vedic-chart.mjs';
+import { calculateTransitPositions, normalizeDegrees, validateBirthDetails } from './vedic-chart.mjs';
 
 const STAR_SIZE = 360 / 27;
 const NAKSHATRAS = [
@@ -52,7 +52,7 @@ function readTransit(positions, name) {
 
 /** A short calendar for planning effort, using explicit traditional Moon-based rules. */
 export function calculateCareerPlanningDates(profile, chart, {
-  asOf = new Date(), horizonDays = 90, limit = 8, transitProvider = calculateTransitPlanets,
+  asOf = new Date(), horizonDays = 90, limit = 8, transitProvider = calculateTransitPositions,
 } = {}) {
   if (!(asOf instanceof Date) || !Number.isFinite(asOf.getTime())) throw badRequest('The planning date must be valid.');
   if (!Number.isInteger(horizonDays) || horizonDays < 1 || horizonDays > 90) {
@@ -102,7 +102,9 @@ export function calculateCareerPlanningDates(profile, chart, {
     const sampleMs = Number(sample.epochMilliseconds);
     // A past noon sample cannot be presented as an upcoming planning time.
     if (sampleMs < asOf.getTime()) continue;
-    const positions = transitProvider(new Date(sampleMs), ascendantSign);
+    const positions = transitProvider === calculateTransitPositions
+      ? transitProvider(new Date(sampleMs), ascendantSign, ['Sun', 'Moon'])
+      : transitProvider(new Date(sampleMs), ascendantSign);
     const sun = readTransit(positions, 'Sun');
     const moon = readTransit(positions, 'Moon');
     evaluatedDays += 1;

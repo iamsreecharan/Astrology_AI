@@ -15,6 +15,8 @@ import { replyMatchesLanguage, retryLanguageInstruction } from './chat-language.
 import { attachPredictionSupport } from './prediction-support.mjs';
 import { buildKundaliMatch } from './kundali-matching.mjs';
 import { buildKundaliReport } from './kundali-report.mjs';
+import { productionAssets } from './production-assets.mjs';
+import { fastYogiTopic } from './yogi-topic.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const FOCUSES = new Set(['general', 'love', 'career', 'wellbeing']);
@@ -230,10 +232,14 @@ export async function createApp({
     if (assistant === 'yogi' && !topic && timingTerms.test(message) && history.some(turn => turn.role === 'user' && explicitTopic(turn.content))) topic = forecastTopic(message, history);
     if (assistant === 'yogi' && !topic && /\b(my future|my life|my outlook)\b/iu.test(message)) topic = 'general';
     if (assistant === 'yogi' && mode === 'ai' && aiKey && chart) {
-      try {
-        topic = await classifyYogiTopic(message, history, { aiKey, model, fetchImpl });
-      } catch {
-        return res.status(502).json({ error: 'AI Yogi could not understand this question right now. Please try again or rephrase it.' });
+      const direct = fastYogiTopic(message);
+      if (direct.resolved) topic = direct.topic;
+      else {
+        try {
+          topic = await classifyYogiTopic(message, history, { aiKey, model, fetchImpl });
+        } catch {
+          return res.status(502).json({ error: 'AI Yogi could not understand this question right now. Please try again or rephrase it.' });
+        }
       }
     }
     const prediction = chart && topic ? predictionFor(profile, chart, topic, asOf) : null;
@@ -288,8 +294,8 @@ export async function createApp({
   let vite;
   if (production) {
     if (!existsSync(path.join(root, 'dist/index.html'))) throw new Error('Production assets are missing. Run npm run build first.');
-    app.use(express.static(path.join(root, 'dist'), { dotfiles: 'deny' }));
-    app.get('/{*path}', (_req, res) => res.sendFile(path.join(root, 'dist/index.html')));
+    app.use(productionAssets(path.join(root, 'dist')));
+    app.get('/{*path}', (_req, res) => res.set('Cache-Control', 'public, max-age=0, must-revalidate').sendFile(path.join(root, 'dist/index.html')));
   } else {
     const { createServer } = await import('vite');
     // The runner avoids temporary config imports that make Node's watcher restart.

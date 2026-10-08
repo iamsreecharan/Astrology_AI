@@ -1,4 +1,4 @@
-import { calculateTransitPlanets, validateBirthDetails } from './vedic-chart.mjs';
+import { calculateTransitPositions, validateBirthDetails } from './vedic-chart.mjs';
 
 const RASHIS = Object.freeze([
   'Mesha (Aries)', 'Vrishabha (Taurus)', 'Mithuna (Gemini)', 'Karka (Cancer)',
@@ -109,7 +109,7 @@ function addTarget(targets, signIndex, role) {
  * Tests can replace transitProvider; the app uses the ephemeris.
  */
 export function estimateMarriageWindows(profile, chart, {
-  asOf = new Date(), horizonYears = 10, transitProvider = calculateTransitPlanets,
+  asOf = new Date(), horizonYears = 10, transitProvider = calculateTransitPositions,
 } = {}) {
   if (!(asOf instanceof Date) || !Number.isFinite(asOf.getTime())) throw badRequest('The marriage timing date must be valid.');
   if (!Number.isInteger(horizonYears) || horizonYears < 1 || horizonYears > 30) throw badRequest('The marriage timing horizon must be 1–30 calendar years.');
@@ -163,7 +163,9 @@ export function estimateMarriageWindows(profile, chart, {
         // Sample the midpoint of the month/dasha overlap to keep the transit
         // inside the qualifying period and requested future horizon.
         const sample = new Date(cursor + Math.floor((segmentEnd - cursor) / 2));
-        const planets = transitProvider(sample, ascendantSign);
+        const planets = transitProvider === calculateTransitPositions
+          ? transitProvider(sample, ascendantSign, ['Jupiter', 'Saturn'])
+          : transitProvider(sample, ascendantSign);
         if (!Array.isArray(planets)) throw new Error('The ephemeris did not supply transit positions.');
         const jupiter = supportFromTransit(planets.find((planet) => planet.name === 'Jupiter'), JUPITER_ASPECTS, targets, 'Jupiter');
         const saturn = supportFromTransit(planets.find((planet) => planet.name === 'Saturn'), SATURN_ASPECTS, targets, 'Saturn');

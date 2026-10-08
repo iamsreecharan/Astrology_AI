@@ -15,6 +15,7 @@ export type Birthplace = {
 
 type PlaceResponse = { places: Birthplace[]; attribution: { label: string; url: string } };
 type SearchState = 'idle' | 'loading' | 'success' | 'error';
+type CachedPlaces = PlaceResponse & { expiresAt: number };
 
 export default function BirthplaceAutocomplete({ value, selected, onQueryChange, onSelect, inputId = 'profile-place' }: {
   value: string;
@@ -29,6 +30,8 @@ export default function BirthplaceAutocomplete({ value, selected, onQueryChange,
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const requestRef = useRef(0);
+  const cacheRef = useRef(new Map<string, CachedPlaces>());
+  const previousRetryRef = useRef(0);
   const [focused, setFocused] = useState(false);
   const [places, setPlaces] = useState<Birthplace[]>([]);
   const [state, setState] = useState<SearchState>('idle');
@@ -44,6 +47,15 @@ export default function BirthplaceAutocomplete({ value, selected, onQueryChange,
     setPlaces([]);
     setActiveIndex(-1);
     if (!open) { setState('idle'); return; }
+    const retrying = retry !== previousRetryRef.current;
+    previousRetryRef.current = retry;
+    const cached = cacheRef.current.get(query);
+    if (!retrying && cached && cached.expiresAt > Date.now()) {
+      setPlaces(cached.places);
+      setAttribution(cached.attribution);
+      setState('success');
+      return;
+    }
     const controller = new AbortController();
     let requestTimeout: number | undefined;
     let timedOut = false;
@@ -62,14 +74,19 @@ export default function BirthplaceAutocomplete({ value, selected, onQueryChange,
           && typeof place.timeZone === 'string' && place.timeZone.length > 0).slice(0, 8);
         setPlaces(validPlaces);
         setActiveIndex(-1);
-        if (typeof data.attribution?.label === 'string' && /^https:\/\//.test(data.attribution?.url)) setAttribution(data.attribution);
+        const source = typeof data.attribution?.label === 'string' && /^https:\/\//.test(data.attribution?.url)
+          ? data.attribution : { label: 'Place names from GeoNames', url: 'https://www.geonames.org/' };
+        setAttribution(source);
+        cacheRef.current.delete(query);
+        cacheRef.current.set(query, { places: validPlaces, attribution: source, expiresAt: Date.now() + 5 * 60_000 });
+        if (cacheRef.current.size > 24) cacheRef.current.delete(cacheRef.current.keys().next().value!);
         setState('success');
       } catch {
         if (requestId === requestRef.current && (!controller.signal.aborted || timedOut)) setState('error');
       } finally {
         if (requestTimeout !== undefined) window.clearTimeout(requestTimeout);
       }
-    }, 300);
+    }, 180);
     return () => {
       ++requestRef.current;
       window.clearTimeout(debounce);

@@ -15,14 +15,6 @@ function curvedLine(points: number[][], radius: number, material: THREE.Material
   return new THREE.Mesh(new THREE.TubeGeometry(curve, 32, radius, 5, false), material);
 }
 
-function oval(parent: THREE.Object3D, material: THREE.Material, position: number[], size: number[]) {
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), material);
-  mesh.position.set(position[0], position[1], position[2]);
-  mesh.scale.set(size[0], size[1], size[2]);
-  parent.add(mesh);
-  return mesh;
-}
-
 function disposeScene(scene: THREE.Scene) {
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
@@ -31,12 +23,22 @@ function disposeScene(scene: THREE.Scene) {
     geometries.add(object.geometry);
     const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
     objectMaterials.forEach((material) => materials.add(material));
+    if (object instanceof THREE.InstancedMesh) object.dispose();
   });
   geometries.forEach((geometry) => geometry.dispose());
   materials.forEach((material) => material.dispose());
 }
 
 function makeYogi(scene: THREE.Scene, holdingCard: boolean) {
+  const sphereGeometry = new THREE.SphereGeometry(1, 32, 24);
+  function oval(parent: THREE.Object3D, material: THREE.Material, position: number[], size: number[]) {
+    const mesh = new THREE.Mesh(sphereGeometry, material);
+    mesh.position.set(position[0], position[1], position[2]);
+    mesh.scale.set(size[0], size[1], size[2]);
+    parent.add(mesh);
+    return mesh;
+  }
+
   const figure = new THREE.Group();
   const upperBody = new THREE.Group();
   const head = new THREE.Group();
@@ -237,10 +239,16 @@ function makeYogi(scene: THREE.Scene, holdingCard: boolean) {
     head.add(curvedLine([[side * 0.028, 0.699, 0.443], [side * 0.092, 0.673, 0.426], [side * 0.155, 0.655, 0.367]], 0.004, hairShade));
   }
 
-  for (let bead = 0; bead < 24; bead += 1) {
+  const necklace = new THREE.InstancedMesh(sphereGeometry, beadMaterial, 24);
+  const beadTransform = new THREE.Object3D();
+  beadTransform.scale.set(0.028, 0.032, 0.026);
+  for (let bead = 0; bead < necklace.count; bead += 1) {
     const angle = bead / 23 * Math.PI;
-    oval(upperBody, beadMaterial, [Math.cos(angle) * 0.26, 0.14 - Math.sin(angle) * 0.28, 0.322 + Math.sin(angle) * 0.025], [0.028, 0.032, 0.026]);
+    beadTransform.position.set(Math.cos(angle) * 0.26, 0.14 - Math.sin(angle) * 0.28, 0.322 + Math.sin(angle) * 0.025);
+    beadTransform.updateMatrix();
+    necklace.setMatrixAt(bead, beadTransform.matrix);
   }
+  upperBody.add(necklace);
   oval(upperBody, gold, [0, -0.169, 0.356], [0.017, 0.026, 0.01]);
 
   const halo = new THREE.Group();
@@ -379,11 +387,13 @@ export default function AiYogiAvatar({ state, audioLevel = 0, pose = 'seated' }:
     let previousTime = -Infinity;
     let disposed = false;
     let contextLost = false;
+    let inView = true;
+    let renderedState: AiYogiState | null = null;
     let smoothedAudio = 0;
     const startTime = performance.now();
 
     function render(time: number) {
-      if (disposed || contextLost || document.hidden) return;
+      if (disposed || contextLost || document.hidden || !inView) return;
       const seconds = (time - startTime) / 1000;
       const input = inputRef.current;
       const still = reducedMotion.matches;
@@ -412,11 +422,12 @@ export default function AiYogiAvatar({ state, audioLevel = 0, pose = 'seated' }:
       const ringScale = listening && !still ? 1 + Math.sin(seconds * 3.8) * 0.045 : 1;
       yogi.listeningRing.scale.set(ringScale, ringScale * 0.62, 1);
       renderer.render(scene, camera);
+      renderedState = input.state;
     }
 
     function animate(time: number) {
       frame = 0;
-      if (disposed || contextLost || document.hidden || reducedMotion.matches) return;
+      if (disposed || contextLost || document.hidden || !inView || reducedMotion.matches) return;
       if (time - previousTime >= 1000 / 30) {
         render(time);
         previousTime = time;
@@ -427,7 +438,7 @@ export default function AiYogiAvatar({ state, audioLevel = 0, pose = 'seated' }:
     function restart() {
       cancelAnimationFrame(frame);
       frame = 0;
-      if (disposed || contextLost || document.hidden) return;
+      if (disposed || contextLost || document.hidden || !inView) return;
       render(performance.now());
       if (!reducedMotion.matches) frame = requestAnimationFrame(animate);
     }
@@ -459,10 +470,17 @@ export default function AiYogiAvatar({ state, audioLevel = 0, pose = 'seated' }:
     }
 
     renderRef.current = () => {
-      if (reducedMotion.matches || !frame) render(performance.now());
+      if (reducedMotion.matches ? inputRef.current.state !== renderedState : !frame) render(performance.now());
     };
     const resizeObserver = new ResizeObserver(resize);
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+      const visible = entry.isIntersecting;
+      if (visible === inView) return;
+      inView = visible;
+      restart();
+    });
     resizeObserver.observe(stage);
+    intersectionObserver.observe(stage);
     document.addEventListener('visibilitychange', restart);
     reducedMotion.addEventListener('change', restart);
     canvas.addEventListener('webglcontextlost', onContextLost);
@@ -474,6 +492,7 @@ export default function AiYogiAvatar({ state, audioLevel = 0, pose = 'seated' }:
       renderRef.current = null;
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();
+      intersectionObserver.disconnect();
       document.removeEventListener('visibilitychange', restart);
       reducedMotion.removeEventListener('change', restart);
       canvas.removeEventListener('webglcontextlost', onContextLost);

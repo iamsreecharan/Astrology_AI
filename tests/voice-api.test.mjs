@@ -339,9 +339,9 @@ test('an English spoken married-life question corrects Hindi before showing or s
     assert.match(spoken.instructions, /Do not translate or replace/);
     assert.equal(spoken.input.includes(wrongAnswer), false);
     const completionCalls = calls.filter(call => call.url.endsWith('/chat/completions'));
-    assert.equal(completionCalls.length, 3, 'One intent classification plus two bounded answer attempts.');
-    const original = JSON.parse(completionCalls[1].options.body);
-    const corrected = JSON.parse(completionCalls[2].options.body);
+    assert.equal(completionCalls.length, 2, 'The direct question needs only two bounded answer attempts.');
+    const original = JSON.parse(completionCalls[0].options.body);
+    const corrected = JSON.parse(completionCalls[1].options.body);
     assert.equal(JSON.parse(original.messages.at(-1).content).responseLanguage, 'en');
     assert.deepEqual(JSON.parse(corrected.messages.findLast(turn => turn.role === 'user').content), JSON.parse(original.messages.at(-1).content));
   });
@@ -529,6 +529,76 @@ test('AI Yogi missing full birth details requests them before personalized chart
     const local = await post('/api/chat', { assistant: 'yogi', profile: null, message: 'When will I get a job?', mode: 'local' });
     assert.equal(local.status, 200);
     assert.match((await local.json()).reply, /birth date, birth time, birth place/);
+  });
+});
+
+test('direct English Yogi questions use one provider request with the same calculated facts', async () => {
+  const calls = [];
+  await withServer({ aiKey: serverKey, fetchImpl: async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return Response.json({ choices: [{ message: { content: 'These are calculated traditional periods, rather than a guaranteed outcome.' } }] });
+  } }, async ({ post }) => {
+    for (const [message, topic] of [
+      ['When will I get married?', 'marriage'], ['When could I find a job?', 'career'],
+      ['How might my married life be?', 'married-life'], ['When will my bad days end?', 'difficult-periods'],
+    ]) {
+      const expected = await (await post('/api/prediction', { profile: birthProfile, topic })).json();
+      const before = calls.length;
+      const response = await post('/api/chat', { assistant: 'yogi', profile: birthProfile, message, language: 'auto', mode: 'ai' });
+      assert.equal(response.status, 200);
+      const result = await response.json();
+      assert.equal(result.responseLanguage, 'en');
+      assert.deepEqual(result.prediction, expected);
+      assert.equal(calls.length - before, 1);
+      assert.equal(calls.at(-1).response_format, undefined);
+      const context = JSON.parse(calls.at(-1).messages.at(-1).content);
+      assert.equal(context.prediction.topic, topic);
+      assert.ok(context.chartFacts.moon.nakshatra.name);
+    }
+    for (const call of calls) {
+      const body = JSON.stringify(call);
+      for (const privateValue of [serverKey, birthProfile.name, birthProfile.birthDate, birthProfile.birthTime, birthProfile.birthPlace]) {
+        assert.ok(!body.includes(privateValue));
+      }
+    }
+  });
+});
+
+test('direct definitions override earlier marriage context without adding forecast windows', async () => {
+  const calls = [];
+  await withServer({ aiKey: serverKey, fetchImpl: async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return Response.json({ choices: [{ message: { content: 'Marriage is a partnership; astrology offers traditional interpretations rather than guarantees.' } }] });
+  } }, async ({ post }) => {
+    const response = await post('/api/chat', {
+      assistant: 'yogi', profile: birthProfile, message: 'What is marriage?', language: 'auto', mode: 'ai',
+      history: [{ role: 'user', content: 'When will I get married?' }],
+    });
+    assert.equal(response.status, 200);
+    assert.equal(Object.hasOwn(await response.json(), 'prediction'), false);
+    assert.equal(calls.length, 1);
+    assert.equal(JSON.parse(calls[0].messages.at(-1).content).prediction, null);
+  });
+});
+
+test('mixed and follow-up English Yogi questions retain provider classification', async () => {
+  const calls = [];
+  await withServer({ aiKey: serverKey, fetchImpl: async (_url, options) => {
+    const body = JSON.parse(options.body);
+    calls.push(body);
+    return Response.json({ choices: [{ message: { content: body.response_format ? '{"topic":"career"}' : 'Here are traditional career periods to consider while continuing your search.' } }] });
+  } }, async ({ post }) => {
+    for (const message of ['When will that happen?', 'When will I get a job and get married?', 'When will I get a job? I am struggling with my health.']) {
+      const before = calls.length;
+      const response = await post('/api/chat', {
+        assistant: 'yogi', profile: birthProfile, message, language: 'auto', mode: 'ai',
+        history: [{ role: 'user', content: 'When will I get a job?' }],
+      });
+      assert.equal(response.status, 200);
+      assert.equal((await response.json()).prediction.topic, 'career');
+      assert.equal(calls.length - before, 2);
+      assert.equal(calls[before].response_format.json_schema.strict, true);
+    }
   });
 });
 

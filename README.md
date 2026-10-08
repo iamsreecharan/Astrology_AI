@@ -50,7 +50,7 @@ npm run build
 npm start
 ```
 
-Build the assets before starting. The [Render Blueprint](docs/DEPLOY.md) runs this workflow without a separate database or calculation service. Place search reads the bundled SQLite file through Node 24's built-in SQLite support; Python and an external geocoding service are not needed at runtime.
+Build the assets before starting. The build prepares Brotli and gzip copies of text assets; the server negotiates compression and caches files with content hashes. HTML revalidates so a new release can load its current assets. The [Render Blueprint](docs/DEPLOY.md) runs this workflow without a separate database or calculation service. Place search reads the bundled SQLite file through Node 24's built-in SQLite support; Python and an external geocoding service are not needed at runtime.
 
 ## Add a birth profile
 
@@ -102,7 +102,7 @@ Open **AI Yogi** and choose **Start conversation**. This enables sound for the s
 
 **Auto** starts in English and matches another language when your current question clearly uses it, including recognized speech. It checks every turn independently, so you can move from English to Telugu and back to English in one conversation. Each answer keeps its own language for automatic speech and replay. Changing the picker cancels an older pending reply or recording and resumes an active conversation in the new selection. Short or unclear greetings and Vedic names alone use English. Choosing a language explicitly takes precedence over detection; the picker provides Indian and other world languages. You can always type, edit a transcription that exceeds the question limit, or replay an answer. Voice quality and transcription accuracy vary by language, pronunciation, and background noise. The animated guide is fictional and its voice is AI-generated.
 
-Voice uses the same server key as chat. Defaults are `gpt-4o-mini-transcribe` for recognition and `gpt-4o-mini-tts` with the male `onyx` voice for speech. `ASTROLOGY_AI_TRANSCRIBE_MODEL` and `ASTROLOGY_AI_TTS_MODEL` are optional server overrides. Provider access and billing must cover these models as well as chat. A personal-chart Yogi turn first classifies the question, then generates an answer grounded in the corresponding calculated topic; a general turn without a profile needs only the answer request.
+Voice uses the same server key as chat. Defaults are `gpt-4o-mini-transcribe` for recognition and `gpt-4o-mini-tts` with the male `onyx` voice for speech. `ASTROLOGY_AI_TRANSCRIBE_MODEL` and `ASTROLOGY_AI_TTS_MODEL` are optional server overrides. Provider access and billing must cover these models as well as chat. Familiar, complete English questions select their calculated topic directly and need only the answer request. Other personal-chart questions first use the model classifier, including follow-ups, mixed topics and other languages. General turns without a profile also need only the answer request. Per-turn language checks and the bounded correction attempt still apply.
 
 Microphone input needs HTTPS on a hosted site and a browser with MediaRecorder and Web Audio support. Recordings stop after 45 seconds or at 8 MiB. Quiet recordings are discarded without a provider request. Audio goes through this server to OpenAI for transcription; answer text goes to OpenAI for speech. The app does not save audio on the server. If permission, recognition, or playback fails, the written conversation remains available. Without a key, Yogi offers limited local English notes and text input.
 
@@ -115,6 +115,8 @@ npm run check
 This runs TypeScript checking, the production build, and Node tests for profiles, birthplace search, Western reflections, chart positions, D9, Vimshottari, topic assessments, timing rules, knowledge selection, and the API. Chart tests use independent numeric reference fixtures. Timing tests check period boundaries, ages, transit integration, ranking, and no-window behavior; they do not validate real-life outcomes.
 
 Provider tests use controlled responses to check grounding, multilingual conversation handling, privacy filtering, audio validation, bounded responses, and failures without API charges. A real key must be verified separately. Browser checks also cover continuous turns, microphone cleanup, mobile layout, and natural audio playback.
+
+See [performance notes](docs/PERFORMANCE.md) for measured calculation and transfer improvements, on-demand chart loading, and the remaining sources of hosted latency.
 
 ## API
 

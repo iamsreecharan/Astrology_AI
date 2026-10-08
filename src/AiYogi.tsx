@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import CareerTiming from './CareerTiming';
 import type { CareerPlanningDates, CareerSearchWindow } from './CareerTiming';
 import './AiYogi.css';
@@ -73,7 +73,7 @@ async function checkedResponse(response: Response): Promise<Response> {
   throw new Error(message);
 }
 
-function CalculationDetails({ message }: { message: Message }) {
+const CalculationDetails = memo(function CalculationDetails({ message }: { message: Message }) {
   const prediction = message.prediction;
   if (!prediction && !message.references?.length) return null;
   return <details className="yogi-calculations"><summary>Calculation details</summary>
@@ -96,7 +96,7 @@ function CalculationDetails({ message }: { message: Message }) {
     {Boolean(message.references?.length) && <ul>{message.references?.map(reference => <li key={reference.id}>{reference.id} · {reference.title}</li>)}</ul>}
     {Boolean(prediction?.limitations?.length) && <p>{prediction?.limitations?.join(' ')}</p>}
   </details>;
-}
+});
 
 export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps) {
   const [open, setOpen] = useState(false);
@@ -682,6 +682,13 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
 
   const avatarStatus = recording ? `Listening · ${elapsed}s / ${MAX_RECORDING_SECONDS}s` : transcribing ? 'Turning your voice into text…' : loading ? 'Considering your question…' : speaking ? 'Speaking with you' : voiceLoading ? 'Preparing a natural voice…' : micPending ? 'Waiting for microphone access…' : 'Here to listen';
 
+  const transcriptContent = useMemo(() => <>
+    {!messages.length && <div className="yogi-greeting"><span aria-hidden="true">✧</span><p>Namaste. What’s on your mind?</p><small>{aiEnabled ? 'I’ll start in English and switch to the language you speak or select. Every reply has words you can read and a voice you can hear.' : 'The local guide can share short Vedic notes in English. Live voice becomes available when this server’s AI connection is configured.'}</small></div>}
+    {messages.map(message => <article key={message.id} className={`yogi-message yogi-message-${message.role}`}><span className="yogi-message-label">{message.role === 'user' ? 'You' : 'AI Yogi'}{message.source === 'local' ? ' · Local guide' : ''}</span><p dir="auto">{message.text}</p>{message.role === 'assistant' && <><CalculationDetails message={message} />{aiEnabled && message.source === 'ai' && <button type="button" className="yogi-read-button" disabled={voiceLoading || loading || transcribing || micPending} onClick={() => { if (voiceMessageId === message.id && speaking) { stopVoice(); listenAgain(); } else { discardRecording(); unlockVoice(); void playVoice(message); } }}><Icon name={voiceMessageId === message.id && speaking ? 'stop' : 'speaker'} />{voiceMessageId === message.id && speaking ? 'Stop voice' : voiceMessageId === message.id && voiceLoading ? 'Preparing voice…' : 'Play voice'}</button>}</>}</article>)}
+    {(loading || transcribing) && <div className="yogi-thinking" role="status"><span /><span /><span /><p>{transcribing ? 'Listening to your recording…' : 'AI Yogi is thinking…'}</p></div>}
+    {error && <div className="yogi-error" role="alert"><p>{error}</p>{lastQuestion && !busy && <button type="button" onClick={() => { unlockVoice(); void askQuestion(lastQuestion, true); }}>Retry question</button>}</div>}
+  </>, [messages, aiEnabled, voiceLoading, loading, transcribing, micPending, voiceMessageId, speaking, error, lastQuestion, busy, profileKey]);
+
   return <>
     <button ref={launcherRef} type="button" className="yogi-launcher" aria-haspopup="dialog" aria-expanded={open} aria-controls="ai-yogi-dialog" onClick={() => { openRef.current = true; setOpen(true); }}>
       <span className="yogi-launcher-symbol"><Icon name="spark" /></span><span>AI Yogi<small>Talk in your language</small></span><span className="yogi-launcher-dot" aria-hidden="true" />
@@ -697,10 +704,7 @@ export default function AiYogi({ profile, aiEnabled, onEditProfile }: YogiProps)
         <div className="yogi-controls"><label htmlFor="yogi-language">Conversation language</label><select id="yogi-language" value={language} onChange={event => changeLanguage(event.target.value)}>{LANGUAGES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><span className="yogi-mode"><span aria-hidden="true" />{aiEnabled ? 'Live Vedic AI' : 'Local guide · English'}</span></div>
         {!hasBirthDetails && <button type="button" className="yogi-profile-link" onClick={() => { closeAssistant(); onEditProfile(); }}>{profile ? 'Add birth time and place for personal Vedic answers' : 'Add your birth details for personal Vedic answers'}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button>}
         <div ref={transcriptRef} className="yogi-transcript" role="log" aria-label="AI Yogi conversation" aria-live="polite" aria-relevant="additions text">
-          {!messages.length && <div className="yogi-greeting"><span aria-hidden="true">✧</span><p>Namaste. What’s on your mind?</p><small>{aiEnabled ? 'I’ll start in English and switch to the language you speak or select. Every reply has words you can read and a voice you can hear.' : 'The local guide can share short Vedic notes in English. Live voice becomes available when this server’s AI connection is configured.'}</small></div>}
-          {messages.map(message => <article key={message.id} className={`yogi-message yogi-message-${message.role}`}><span className="yogi-message-label">{message.role === 'user' ? 'You' : 'AI Yogi'}{message.source === 'local' ? ' · Local guide' : ''}</span><p dir="auto">{message.text}</p>{message.role === 'assistant' && <><CalculationDetails message={message} />{aiEnabled && message.source === 'ai' && <button type="button" className="yogi-read-button" disabled={voiceLoading || loading || transcribing || micPending} onClick={() => { if (voiceMessageId === message.id && speaking) { stopVoice(); listenAgain(); } else { discardRecording(); unlockVoice(); void playVoice(message); } }}><Icon name={voiceMessageId === message.id && speaking ? 'stop' : 'speaker'} />{voiceMessageId === message.id && speaking ? 'Stop voice' : voiceMessageId === message.id && voiceLoading ? 'Preparing voice…' : 'Play voice'}</button>}</>}</article>)}
-          {(loading || transcribing) && <div className="yogi-thinking" role="status"><span /><span /><span /><p>{transcribing ? 'Listening to your recording…' : 'AI Yogi is thinking…'}</p></div>}
-          {error && <div className="yogi-error" role="alert"><p>{error}</p>{lastQuestion && !busy && <button type="button" onClick={() => { unlockVoice(); void askQuestion(lastQuestion, true); }}>Retry question</button>}</div>}
+          {transcriptContent}
         </div>
         {voiceError && <p className="yogi-voice-error" role="status">{voiceError}</p>}
         <form className="yogi-compose" onSubmit={event => { event.preventDefault(); if (!loading && !transcribing && !micPending && input.trim()) { unlockVoice(); void askQuestion(input); } }}>

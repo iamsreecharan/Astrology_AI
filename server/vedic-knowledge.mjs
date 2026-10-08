@@ -1,4 +1,5 @@
 import { responseLanguageFor } from './chat-language.mjs';
+import { focusYogiPrediction } from './yogi-focus.mjs';
 /** Jyotish summaries for chart explanations. These are context notes,
  * not quotations, a complete textbook, or model training data. */
 const note = (id, title, summary, tags = []) => Object.freeze({ id, title, summary, tags: Object.freeze(tags) });
@@ -191,6 +192,23 @@ function supportFacts(support) {
   return result;
 }
 
+function outlookFacts(outlook) {
+  if (!outlook || typeof outlook.summary !== 'string' || !outlook.summary.trim()) return undefined;
+  const date = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
+  return {
+    summary: cleanText(outlook.summary, 700),
+    timing: typeof outlook.timing?.text === 'string' ? {
+      label: cleanText(outlook.timing.label, 80), text: cleanText(outlook.timing.text, 700),
+      ...(date(outlook.timing.date) ? { date: outlook.timing.date } : {}),
+    } : null,
+    actions: stringsOf(outlook.actions, 3),
+    periods: Array.isArray(outlook.periods) ? outlook.periods.slice(0, 3).map(period => ({
+      label: cleanText(period.label, 100), text: cleanText(period.text, 500),
+      start: date(period.start), end: date(period.end), current: period.current === true,
+    })) : [],
+  };
+}
+
 function predictionFacts(prediction) {
   if (!PREDICTION_TOPICS.has(prediction?.topic)) return null;
   const result = {
@@ -210,6 +228,8 @@ function predictionFacts(prediction) {
   };
   const support = supportFacts(prediction.support);
   if (support) result.support = support;
+  const outlook = outlookFacts(prediction.outlook);
+  if (outlook) result.outlook = outlook;
   if (prediction.seventhHouse) result.seventhHouse = { rashi: cleanText(prediction.seventhHouse.rashi), lord: cleanText(prediction.seventhHouse.lord) };
   if (prediction.currentPhase) result.currentPhase = { name: cleanText(prediction.currentPhase.name), description: cleanText(prediction.currentPhase.description, 1000) };
   if (prediction.topic === 'career') {
@@ -261,6 +281,9 @@ Lead with the answer to the actual question. Make the first sentence a direct, n
 
 const CAREER_PROMPT = `For a career prediction, answer a current job search in terms of the nearest calculated periods first. When searchWindows are supplied, describe the earliest current or upcoming searchWindow as a short-term application, interview preparation, or networking planning signal; it is a limited Mercury-transit heuristic, not a calculated offer date or proof of a higher hiring chance. Individual planningDates also concern preparation and applications, not hiring deadlines. If the user asks for individual good days, give one to three earliest supplied planningDates.dates using displayDate (DD-MM-YYYY), with one or two brief supplied Tarabala, Chandrabala or tithi reasons. They sample 12:00 in the stated time zone, not an exact muhurta; use the supplied method and limits and never invent dates when status is not available. Distinguish these from windows, which use the combined dasha/Jupiter career rules. Show the nearest combined window when useful rather than leading with a stronger later period. For a before/after/by-date question, use its actual boundaries plainly: conditional support runs from the supplied start until its end, or the current computed period continues until its end. Explain this as a possible traditional period, not a promise of an offer before the end or a claim that employment must wait until the start. When the combined window is much later, lead with the available near-term search planning guidance and explain that the later window is not a mandatory wait. If no near-term searchWindow or combined window qualifies, say so briefly without inventing favorable months. Keep supplied dates intact. Never convert a later period into 'you will get a job then', 'not before then', a countdown until employment, or advice to wait for that date. Real offers can arrive outside these periods. Give the nearest time frame, one or two brief calculated reasons, and one useful next step; do not read out every calculation. Encourage applications and preparation now, using actual openings and feedback; ask one practical clarification when useful, such as the role or interview stage.`;
 
+const OUTLOOK_PROMPT = `Use prediction.outlook as a plain-language guide to the supplied calculation. Explain what the period may feel like, the next relevant calculated shift when timing is requested, and one practical action. Translate that guide into this turn's requested language. For "when will things get better", distinguish a supported timing window or sampled change from an interpretive focus: a change of planetary period alone does not calculate improvement. Do not invent a favorable ranking, reassuring event date or deadline. Explain the useful focus of the next period instead of repeating planet/house labels or reading every period aloud. Preserve the supplied ages, dates, support labels and topic boundaries.`;
+const YOGI_FOCUS_PROMPT = `Give one focused answer, without listing weaker windows or other possibilities. For a timing question, use the single supplied calculated window and its complete date and age range. A Joint most supported label means this is one of the equally strongest periods; focus on this supplied period without claiming it outranks the other tied periods or enumerating them. For a current job search, nearest application or interview planning guidance is a practical next step, not a second predicted hiring date. For an interpretive life topic, give the main outlook and the next relevant shift when asked; do not read out every period. If no support comparison was calculated, never call the answer the most likely or strongest.`;
+
 export function buildVedicMessages(chart, { message = '', focus = 'general', history = [], prediction = null, assistant = 'astral', language = 'auto' } = {}) {
   const selected = selectVedicNotes({ message, focus, chart, prediction });
   const responseLanguage = responseLanguageFor(message, language);
@@ -268,7 +291,7 @@ export function buildVedicMessages(chart, { message = '', focus = 'general', his
     turn && ['user', 'assistant'].includes(turn.role) && typeof turn.content === 'string'
   ).slice(-6).map(turn => ({ role: turn.role, content: turn.content.slice(0, 2000) }));
   const context = {
-    chartFacts: chart ? compactChartFacts(chart) : null, prediction: predictionFacts(prediction),
+    chartFacts: chart ? compactChartFacts(chart) : null, prediction: predictionFacts(assistant === 'yogi' ? focusYogiPrediction(prediction) : prediction),
     notes: selected.map(({ id, title, summary }) => ({ id, title, summary })),
     focus: cleanText(focus, 40), question: cleanText(message, 1000), responseLanguage,
   };
@@ -281,7 +304,7 @@ export function buildVedicMessages(chart, { message = '', focus = 'general', his
     : '';
   const resolvedLanguageInstruction = responseLanguage === 'auto' ? ''
     : `The response language for this turn is ${responseLanguage}${responseLanguage.startsWith('en') ? ' (English)' : ''}. Write the whole answer in that language, including the first sentence. An English question gets an English answer unless the user requests another language. Do not copy the language of earlier assistant replies. Names and Vedic terms do not change the response language.`;
-  const system = [assistant === 'yogi' ? SYSTEM_PROMPT.replace('You are Astral,', 'You are AI Yogi,') : SYSTEM_PROMPT, prediction?.topic === 'career' ? CAREER_PROMPT : '', yogiInstruction, languageInstruction, resolvedLanguageInstruction].filter(Boolean).join('\n');
+  const system = [assistant === 'yogi' ? SYSTEM_PROMPT.replace('You are Astral,', 'You are AI Yogi,') : SYSTEM_PROMPT, prediction?.topic === 'career' ? CAREER_PROMPT : '', context.prediction?.outlook ? OUTLOOK_PROMPT : '', yogiInstruction, assistant === 'yogi' ? YOGI_FOCUS_PROMPT : '', languageInstruction, resolvedLanguageInstruction].filter(Boolean).join('\n');
   return {
     messages: [{ role: 'system', content: system }, ...safeHistory, { role: 'user', content: JSON.stringify(context) }],
     references: selected.map(({ id, title }) => ({ id, title })),
@@ -290,7 +313,7 @@ export function buildVedicMessages(chart, { message = '', focus = 'general', his
 }
 
 export function buildYogiLocalReply(chart, { message = '', focus = 'general', prediction = null, language = 'auto', needsChart = false } = {}) {
-  if (chart) return buildVedicLocalReply(chart, { message, focus, prediction });
+  if (chart) return buildVedicLocalReply(chart, { message, focus, prediction: focusYogiPrediction(prediction) });
   const text = message.toLowerCase();
   if (needsChart) return { reply: 'Add your recorded birth date, birth time, birth place, coordinates, and time zone in your birth profile before I can discuss your personal Vedic chart or timing. A birth date alone is not enough.', references: [] };
   const selected = selectVedicNotes({ message, focus });
@@ -423,7 +446,7 @@ export function buildVedicLocalReply(chart, { message = '', focus = 'general', p
     const windows = forecast.windows.slice(0, 3).map(window => `• ${windowDescription(window, true)}`).join('\n');
     const reason = periodReason(forecast.windows[0].reasons);
     const comparison = forecast.support?.kind === 'relative' ? ' Support labels compare shown windows, not measured chances.' : '';
-    return answer(`The calculated traditional marriage windows are:\n${windows}\n\n${reason ? `${reason} ` : ''}These are conditional estimates, not a promised wedding date.${comparison} Your choices and circumstances still matter.`);
+    return answer(`The calculated traditional marriage ${forecast.windows.length === 1 ? 'period is' : 'windows are'}:\n${windows}\n\n${reason ? `${reason} ` : ''}These are conditional estimates, not a promised wedding date.${comparison} Your choices and circumstances still matter.`);
   }
   if (forecast?.topic === 'career') {
     const sorted = forecast.windows.slice().sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
@@ -463,6 +486,10 @@ export function buildVedicLocalReply(chart, { message = '', focus = 'general', p
     return answer(`${phase ? `Your chart currently shows ${phase}.` : 'No current Saturn classification was supplied.'} ${transition}\n\nA phase change is not the guaranteed end of hardship or bad days. Focus on practical support and one manageable step for what is difficult right now.`);
   }
   if (forecast) {
+    if (forecast.outlook) {
+      const parts = [forecast.outlook.summary, forecast.outlook.timing?.text, forecast.outlook.actions[0]].filter(Boolean);
+      return answer(parts.join('\n\n'));
+    }
     const label = TOPIC_LABELS[forecast.topic];
     const themes = forecast.themes.slice(0, 2).map(sentence).join(' ');
     const factor = relevantFactor(forecast);

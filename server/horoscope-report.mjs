@@ -292,6 +292,16 @@ export function renderHoroscopeReport(model) {
     for (const prediction of model.predictions) {
       heading(prediction.title, { page: true });
       text(`As of ${prediction.asOf} · Horizon through ${prediction.horizonEnd} · ${prediction.status === 'estimated' ? 'Conditional estimated windows' : prediction.status === 'no-window' ? 'No qualifying window found' : 'Traditional period themes'}`, { size: 8, color: COLORS.muted, gap: 12 });
+      if (prediction.outlook) {
+        subheading('What this means for you');
+        text(prediction.outlook.summary);
+        if (prediction.outlook.timing) {
+          subheading(prediction.outlook.timing.label);
+          text(prediction.outlook.timing.text);
+        }
+        subheading('What you can do');
+        list(prediction.outlook.actions);
+      }
       if (prediction.support) {
         text(prediction.support.label, { bold: true, color: COLORS.gold });
         text(prediction.support.explanation, { size: 8, color: COLORS.muted, gap: 10 });

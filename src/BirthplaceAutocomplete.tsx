@@ -25,13 +25,14 @@ export default function BirthplaceAutocomplete({ value, selected, onQueryChange,
   inputId?: string;
 }) {
   const listId = useId();
-  const hintId = useId();
   const statusId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const requestRef = useRef(0);
   const cacheRef = useRef(new Map<string, CachedPlaces>());
   const previousRetryRef = useRef(0);
+  const outsidePointerRef = useRef<number | null>(null);
+  const outsideCloseTimerRef = useRef<number | undefined>(undefined);
   const [focused, setFocused] = useState(false);
   const [places, setPlaces] = useState<Birthplace[]>([]);
   const [state, setState] = useState<SearchState>('idle');
@@ -96,19 +97,50 @@ export default function BirthplaceAutocomplete({ value, selected, onQueryChange,
   }, [open, query, retry]);
 
   useEffect(() => {
-    if (activeIndex >= 0) listRef.current?.children[activeIndex]?.scrollIntoView({ block: 'nearest' });
+    const list = listRef.current;
+    const option = activeIndex >= 0 ? list?.children[activeIndex] : null;
+    if (!list || !(option instanceof HTMLElement)) return;
+    const listBounds = list.getBoundingClientRect();
+    const optionBounds = option.getBoundingClientRect();
+    if (optionBounds.top < listBounds.top) list.scrollTop -= listBounds.top - optionBounds.top;
+    else if (optionBounds.bottom > listBounds.bottom) list.scrollTop += optionBounds.bottom - listBounds.bottom;
   }, [activeIndex]);
 
   useEffect(() => {
-    if (open && places.length) listRef.current?.scrollIntoView({ block: 'nearest' });
+    if (open && places.length && containerRef.current?.closest('dialog[open]')) {
+      listRef.current?.firstElementChild?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
   }, [open, places.length]);
 
   useEffect(() => {
-    const closeOutside = (event: PointerEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) setFocused(false);
+    const clearCloseTimer = () => {
+      if (outsideCloseTimerRef.current !== undefined) window.clearTimeout(outsideCloseTimerRef.current);
+      outsideCloseTimerRef.current = undefined;
     };
-    document.addEventListener('pointerdown', closeOutside);
-    return () => document.removeEventListener('pointerdown', closeOutside);
+    const beginOutsidePress = (event: PointerEvent) => {
+      clearCloseTimer();
+      outsidePointerRef.current = containerRef.current?.contains(event.target as Node) ? null : event.pointerId;
+    };
+    const finishOutsidePress = (event: PointerEvent) => {
+      if (outsidePointerRef.current !== event.pointerId) return;
+      outsidePointerRef.current = null;
+      clearCloseTimer();
+      // Let the outside button receive its click before the list changes the layout.
+      outsideCloseTimerRef.current = window.setTimeout(() => {
+        outsideCloseTimerRef.current = undefined;
+        if (!containerRef.current?.contains(document.activeElement)) setFocused(false);
+      }, 0);
+    };
+    document.addEventListener('pointerdown', beginOutsidePress, true);
+    document.addEventListener('pointerup', finishOutsidePress, true);
+    document.addEventListener('pointercancel', finishOutsidePress, true);
+    return () => {
+      clearCloseTimer();
+      outsidePointerRef.current = null;
+      document.removeEventListener('pointerdown', beginOutsidePress, true);
+      document.removeEventListener('pointerup', finishOutsidePress, true);
+      document.removeEventListener('pointercancel', finishOutsidePress, true);
+    };
   }, []);
 
   function choose(place: Birthplace) {
@@ -137,29 +169,28 @@ export default function BirthplaceAutocomplete({ value, selected, onQueryChange,
     }
   }
 
-  const status = !query ? 'Start typing a city, town or village.'
-    : selected ? 'Location selected. Its coordinates and time zone are ready.'
+  const status = !query ? 'Search a city, town or village, then choose a result.'
+    : selected ? 'Birth place confirmed.'
       : !searchReady ? 'Type at least 2 letters to search.'
         : !open ? 'Choose a suggestion to confirm your birth place.'
           : state === 'loading' ? 'Searching places…'
-            : state === 'error' ? 'Place search is unavailable. Try again or enter the location manually below.'
-              : state === 'success' && !places.length ? 'No places found. Try a nearby town or a different spelling, or enter the location manually below.'
+            : state === 'error' ? 'Place search is unavailable. Please try again.'
+              : state === 'success' && !places.length ? 'No places found. Try a nearby town or a different spelling.'
                 : state === 'success' ? `${places.length} ${places.length === 1 ? 'place' : 'places'} found. Choose your birth place.`
                   : 'Searching places…';
 
-  return <div className="form-field birthplace-search" ref={containerRef}
-    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
+  return <div className={`form-field birthplace-search${selected ? ' birthplace-confirmed' : ''}`} ref={containerRef}
+    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null) && outsidePointerRef.current === null) setFocused(false); }}>
     <label htmlFor={inputId}>Place of birth</label>
     <input id={inputId} type="text" value={value} maxLength={120} required autoComplete="off" spellCheck={false}
-      placeholder="Search anywhere — city, town or village"
+      placeholder="Search your birth place"
       role="combobox" aria-autocomplete="list" aria-expanded={open && places.length > 0} aria-controls={listId}
       aria-activedescendant={open && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
-      aria-describedby={`${hintId} ${statusId}`} aria-busy={open && state === 'loading'}
+      aria-describedby={statusId} aria-busy={open && state === 'loading'}
       onFocus={() => setFocused(true)} onKeyDown={handleKeyDown}
       onChange={event => { ++requestRef.current; setPlaces([]); setActiveIndex(-1); setFocused(true); onQueryChange(event.target.value); }} />
-    <small id={hintId}>Search worldwide, then choose a suggestion. We’ll fill the coordinates and time zone.</small>
     <div className={`birthplace-search-status ${state === 'error' && open ? 'birthplace-search-error' : ''}`} id={statusId} role="status" aria-live="polite">
-      <span>{status}</span>
+      {selected && <span className="birthplace-check" aria-hidden="true">✓</span>}<span>{status}</span>
       {open && state === 'error' && <button type="button" className="birthplace-search-retry" onClick={() => setRetry(value => value + 1)}>Try again</button>}
     </div>
     {open && places.length > 0 && <ul className="birthplace-results" id={listId} role="listbox" aria-label="Birth place suggestions" ref={listRef}>

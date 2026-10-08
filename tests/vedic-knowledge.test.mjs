@@ -502,3 +502,30 @@ test('unsupported support metadata is omitted rather than treated as an outcome 
   assert.deepEqual(context.windows[0].ageRange, prediction.windows[0].ageRange);
   assert.doesNotMatch(JSON.stringify(context), /PRIVATE|99%|Very likely|probability/);
 });
+
+test('plain-language outlook reaches the model without copying hidden metadata', () => {
+  const forecast = {
+    topic: 'general', status: 'interpreted', windows: [], factors: [], themes: [], method: [], limitations: [],
+    outlook: {
+      summary: 'This period puts the focus on choosing a clear direction.',
+      timing: { label: 'Your next shift', text: 'From 2 December 2026, building a steady routine becomes the next focus.', date: '2026-12-02', privateProfile: 'PRIVATE TIMING' },
+      actions: ['Choose one goal and make a weekly plan.'],
+      periods: [{ label: 'Build a steadier rhythm', text: 'Give everyday support more attention.', start: '2026-12-02', end: '2028-04-02', current: false, secret: 'PRIVATE PERIOD' }],
+      rawBirthRecord: 'PRIVATE BIRTH RECORD',
+    },
+  };
+  const result = buildVedicMessages(chart, { message: 'How will things be and when is the next shift?', prediction: forecast });
+  const context = JSON.parse(result.messages.at(-1).content);
+  assert.equal(context.prediction.outlook.summary, forecast.outlook.summary);
+  assert.equal(context.prediction.outlook.timing.date, '2026-12-02');
+  assert.deepEqual(context.prediction.outlook.actions, forecast.outlook.actions);
+  assert.equal(context.prediction.outlook.periods[0].current, false);
+  assert.doesNotMatch(JSON.stringify(context), /PRIVATE/);
+  assert.match(result.messages[0].content, /next relevant calculated shift/);
+  assert.match(result.messages[0].content, /change of planetary period alone does not calculate improvement/);
+  const reply = buildVedicLocalReply(chart, { message: 'What should I do next?', prediction: forecast }).reply;
+  assert.equal(reply, [forecast.outlook.summary, forecast.outlook.timing.text, forecast.outlook.actions[0]].join('\n\n'));
+  const direct = buildVedicLocalReply(chart, { message: 'What is my birth star?', prediction: forecast }).reply;
+  assert.match(direct, /Rohini/);
+  assert.doesNotMatch(direct, /weekly plan|next focus/);
+});

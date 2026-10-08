@@ -20,7 +20,7 @@ For an existing service, deploy the latest `main` commit from the dashboard, or 
 
 After saving a complete birth profile, **Birth chart → Download English PDF** creates the English birth record, Panchanga basics, chart diagrams, period tables, transits and life-topic assessments. Career planning includes individual DD-MM-YYYY dates with birth-star/Moon/tithi factors and near-term application/interview periods. PDF generation uses bundled fonts and the calculation engine, so it needs no AI key, external document service, or writable server storage. The downloaded file includes personal birth details.
 
-**Compatibility → Kundali matching** accepts two complete birth profiles and calculates the eight Ashta Koota categories out of 36. Each person has worldwide birthplace suggestions, with a manual location option. The result includes the traditional benchmark, full/partial/zero-point category counts and an English matching PDF. It works without an AI key, extra service or persistent storage. Deploy the latest `main` revision to make the new tab and PDF routes available.
+**Compatibility → Kundali matching** accepts two complete birth profiles and calculates the eight Ashta Koota categories out of 36. Each person searches and selects a worldwide birthplace suggestion; coordinates and time zone are supplied automatically. The result includes the traditional benchmark, full/partial/zero-point category counts and an English matching PDF. It works without an AI key, extra service or persistent storage. Deploy the latest `main` revision to make the new tab and PDF routes available.
 
 ## Enable Vedic AI
 
@@ -46,7 +46,7 @@ The service has no accounts or per-user AI quotas. Review access and usage contr
 - If health checks fail, check that the production build completed and the start command is `npm start`.
 - A free service's first request may need time to start; retry once it is running.
 - For voice, allow microphone access on the HTTPS service URL. If text chat works but speech fails, check access and billing for the transcription and speech models. A denied microphone can be reset in the browser's site permissions.
-- If a birthplace is missing, use the manual location fields. The bundled snapshot covers cities, towns, and many small settlements, rather than every address or village.
+- If a birthplace is missing, try another spelling or include its country or region. Select a returned place before submitting. The bundled snapshot covers cities, towns, and many small settlements, rather than every address or village.
 - Chart errors usually need all birth fields supplied together, with the recorded time, coordinates, and historical IANA zone checked.
 
 The production workflow was checked in the Codex environment. A live Render URL is confirmed only after deployment in your account. See [calculation methods](VEDIC.md) for chart and timing limits.

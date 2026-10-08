@@ -1,0 +1,48 @@
+.app-shell .prediction-reading { --reading-ink: #665d68; --reading-heading: #355f50; --reading-line: #d1bc99; --reading-surface: #fcf3e4; --reading-current: #e2e9db; color: var(--reading-ink); overflow-wrap: anywhere; }
+.app-shell .prediction-overview { display: grid; gap: 22px; margin-bottom: 27px; }
+.app-shell .prediction-overview h3 { margin: 0 0 9px; color: var(--reading-heading); font-size: 16px; font-weight: 600; line-height: 1.5; }
+.app-shell .prediction-overview p { margin: 0; max-width: 76ch; font-size: 14px; line-height: 1.8; }
+.app-shell .prediction-meaning { padding-bottom: 21px; border-bottom: 1px solid var(--reading-line); }
+.app-shell .prediction-meaning h3 { font-family: var(--serif); font-size: 26px; font-weight: 400; letter-spacing: -.4px; }
+.app-shell .prediction-actions ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8; }
+.app-shell .prediction-actions li + li { margin-top: 7px; }
+.app-shell .reading-periods-section > h3 { margin: 25px 0 13px; color: var(--reading-heading); font-size: 14px; font-weight: 600; line-height: 1.6; }
+.app-shell .reading-periods { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 13px; }
+.app-shell .reading-period { min-width: 0; padding: 19px 20px; background: var(--reading-surface); border: 1px solid var(--reading-line); border-radius: 3px 17px 3px 17px; }
+.app-shell .reading-period.is-current { background: var(--reading-current); }
+.app-shell .reading-period.window-most-supported { border-color: #588575; box-shadow: inset 3px 0 #588575; }
+.app-shell .reading-period-state { display: block; margin-bottom: 8px; color: var(--reading-heading); font-size: 12px; font-weight: 600; }
+.app-shell .reading-period h4 { margin: 0 0 10px; color: var(--reading-heading); font-size: 15px; font-weight: 600; line-height: 1.5; }
+.app-shell .reading-period-age { margin: 0 0 9px; font-size: 13px; }
+.app-shell .reading-period-age strong { color: var(--reading-heading); font-family: var(--serif); font-size: 30px; font-weight: 400; line-height: 1.4; }
+.app-shell .reading-period-dates { margin: 7px 0 9px; font-size: 12px; line-height: 1.7; }
+.app-shell .reading-period-explanation { margin: 0; font-size: 13px; line-height: 1.8; }
+.app-shell .reading-support-caption { margin: 13px 0 0; font-size: 12px; line-height: 1.7; }
+.app-shell .prediction-reasoning { margin-top: 24px; border-top: 1px solid var(--reading-line); }
+.app-shell .prediction-reasoning > summary { display: list-item; padding: 14px 0; min-height: 44px; cursor: pointer; color: var(--reading-heading); font-size: 13px; font-weight: 600; line-height: 1.6; }
+.app-shell .prediction-reasoning > summary:focus-visible { outline: 2px solid #588575; outline-offset: 3px; }
+.app-shell .prediction-technical { padding: 4px 0 8px; font-size: 12px; line-height: 1.8; }
+.app-shell .prediction-technical p { margin: 0 0 11px; font-size: inherit; line-height: inherit; }
+.app-shell .prediction-technical ul { margin: 9px 0 0; padding-left: 18px; font-size: inherit; line-height: inherit; }
+.app-shell .prediction-technical li + li { margin-top: 7px; }
+.app-shell .reading-technical-section { margin-top: 20px; }
+.app-shell .reading-technical-section h4, .app-shell .reading-technical-window h5 { margin: 0 0 9px; color: var(--reading-heading); font-size: 12px; font-weight: 600; line-height: 1.6; }
+.app-shell .reading-technical-window { padding: 15px 0; border-bottom: 1px solid var(--reading-line); }
+.app-shell .reading-technical-window:last-child { border-bottom: 0; }
+.app-shell .reading-technical-window .reading-period-dates { font-size: 12px; }
+.app-shell .prediction-reading.compact { border-top: 0; padding-top: 0; }
+.app-shell .prediction-reading.compact .prediction-overview { gap: 16px; margin-bottom: 19px; }
+.app-shell .prediction-reading.compact .prediction-overview h3 { font-size: 14px; }
+.app-shell .prediction-reading.compact .prediction-meaning h3 { font-size: 22px; }
+.app-shell .prediction-reading.compact .prediction-overview p, .app-shell .prediction-reading.compact .prediction-actions ul { font-size: 13px; }
+.app-shell .prediction-reading.compact .reading-period { padding: 14px 15px; }
+.app-shell .prediction-reading.compact .reading-periods-section > h3 { margin-top: 19px; font-size: 13px; }
+.app-shell .yogi-calculations .prediction-reading { --reading-ink: #c9bdcc; --reading-heading: #c7e8d9; --reading-line: #b7a0ce35; --reading-surface: #b7a0ce0a; --reading-current: #78d0b70c; margin-top: 13px; }
+.app-shell .yogi-calculations .prediction-reading .prediction-reasoning > summary { color: #e0b97d; }
+@media (max-width: 460px) {
+  .app-shell .prediction-overview { gap: 18px; }
+  .app-shell .prediction-overview p, .app-shell .prediction-actions ul { font-size: 13px; }
+  .app-shell .prediction-meaning h3 { font-size: 24px; }
+  .app-shell .reading-period { padding: 16px 17px; }
+  .app-shell .reading-periods { grid-template-columns: 1fr; }
+}

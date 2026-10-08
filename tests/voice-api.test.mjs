@@ -623,7 +623,10 @@ test('multilingual Yogi intent selects calculated career facts without sending r
     const grounded = JSON.parse(calls[1].options.body);
     const context = JSON.parse(grounded.messages.at(-1).content);
     assert.equal(context.prediction.topic, 'career');
-    assert.deepEqual(context.prediction.windows.map(window => ({ start: window.start, end: window.end })), expected.windows.map(window => ({ start: window.start, end: window.end })));
+    const strongest = expected.windows.find(window => window.support.rank === 1);
+    assert.equal(context.prediction.windows.length, 1, 'Yogi receives one strongest career period for the spoken answer.');
+    assert.equal(context.prediction.windows[0].support.rank, 1);
+    assert.deepEqual(context.prediction.windows.map(window => ({ start: window.start, end: window.end })), [{ start: strongest.start, end: strongest.end }]);
     assert.ok(context.chartFacts.moon.nakshatra.name);
     assert.match(grounded.messages[0].content, /BCP 47 tag fr-FR/);
     for (const call of calls) {
@@ -664,7 +667,9 @@ test('Yogi classification distinguishes non-English wedding timing from marriage
     assert.equal(calls.length, 2);
     const context = JSON.parse(JSON.parse(calls[1].body).messages.at(-1).content);
     assert.equal(context.prediction.topic, 'marriage');
-    assert.deepEqual(context.prediction.windows.map(window => window.ageRange), expected.windows.map(window => window.ageRange));
+    assert.equal(context.prediction.windows.length, 1);
+    assert.equal(context.prediction.windows[0].support.rank, 1);
+    assert.deepEqual(context.prediction.windows[0].ageRange, expected.windows.find(window => window.support.rank === 1).ageRange);
   });
 });
 

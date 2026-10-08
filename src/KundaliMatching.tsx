@@ -7,7 +7,7 @@ import './KundaliMatching.css';
 type SavedProfile = { name: string; birthDate: string; birthTime?: string; birthPlace?: string; latitude?: number; longitude?: number; timeZone?: string };
 type BirthProfile = Required<SavedProfile>;
 type Person = 'male' | 'female';
-type Draft = { name: string; birthDate: string; birthTime: string; birthPlace: string; latitude: string; longitude: string; timeZone: string; selected: boolean; manual: boolean };
+type Draft = { name: string; birthDate: string; birthTime: string; birthPlace: string; latitude: string; longitude: string; timeZone: string; selected: boolean };
 type Moon = { rashi: string; longitude: number; nakshatra: { name: string; index: number }; pada: number; signLord: string };
 type Koota = { id: string; name: string; description: string; score: number; max: number; status: 'full' | 'partial' | 'zero'; maleValue: string; femaleValue: string; method: string; explanation: string };
 type Match = {
@@ -20,16 +20,22 @@ type Match = {
   cautions: string[]; calculation: { ayanamsha: string; ephemeris: string; warnings: string[] };
 };
 
-const emptyDraft = (): Draft => ({ name: '', birthDate: '', birthTime: '', birthPlace: '', latitude: '', longitude: '', timeZone: '', selected: false, manual: false });
+const emptyDraft = (): Draft => ({ name: '', birthDate: '', birthTime: '', birthPlace: '', latitude: '', longitude: '', timeZone: '', selected: false });
 const personLabel: Record<Person, string> = { male: 'Male', female: 'Female' };
 const statusLabel = { full: 'Fully matched', partial: 'Partially matched', zero: 'No points' };
 
 function draftFromProfile(profile: SavedProfile): Draft {
-  const selected = Boolean(profile.birthPlace && profile.timeZone && Number.isFinite(profile.latitude) && Number.isFinite(profile.longitude));
+  let selected = Boolean(profile.birthPlace?.trim() && profile.timeZone?.trim()
+    && Number.isFinite(profile.latitude) && Math.abs(profile.latitude!) <= 90
+    && Number.isFinite(profile.longitude) && Math.abs(profile.longitude!) <= 180);
+  if (selected) {
+    try { new Intl.DateTimeFormat('en', { timeZone: profile.timeZone }); }
+    catch { selected = false; }
+  }
   return {
     name: profile.name, birthDate: profile.birthDate, birthTime: profile.birthTime || '', birthPlace: profile.birthPlace || '',
     latitude: Number.isFinite(profile.latitude) ? String(profile.latitude) : '', longitude: Number.isFinite(profile.longitude) ? String(profile.longitude) : '',
-    timeZone: profile.timeZone || '', selected, manual: false,
+    timeZone: profile.timeZone || '', selected,
   };
 }
 
@@ -37,13 +43,13 @@ function profileFromDraft(value: Draft, person: Person): BirthProfile {
   const label = personLabel[person];
   if (!value.name.trim()) throw new Error(`Add the ${label.toLowerCase()} person’s name.`);
   if (!value.birthDate || !value.birthTime) throw new Error(`Add the ${label.toLowerCase()} person’s birth date and recorded local birth time.`);
-  if (!value.manual && !value.selected) throw new Error(`Choose a birth place suggestion for the ${label.toLowerCase()} person, or enter the location manually.`);
-  if (!value.birthPlace.trim() || !value.timeZone.trim() || !value.latitude.trim() || !value.longitude.trim()) throw new Error(`Complete the ${label.toLowerCase()} person’s birth place, coordinates and time zone.`);
+  if (!value.selected) throw new Error(`Choose the ${label.toLowerCase()} person’s birth place from the suggestions.`);
+  if (!value.birthPlace.trim() || !value.timeZone.trim() || !value.latitude.trim() || !value.longitude.trim()) throw new Error(`Search and select the ${label.toLowerCase()} person’s birth place again.`);
   const latitude = Number(value.latitude);
   const longitude = Number(value.longitude);
-  if (!Number.isFinite(latitude) || Math.abs(latitude) > 90 || !Number.isFinite(longitude) || Math.abs(longitude) > 180) throw new Error(`Check the ${label.toLowerCase()} person’s latitude and longitude.`);
+  if (!Number.isFinite(latitude) || Math.abs(latitude) > 90 || !Number.isFinite(longitude) || Math.abs(longitude) > 180) throw new Error(`Search and select the ${label.toLowerCase()} person’s birth place again.`);
   try { new Intl.DateTimeFormat('en', { timeZone: value.timeZone.trim() }); }
-  catch { throw new Error(`Use a valid birth place time zone for the ${label.toLowerCase()} person, such as Asia/Kolkata.`); }
+  catch { throw new Error(`Search and select the ${label.toLowerCase()} person’s birth place again.`); }
   return { name: value.name.trim(), birthDate: value.birthDate, birthTime: value.birthTime, birthPlace: value.birthPlace.trim(), latitude, longitude, timeZone: value.timeZone.trim() };
 }
 
@@ -195,17 +201,14 @@ export default function KundaliMatching({ savedProfile, active = true }: { saved
       {savedProfile && <button type="button" className="kundali-use-profile" onClick={() => { clearCalculation(); setDrafts(previous => ({ ...previous, [person]: draftFromProfile(savedProfile) })); }}>Use my saved details here <MatchingIcon /></button>}
       <div className="form-field"><label htmlFor={`${prefix}-name`}>Name</label><input id={`${prefix}-name`} value={value.name} onChange={event => change(person, { name: event.target.value })} maxLength={60} required autoComplete="off" placeholder="Name for this report" /></div>
       <div className="kundali-date-time"><div className="form-field"><label htmlFor={`${prefix}-date`}>Date of birth</label><input id={`${prefix}-date`} type="date" value={value.birthDate} onChange={event => change(person, { birthDate: event.target.value })} min="1900-01-01" max={today} required /></div><div className="form-field"><label htmlFor={`${prefix}-time`}>Birth time (local)</label><input id={`${prefix}-time`} type="time" step={60} value={value.birthTime} onChange={event => change(person, { birthTime: event.target.value })} required /></div></div>
-      {!value.manual && <BirthplaceAutocomplete inputId={`${prefix}-place`} value={value.birthPlace} selected={value.selected} onQueryChange={birthPlace => change(person, { birthPlace, selected: false, latitude: '', longitude: '', timeZone: '' })} onSelect={place => choosePlace(person, place)} />}
-      <button className="kundali-manual-toggle" type="button" aria-expanded={value.manual} aria-controls={`${prefix}-manual`} onClick={() => change(person, { manual: !value.manual })}>{value.manual ? 'Use worldwide place search' : 'Can’t find the place? Enter it manually'} <span aria-hidden="true">{value.manual ? '−' : '+'}</span></button>
-      {value.manual && <div id={`${prefix}-manual`} className="kundali-manual-fields"><div className="form-field"><label htmlFor={`${prefix}-manual-place`}>Place of birth</label><input id={`${prefix}-manual-place`} value={value.birthPlace} onChange={event => change(person, { birthPlace: event.target.value, selected: false })} maxLength={120} placeholder="Town or city, country" required /></div><div className="kundali-date-time"><div className="form-field"><label htmlFor={`${prefix}-latitude`}>Latitude</label><input id={`${prefix}-latitude`} type="number" min={-90} max={90} step="any" value={value.latitude} onChange={event => change(person, { latitude: event.target.value, selected: false })} required /></div><div className="form-field"><label htmlFor={`${prefix}-longitude`}>Longitude</label><input id={`${prefix}-longitude`} type="number" min={-180} max={180} step="any" value={value.longitude} onChange={event => change(person, { longitude: event.target.value, selected: false })} required /></div></div><div className="form-field"><label htmlFor={`${prefix}-timezone`}>Birth place time zone</label><input id={`${prefix}-timezone`} value={value.timeZone} onChange={event => change(person, { timeZone: event.target.value, selected: false })} placeholder="Asia/Kolkata" maxLength={100} required /><small>Use an IANA time zone so historical clock changes can be applied.</small></div></div>}
-      {value.selected && !value.manual && <p className="kundali-location-ready"><span aria-hidden="true">✓</span> {value.timeZone} <span>· coordinates selected</span></p>}
+      <BirthplaceAutocomplete inputId={`${prefix}-place`} value={value.birthPlace} selected={value.selected} onQueryChange={birthPlace => change(person, { birthPlace, selected: false, latitude: '', longitude: '', timeZone: '' })} onSelect={place => choosePlace(person, place)} />
     </fieldset>;
   }
 
   return <div className="kundali-matching">
     <div className="kundali-introduction"><MatchingOrbit /><div><span className="eyebrow">JATHAKAM MATCHING · 36 GUNAS</span><h2>Two birth charts.<br />Eight traditional measures.</h2><p>Ashta Koota Milan compares the Moon signs and birth stars of both people. Add their recorded birth details to see every score and what went into it.</p></div></div>
     <form onSubmit={event => void calculate(event)} className="kundali-form" aria-busy={loading}>
-      <p className="kundali-birth-note">The birth place tells us which time zone applies to the recorded time. Names label the report; the calculations use the birth details.</p>
+      <p className="kundali-birth-note">Add both people’s birth details, then search and select their birth places. Use the local time recorded at birth.</p>
       <div className="kundali-people-grid">{personFields('male')}{personFields('female')}</div>
       <div className="kundali-form-bottom"><p>Use a recorded birth time. If it’s unknown, this form can’t calculate a reliable birth-star match.</p><button className="primary-button kundali-calculate" type="submit" disabled={loading}>{loading ? 'Calculating the eight kootas…' : 'Calculate the 36-point match'}<MatchingIcon /></button></div>
       {error && <div className="kundali-error" role="alert" tabIndex={-1} ref={formErrorRef}>{error}</div>}

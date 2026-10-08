@@ -548,13 +548,17 @@ test('local forecasts answer career, hard periods, marriage quality, and other l
         if (exit) assert.ok(result.reply.includes(exit));
         assert.match(result.reply, /not the guaranteed end of hardship/);
         assert.doesNotMatch(result.reply, /nakshatra|Moon rashi|Computed factors:/);
-      } else {
-        const summarizedWindows = topic === 'career' ? prediction.windows : prediction.windows.slice(0, 1);
-        for (const window of summarizedWindows) {
+      } else if (topic === 'career') {
+        for (const window of prediction.windows) {
           assert.ok(result.reply.includes(window.start), `${topic} must state supplied window start dates`);
           assert.ok(result.reply.includes(window.end), `${topic} must state supplied window end dates`);
         }
         assert.match(result.reply, /traditional|conditional|interpret|not.*guarantee|not.*predict/i);
+      } else {
+        assert.ok(result.reply.includes(prediction.outlook.summary), `${topic} must explain the current focus`);
+        if (prediction.outlook.timing) assert.ok(result.reply.includes(prediction.outlook.timing.text), `${topic} must explain the calculated shift`);
+        assert.ok(result.reply.includes(prediction.outlook.actions[0]), `${topic} must give a practical next step`);
+        assert.doesNotMatch(result.reply, /mahadasha|antardasha|D1 house|Computed factors:/);
       }
     }
   });

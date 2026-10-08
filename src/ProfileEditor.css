@@ -1,0 +1,218 @@
+.app-shell .profile-dialog {
+  --profile-padding: 28px;
+  box-sizing: border-box;
+  width: min(620px, calc(100% - 24px));
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: var(--profile-padding);
+  margin: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 24px;
+}
+
+.app-shell .profile-dialog .dialog-heading {
+  margin-bottom: 22px;
+}
+
+.app-shell .profile-dialog .dialog-heading .icon-button {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.app-shell .profile-dialog > .eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+
+.app-shell .profile-dialog h2 {
+  margin: 12px 0 16px;
+  font-size: clamp(35px, 6vw, 43px);
+  line-height: 1.15;
+}
+
+.app-shell .profile-dialog .dialog-description {
+  max-width: 52ch;
+  margin: 0 0 28px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.app-shell .profile-dialog .profile-form {
+  display: grid;
+  min-width: 0;
+  gap: 24px;
+}
+
+.app-shell .profile-dialog .profile-basic-fields {
+  display: grid;
+  min-width: 0;
+  gap: 20px;
+}
+
+.app-shell .profile-dialog .form-field {
+  min-width: 0;
+  gap: 10px;
+  margin: 0;
+}
+
+.app-shell .profile-dialog .form-field label {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.app-shell .profile-dialog .form-field :is(input, select) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 12px 13px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.app-shell .profile-dialog :is(input, button, a):focus-visible {
+  outline: 2px solid #426b58;
+  outline-offset: 3px;
+}
+
+.app-shell .profile-dialog .birth-details-fields {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 22px 20px;
+  gap: 22px;
+}
+
+.app-shell .profile-dialog .birth-details-fields legend {
+  max-width: 100%;
+  padding-inline: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.app-shell .profile-dialog .birth-details-fields .form-field > small {
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.app-shell .profile-dialog .birthplace-search-status {
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.app-shell .profile-dialog .birthplace-search-retry {
+  min-height: 44px;
+  font-size: 12px;
+}
+
+.app-shell .profile-dialog .birthplace-results {
+  max-height: 250px;
+  scroll-margin-block: 20px;
+}
+
+.app-shell .profile-dialog .birthplace-result {
+  min-height: 60px;
+  padding: 11px 12px;
+}
+
+.app-shell .profile-dialog .birthplace-result > span {
+  font-size: 13px;
+}
+
+.app-shell .profile-dialog .birthplace-result > small {
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.app-shell .profile-dialog .preset-place-details {
+  min-width: 0;
+  margin: 0;
+  padding: 12px 13px;
+  gap: 9px;
+  border: 1px solid #cab994;
+  border-radius: 4px 13px 4px 13px;
+  background: #f5ebdc;
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.app-shell .profile-dialog .preset-place-details > svg {
+  margin-top: 3px;
+}
+
+.app-shell .profile-dialog .error-notice {
+  margin: 0;
+}
+
+.app-shell .profile-dialog .profile-actions {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  margin-inline: calc(-1 * var(--profile-padding));
+  margin-bottom: calc(-1 * var(--profile-padding));
+  padding: 20px var(--profile-padding) 24px;
+  border-top: 1px solid #d5c4a8;
+  background: #f6eddf;
+  box-shadow: 0 -8px 20px #302c4206;
+}
+
+.app-shell .profile-dialog .profile-actions .primary-button {
+  min-height: 52px;
+  padding: 15px 18px;
+  font-size: 14px;
+}
+
+.app-shell .profile-dialog .privacy-note {
+  margin: 0;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.app-shell .profile-dialog .reset-profile {
+  justify-self: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+
+@media (min-width: 600px) {
+  .app-shell .profile-dialog .profile-basic-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 399px) {
+  .app-shell .profile-dialog {
+    --profile-padding: 20px;
+  }
+
+  .app-shell .profile-dialog .birth-details-fields {
+    padding: 20px 14px;
+  }
+
+  .app-shell .profile-dialog .privacy-note {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .app-shell .profile-dialog .privacy-note svg {
+    margin-top: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell .profile-dialog[open] {
+    animation: profile-editor-appear 180ms ease-out;
+  }
+
+  @keyframes profile-editor-appear {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

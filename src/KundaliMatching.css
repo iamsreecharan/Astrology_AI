@@ -14,32 +14,26 @@
 .kundali-introduction p { color: #c2b5cc; font-size: 13px; line-height: 1.85; max-width: 610px; }
 .kundali-form { background: #211b33; border: 1px solid #dda95b3c; border-radius: 26px 3px 26px 3px; padding: 27px; }
 .kundali-birth-note { color: #d9caba; font-size: 12px; line-height: 1.85; margin: 0 0 23px; max-width: 830px; }
-.kundali-people-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
-.kundali-person { border: 1px solid #d6c5a9; border-radius: 3px 19px 3px 19px; margin: 0; padding: 22px; min-width: 0; background: var(--astral-paper); color: var(--astral-ink); }
+.kundali-people-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; align-items: start; }
+.kundali-person { border: 1px solid #d6c5a9; border-radius: 3px 19px 3px 19px; margin: 0; padding: 26px; min-width: 0; background: var(--astral-paper); color: var(--astral-ink); }
 .kundali-person legend { color: #eddbc3; background: #30263c; padding: 8px 13px; border: 1px solid #dda95b68; border-radius: 16px; font-size: 12px; letter-spacing: .3px; }
 .kundali-person-female legend { color: #d3ebdf; background: #243e3b; border-color: #78d0b76e; }
 .kundali-person-marker { margin-right: 9px; color: #dda95b; font-size: 10px; }
 .kundali-person-female .kundali-person-marker { color: #78d0b7; }
-.app-shell .kundali-person .form-field { margin-bottom: 18px; gap: 8px; min-width: 0; }
-.app-shell .kundali-person label { font-size: 12px; line-height: 1.5; color: #5f4e5c; }
-.app-shell .kundali-person input { width: 100%; min-width: 0; max-width: 100%; background: #fff9ef; border: 1px solid #cbbb9f; border-radius: 6px; padding: 12px 11px; min-height: 45px; font-size: 14px; color: #342c40; }
-.app-shell .kundali-person input::placeholder { color: #8b7c88; font-size: 12px; }
+.app-shell .kundali-person .form-field { margin-bottom: 24px; gap: 9px; min-width: 0; }
+.app-shell .kundali-person > .form-field:last-child { margin-bottom: 0; }
+.app-shell .kundali-person label { font-size: 13px; line-height: 1.5; color: #5f4e5c; }
+.app-shell .kundali-person input { width: 100%; min-width: 0; max-width: 100%; background: #fff9ef; border: 1px solid #cbbb9f; border-radius: 8px; padding: 13px 12px; min-height: 50px; font-size: 16px; color: #342c40; }
+.app-shell .kundali-person input::placeholder { color: #8b7c88; font-size: 14px; }
 .app-shell .kundali-person small { color: #746574; font-size: 10px; line-height: 1.75; }
 .kundali-date-time { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.kundali-use-profile { display: flex; justify-content: space-between; width: 100%; min-height: 42px; padding: 8px 0; margin-bottom: 12px; border: 0; border-bottom: 1px dashed #bea98a; background: transparent; color: #37695c; text-align: left; font-size: 11px; }
+.kundali-use-profile { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 10px 0; margin-bottom: 20px; border: 0; border-bottom: 1px dashed #bea98a; background: transparent; color: #37695c; text-align: left; font-size: 12px; line-height: 1.6; }
 .kundali-use-profile:hover { color: #714b2c; }
-.kundali-manual-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 42px; padding: 9px 0; text-align: left; font-size: 11px; line-height: 1.65; border: 0; border-top: 1px solid #d6c8b6; background: transparent; color: #815a34; }
-.kundali-manual-toggle > span { font-size: 20px; flex: 0 0 auto; }
-.kundali-manual-fields { padding: 14px 0 0; }
-.kundali-manual-fields .form-field:last-child { margin-bottom: 2px; }
-.kundali-location-ready { color: #426e60; font-size: 10px; line-height: 1.7; margin: 9px 0 0; overflow-wrap: anywhere; }
-.kundali-location-ready > span:first-child { padding-right: 5px; }
-.kundali-location-ready > span:last-child { color: #796a77; }
 .app-shell .kundali-person .birthplace-search-status { color: #496b5d; }
 .app-shell .kundali-person .birthplace-search-error { color: #935c37; }
 .app-shell .kundali-person .birthplace-attribution, .app-shell .kundali-person .birthplace-attribution a { color: #74665d !important; }
 .app-shell .kundali-person .birthplace-results { border-color: #cbbba2; background: #fff9ef; }
-.app-shell .kundali-person .birthplace-result { min-height: 54px; color: #3e5149; }
+.app-shell .kundali-person .birthplace-result { min-height: 58px; color: #3e5149; }
 .app-shell .kundali-person .birthplace-result.active, .app-shell .kundali-person .birthplace-result:hover { background: #e2e7d9; }
 .kundali-form-bottom { display: flex; align-items: center; justify-content: space-between; gap: 26px; margin-top: 24px; }
 .kundali-form-bottom > p { color: #c5b4c9; font-size: 11px; line-height: 1.85; max-width: 475px; }
@@ -142,7 +136,7 @@
   .kundali-birth-note { font-size: 11px; }
   .kundali-people-grid, .kundali-moon-grid, .kundali-koota-grid { grid-template-columns: 1fr; gap: 23px; }
   .kundali-person { padding: 21px 17px; }
-  .kundali-date-time { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kundali-date-time { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .kundali-form-bottom { flex-direction: column; align-items: stretch; gap: 17px; }
   .kundali-form-bottom > p { font-size: 11px; }
   .kundali-form-bottom .primary-button { width: 100%; justify-content: space-between; }
@@ -159,6 +153,9 @@
   .kundali-report-panel > div { flex-basis: 100%; }
   .kundali-report-panel .primary-button { width: 100%; justify-content: space-between; }
   .kundali-closing-note { font-size: 16px; }
+}
+@media (max-width: 480px) {
+  .kundali-date-time { grid-template-columns: 1fr; gap: 0; }
 }
 @media (max-width: 370px) {
   .compatibility-modes { gap: 8px; }

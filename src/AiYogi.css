@@ -49,6 +49,11 @@ body:has(.yogi-launcher) .site-footer { padding-bottom: 104px; }
 .yogi-calculations ul { padding-left: 17px; margin: 6px 0; }
 .yogi-calculations li { margin-top: 5px; }
 .yogi-calculations li p { margin-top: 3px; }
+.yogi-reading-references { margin-top: 16px; }
+.yogi-reading-references h3 { margin: 0 0 7px; font-size: 12px; }
+@media (max-width: 760px) {
+  .app-shell:has(:is(.kundali-form, .profile-form) :focus) .yogi-launcher { visibility: hidden; opacity: 0; pointer-events: none; }
+}
 .yogi-thinking { padding: 6px 10px; display: flex; gap: 4px; align-items: center; color: #cab88f; }
 .yogi-thinking > span { height: 4px; width: 4px; background: #d6b374; border-radius: 50%; animation: yogi-pulse 1.2s ease-in-out infinite; }
 .yogi-thinking > span:nth-child(2) { animation-delay: .15s; }

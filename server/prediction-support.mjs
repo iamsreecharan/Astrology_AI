@@ -1,3 +1,5 @@
+import { buildPredictionOutlook } from './prediction-outlook.mjs';
+
 const RELATIVE_NOTE = 'These labels compare calculated traditional support among the shown windows. They are not measured chances of marriage or employment.';
 const INTERPRETATION = Object.freeze({
   kind: 'interpretation', label: 'Traditional interpretation',
@@ -60,7 +62,7 @@ function attachPlanning(prediction) {
 }
 
 /** Add display guidance from calculated evidence without changing any dates. */
-export function attachPredictionSupport(prediction) {
+function annotatedSupport(prediction) {
   if (!prediction || typeof prediction !== 'object') throw new TypeError('A calculated prediction is required.');
   const windows = Array.isArray(prediction.windows) ? prediction.windows : [];
   const base = attachPlanning(prediction);
@@ -110,4 +112,9 @@ export function attachPredictionSupport(prediction) {
       return { ...window, support: { kind: 'relative', label, explanation, comparison, rank, comparedWindows, ...(comparison === 'tied-top' ? { tiedWindows } : {}) } };
     }),
   };
+}
+
+export function attachPredictionSupport(prediction) {
+  const supported = annotatedSupport(prediction);
+  return { ...supported, outlook: buildPredictionOutlook(supported) };
 }

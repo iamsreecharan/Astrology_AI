@@ -362,8 +362,6 @@ body { background: var(--astral-night); color: #eee5d7; }
 .app-shell .birthplace-result.active, .app-shell .birthplace-result:hover { background: #dce5d8; }
 .app-shell .birthplace-attribution { color: #7b6872 !important; }
 .app-shell .birthplace-attribution a { color: #635b60; }
-.app-shell .manual-location > summary { color: #875b34; }
-.app-shell .manual-location > p { color: #71606e; }
 .app-shell .privacy-note { color: #6f6271; }
 .app-shell .reset-profile { color: #865a33; }
 .app-shell .storage-notice { color: #345c48; background: #dbe7d9; }

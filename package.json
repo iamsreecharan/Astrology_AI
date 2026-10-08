@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "A personal astrology reflection app with optional live AI chat.",
-  "engines": { "node": ">=24.5.0 <25" },
+  "engines": {
+    "node": ">=24.5.0 <25"
+  },
   "scripts": {
     "dev": "NODE_ENV=development node --watch --use-env-proxy --env-file-if-exists=.env server/index.mjs",
     "build": "tsc --noEmit && vite build",
@@ -13,6 +15,8 @@
     "check": "npm run build && npm test"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "0.5.1",
+    "astronomy-engine": "2.1.19",
     "express": "5.2.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"

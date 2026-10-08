@@ -2,27 +2,36 @@
 
 [Deploy to Render](https://render.com/deploy?repo=https://github.com/iamsreecharan/Astrology_AI)
 
-1. Open the deployment link and sign in to your Render account, or create one.
-2. Connect GitHub if Render asks, and select `iamsreecharan/Astrology_AI`.
-3. Render reads `render.yaml`. Review the `astral-astrology-ai` web service and confirm that the plan is **Free**, then deploy it.
-4. Wait for the build and health check to pass. Open the service URL provided by Render. That is the live app URL; the Codex cloud-onboarding screen does not provide a live app preview.
-5. Check the Today reading, save a profile, explore compatibility, and send a local question. For a direct health check, open `/api/health` on the Render service URL and expect `{"status":"ok","service":"astral"}`.
+1. Open the link and sign in to Render.
+2. Connect GitHub if asked, then select `iamsreecharan/Astrology_AI`.
+3. Render reads `render.yaml`. Check that `astral-astrology-ai` uses the **Free** plan, then deploy.
+4. Wait for the build and health check, then open the service URL Render provides. The cloud-onboarding screen does not provide a live preview.
+5. Open **Birth chart** to inspect the labeled example, then save your own recorded birth details. Check the chart and periods, choose a topic, and try marriage, job, or married-life questions in **Ask Astral**.
 
-The Blueprint installs the locked dependencies including build tools, builds the React app, starts the Node server, and checks `/api/health`. Node is pinned to the tested version. The app listens on Render's injected `PORT` and all interfaces. No database or key is needed for these features.
+For a direct readiness check, `/api/health` should return `{"status":"ok","service":"astral"}`.
 
-## Optional live AI on Render
+The Blueprint installs locked dependencies including build tools, builds the React app, and starts the Node server. Node is pinned to the tested version. The server uses Render's `PORT` and listens on all interfaces. Calculations and the local guide need no database or AI key.
 
-In the Render service's **Environment** settings, add your `ASTROLOGY_AI_API_KEY` securely. Optionally set `ASTROLOGY_AI_MODEL`; it defaults to `gpt-4.1-mini`. Save the settings and redeploy/restart the service.
+For an existing service, deploy the latest `main` commit from the dashboard, or check that automatic deployment picked it up.
 
-Select **AI** in Ask Astral. A successful response must be labeled **AI reflection**. If the provider rejects the request, check the key, model access, and provider billing, or switch back to **Local**. Cloud onboarding secrets and a local `.env` are separate from Render's environment settings; they are not automatically transferred.
+## Enable Vedic AI
 
-Never add API keys to this repository or paste them in chat. The app sends the question and sun sign to OpenAI; it keeps the key on the server and does not send profile names or birth dates.
+Add `ASTROLOGY_AI_API_KEY` in the service's **Environment** settings. Optionally set `ASTROLOGY_AI_MODEL`; the default is `gpt-4.1-mini`. Save and redeploy/restart. A working key, model access, and provider billing are required; the repository supplies no credential.
 
-## If the deployment fails
+Save a complete birth profile and select **Vedic AI** in **Ask Astral**. Successful replies carry the **Vedic AI** label. Without a key, the **Calculated Vedic guide** works locally and **Enable live Vedic AI** explains setup. A date-only profile needs recorded birth details before live Vedic chat can run.
 
-- Read Render's latest build and runtime logs. Do not post credential values.
-- If Vite is missing, confirm that the build command includes `npm ci --include=dev`.
-- If the health check fails, confirm the start command is `npm start` and that a production build completed.
-- If the first request is slow, wait for the free service to start and retry.
+The existing model receives calculated chart facts, selected original notes, the question, and recent conversation. Raw profile fields are excluded from its structured context; personal details typed into messages can still be sent. The key stays on the server.
 
-The configuration and production workflow were checked in the Codex environment. Actual Render provisioning and the live URL are confirmed only after deployment in your Render account.
+If a request fails, check the key, model access, and billing, or switch to **Local**. Cloud secrets and local `.env` files are separate from Render settings and do not transfer automatically. Keep keys out of Git and chat.
+
+The service has no accounts or per-user AI quotas. Review access and usage controls before opening a paid-key deployment to a wider audience. See [privacy and hosting](../README.md#privacy-and-hosting).
+
+## Troubleshooting
+
+- Check the latest build and runtime logs without sharing credential values.
+- If Vite is missing, check that the build command includes `npm ci --include=dev`.
+- If health checks fail, check that the production build completed and the start command is `npm start`.
+- A free service's first request may need time to start; retry once it is running.
+- Chart errors usually need all birth fields supplied together, with the recorded time, coordinates, and historical IANA zone checked.
+
+The production workflow was checked in the Codex environment. A live Render URL is confirmed only after deployment in your account. See [calculation methods](VEDIC.md) for chart and timing limits.

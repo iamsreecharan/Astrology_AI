@@ -1,8 +1,10 @@
 /**
- * A conventional calendar-based Western zodiac guide for reflection.
- * These sun-sign approximations are not a natal chart, diagnosis, or prediction.
- * Local readings are curated text, never presented as AI-generated advice.
+ * Calendar-based Western sun signs and curated readings for reflection.
+ * Date-only profiles cannot supply a natal chart or support event predictions.
+ * These local readings do not come from a language model.
  */
+import { validateBirthDetails } from './vedic-chart.mjs';
+
 export const SIGNS = Object.freeze([
   { id: 'aries', name: 'Aries', symbol: '♈', element: 'Fire', modality: 'Cardinal', dates: 'Mar 21 – Apr 19', traits: ['Brave', 'Energetic', 'Direct'], description: 'Aries invites you to begin with courage, then give your enthusiasm a clear direction.' },
   { id: 'taurus', name: 'Taurus', symbol: '♉', element: 'Earth', modality: 'Fixed', dates: 'Apr 20 – May 20', traits: ['Grounded', 'Patient', 'Devoted'], description: 'Taurus invites you to build trust through steady care and enjoy the small comforts along the way.' },
@@ -88,7 +90,8 @@ export function validateProfile(input, { today = new Date() } = {}) {
   const todayStart = new Date(today);
   todayStart.setUTCHours(0, 0, 0, 0);
   if (year < 1900 || parsed > todayStart) throw badRequest('Birth date must be between 1900 and today.');
-  return { name, birthDate: input.birthDate, sign: getSign(input.birthDate) };
+  const birthDetails = validateBirthDetails(input, { today });
+  return { name, birthDate: input.birthDate, sign: getSign(input.birthDate), ...(birthDetails || {}) };
 }
 
 function hash(value) {
@@ -221,8 +224,8 @@ export function buildLocalReply(profile, { message, focus = 'general' } = {}) {
   if (/\b(suicid\w*|self[- ]?harm|kill myself|end my life|hurt myself)\b/.test(input)) {
     return `${framing}your safety deserves immediate, human support. If you might act on these feelings or are in immediate danger, contact local emergency services now. In the U.S. or Canada, call or text 988; elsewhere, find a local crisis service at findahelpline.com. If you can, contact a trusted person and let them stay with you while you get support. Astrology cannot help assess an emergency.`;
   }
-  // Cancer is also a zodiac sign. Recognize clear sign questions, but let
-  // explicit health or treatment language take precedence over that context.
+  // "Cancer" can mean the sign or the illness. Clear health or treatment
+  // language takes precedence, even when the question also mentions the sign.
   const cancerSignQuestion = /\bcancer\s+(?:(?:zodiac|sun|star)\s+)?(?:sign|traits?|horoscope|compatibility)\b|\b(?:zodiac|sun|star)\s+sign(?:\s+of|\s+is)?\s+cancer\b|\b(?:tell me|what can you tell me|learn more|information|facts)\s+about\s+cancer(?:\s*[?!.]|\s*$)|\b(?:i am|i'm|my partner is|my friend is)\s+a\s+cancer\b/.test(input);
   const cancerIllnessContext = /\b(?:have|has|had|get|got|develop\w*|surviv\w*|cure\w*)\s+(?:\w+\s+){0,2}cancer\b|\bcancer\s+(?:patients?|survivors?|diagnosis|screening|follow[- ]?up|care|caregivers?|risk|history)\b/.test(input);
   const medicalQuestion = /\b(medical|medicine|medication|diagnos\w*|pregnan\w*|symptom\w*|illness|disease|health|treat\w*|chemotherap\w*|oncolog\w*|tumou?r\w*)\b/.test(input)

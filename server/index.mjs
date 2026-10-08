@@ -6,7 +6,8 @@ const host = process.env.HOST || '0.0.0.0';
 if (!Number.isInteger(port) || port < 0 || port > 65535) {
   throw new Error('PORT must be an integer between 0 and 65535.');
 }
-const server = app.listen(port, host, () => {
+const server = app.listen(port, host, error => {
+  if (error) return;
   console.log(`Astral listening on port ${server.address().port} (${process.env.NODE_ENV || 'development'})`);
 });
 server.on('error', async error => {

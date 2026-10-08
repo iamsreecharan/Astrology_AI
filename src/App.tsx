@@ -2,17 +2,60 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import './App.css';
 
-type Page = 'today' | 'compatibility' | 'chat';
+type Page = 'today' | 'chart' | 'compatibility' | 'chat';
 type Focus = 'general' | 'love' | 'career' | 'wellbeing';
 type Sign = { id: string; name: string; symbol: string; element: string; modality: string; dates: string; traits: string[]; description: string };
-type Profile = { name: string; birthDate: string; sign: Sign };
+type ProfileInput = { name: string; birthDate: string; birthTime?: string; birthPlace?: string; latitude?: number; longitude?: number; timeZone?: string };
+type Profile = ProfileInput & { sign: Sign };
 type Reading = { date: string; focus: Focus; headline: string; overview: string; sections: { label: string; text: string }[]; affirmation: string; ritual: string; lucky: { color: string; number: number }; source: 'local' | 'ai' };
 type Compatibility = { signA: Sign; signB: Sign; headline: string; summary: string; strengths: string[]; challenges: string[]; conversationStarter: string };
-type Message = { id: number; role: 'user' | 'assistant'; text: string; source?: 'local' | 'ai' };
+type Reference = { id: string; title: string };
+type PredictionTopic = 'marriage' | 'career' | 'difficult-periods' | 'married-life' | 'general' | 'education' | 'finances' | 'family' | 'travel' | 'wellbeing';
+type Prediction = { topic: PredictionTopic; status: 'estimated' | 'no-window' | 'interpreted'; asOf: string; horizonEnd: string; seventhHouse?: { rashi: string; lord: string }; windows: { start: string; end: string; ageRange?: { min: number; max: number }; label?: string; reasons: string[]; themes?: string[] }[]; factors?: string[]; themes?: string[]; currentPhase?: { name: string; description: string }; method: string[]; limitations: string[] };
+type Planet = { name: string; rashi: string; signIndex: number; longitude: number; degreeInSign: number; house: number; retrograde: boolean | null };
+type DashaPeriod = { lord: string; start: string; end: string };
+type VedicChart = { calculation: { system: string; ayanamsha: string; ayanamshaDegrees: number; ephemeris: string; houses: string; nodeType: string; warnings: string[] }; moon: { rashi: string; nakshatra: { name: string; lord: string; index: number }; pada: number; longitude: number }; ascendant: { rashi: string; longitude: number }; planets: Planet[]; dasha: { birthBalance: { lord: string; years: number }; currentMahadasha: DashaPeriod | null; currentAntardasha: DashaPeriod | null; periods: (DashaPeriod & { antardashas: DashaPeriod[] })[] }; transits: { asOf: string; planets: Planet[] }; navamsa?: { ascendant: { rashi: string; longitude: number }; planets: Planet[] }; limits: string[] };
+type Message = { id: number; role: 'user' | 'assistant'; text: string; source?: 'local' | 'ai'; references?: Reference[]; prediction?: Prediction };
 type Config = { aiEnabled: boolean; model: string | null; signs: Sign[] };
-type ProfileInput = { name: string; birthDate: string };
 
-const sampleProfile = { name: 'Alex', birthDate: '1995-05-21' };
+const predictionTopics: { id: PredictionTopic; label: string; heading: string; question: string; icon: string }[] = [
+  { id: 'marriage', label: 'Marriage timing', heading: 'Possibility, with perspective.', question: 'When might I get married?', icon: 'heart' },
+  { id: 'married-life', label: 'Married life', heading: 'A shared life, in perspective.', question: 'How might my married life be?', icon: 'heart' },
+  { id: 'career', label: 'Career & job timing', heading: 'Your next working chapter.', question: 'When might I get a job?', icon: 'compass' },
+  { id: 'difficult-periods', label: 'Challenging periods', heading: 'Finding perspective in a hard season.', question: 'When might a difficult period ease?', icon: 'moon' },
+  { id: 'education', label: 'Education & learning', heading: 'Make room for what you’ll learn.', question: 'What does my chart suggest about education?', icon: 'star' },
+  { id: 'finances', label: 'Money & finances', heading: 'A considered view of your resources.', question: 'What financial themes does my chart suggest?', icon: 'compass' },
+  { id: 'family', label: 'Family', heading: 'The people you call home.', question: 'What does my chart suggest about family life?', icon: 'heart' },
+  { id: 'travel', label: 'Travel & change', heading: 'A little room for new horizons.', question: 'What does my chart suggest about travel?', icon: 'compass' },
+  { id: 'general', label: 'Life direction', heading: 'See your next chapter more clearly.', question: 'What life themes are active in my chart?', icon: 'sun' },
+  { id: 'wellbeing', label: 'Wellbeing', heading: 'Find a rhythm that supports you.', question: 'What wellbeing themes does my chart suggest?', icon: 'leaf' },
+];
+
+const sampleProfile: ProfileInput = { name: 'Alex', birthDate: '1995-05-21', birthTime: '10:30', birthPlace: 'Hyderabad, India', latitude: 17.385, longitude: 78.4867, timeZone: 'Asia/Kolkata' };
+const birthCities = [
+  { id: 'hyderabad', name: 'Hyderabad, India', latitude: 17.385, longitude: 78.4867, timeZone: 'Asia/Kolkata' },
+  { id: 'delhi', name: 'New Delhi, India', latitude: 28.6139, longitude: 77.209, timeZone: 'Asia/Kolkata' },
+  { id: 'mumbai', name: 'Mumbai, India', latitude: 19.076, longitude: 72.8777, timeZone: 'Asia/Kolkata' },
+  { id: 'bengaluru', name: 'Bengaluru, India', latitude: 12.9716, longitude: 77.5946, timeZone: 'Asia/Kolkata' },
+  { id: 'chennai', name: 'Chennai, India', latitude: 13.0827, longitude: 80.2707, timeZone: 'Asia/Kolkata' },
+  { id: 'kolkata', name: 'Kolkata, India', latitude: 22.5726, longitude: 88.3639, timeZone: 'Asia/Kolkata' },
+];
+
+function profilePayload(value: ProfileInput): ProfileInput {
+  const result: ProfileInput = { name: value.name, birthDate: value.birthDate };
+  for (const key of ['birthTime', 'birthPlace', 'timeZone'] as const) if (typeof value[key] === 'string') result[key] = value[key];
+  for (const key of ['latitude', 'longitude'] as const) if (typeof value[key] === 'number' && Number.isFinite(value[key])) result[key] = value[key];
+  return result;
+}
+function hasBirthDetails(value: ProfileInput | null): boolean {
+  return Boolean(value?.birthTime && value.birthPlace && value.timeZone && Number.isFinite(value.latitude) && Number.isFinite(value.longitude));
+}
+function formatDate(value: string): string {
+  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+function formatAge(value: number): string { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
+function degrees(value: number): string { return `${value.toFixed(2)}°`; }
 const focusOptions: { id: Focus; label: string; icon: string }[] = [
   { id: 'general', label: 'Your day', icon: 'sun' },
   { id: 'love', label: 'Love', icon: 'heart' },
@@ -29,13 +72,16 @@ const allSigns: [string, string, string][] = [
 function savedProfile(): ProfileInput | null {
   try {
     const value = JSON.parse(localStorage.getItem('astral-profile') || 'null');
-    if (value && typeof value.name === 'string' && typeof value.birthDate === 'string') return { name: value.name, birthDate: value.birthDate };
-  } catch { /* An unavailable or corrupted browser store should not prevent opening the app. */ }
+    if (value && typeof value.name === 'string' && typeof value.birthDate === 'string') return profilePayload(value);
+  } catch { /* Open the app even if saved browser data is unavailable or invalid. */ }
   return null;
 }
 
-async function api<T>(path: string, body?: unknown): Promise<T> {
+async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const controller = new AbortController();
+  const forwardAbort = () => controller.abort();
+  signal?.addEventListener('abort', forwardAbort, { once: true });
+  if (signal?.aborted) controller.abort();
   const timeout = window.setTimeout(() => controller.abort(), 45_000);
   try {
     const response = await fetch(path, {
@@ -52,7 +98,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
     if (error instanceof DOMException && error.name === 'AbortError') throw new Error('This is taking longer than expected. Please try again.');
     if (error instanceof TypeError) throw new Error('We couldn’t reach Astral. Check your connection and try again.');
     throw error;
-  } finally { window.clearTimeout(timeout); }
+  } finally { window.clearTimeout(timeout); signal?.removeEventListener('abort', forwardAbort); }
 }
 
 function Icon({ name, size = 20, className = '' }: { name: string; size?: number; className?: string }) {
@@ -106,6 +152,32 @@ function LoadingReading() {
   return <div className="reading-loading" role="status" aria-label="Loading your daily reading"><div className="skeleton skeleton-label" /><div className="skeleton skeleton-title" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line shorter" /><span className="loading-caption">Finding a little perspective for your day…</span></div>;
 }
 
+function PlanetTable({ planets, navamsa }: { planets: Planet[]; navamsa?: Planet[] }) {
+  return <div className="planet-table-scroll" tabIndex={0} role="region" aria-label="Planet positions table"><table className="planet-table"><thead><tr><th scope="col">Graha</th><th scope="col">D1 rashi</th>{navamsa && <th scope="col">D9 rashi</th>}<th scope="col">Sidereal longitude</th><th scope="col">Within sign</th><th scope="col">House</th><th scope="col">Motion</th></tr></thead><tbody>{planets.map(planet => <tr key={planet.name}><th scope="row">{planet.name}</th><td>{planet.rashi}</td>{navamsa && <td>{navamsa.find(item => item.name === planet.name)?.rashi || '—'}</td>}<td>{degrees(planet.longitude)}</td><td>{degrees(planet.degreeInSign)}</td><td>{planet.house}</td><td><span className={planet.retrograde ? 'motion-tag retrograde' : 'motion-tag'}>{planet.retrograde === null ? '—' : planet.retrograde ? 'Retrograde' : 'Direct'}</span></td></tr>)}</tbody></table></div>;
+}
+
+function PredictionResults({ prediction, compact = false }: { prediction: Prediction; compact?: boolean }) {
+  const topic = predictionTopics.find(item => item.id === prediction.topic);
+  const isMarriage = prediction.topic === 'marriage';
+  const isInterpretation = prediction.status === 'interpreted';
+  const introduction = isMarriage
+    ? 'These conditional windows combine chart factors and period timing. They estimate possible ages; they do not promise a marriage event.'
+    : prediction.topic === 'difficult-periods'
+      ? 'These are traditional transit and dasha themes. A phase date does not determine when real-life difficulties or bad days will end.'
+      : isInterpretation
+        ? 'These themes interpret calculated placements and life periods. They offer a lens for reflection rather than a fixed outcome.'
+        : 'These conditional windows combine chart factors and period timing. They describe traditional opportunities, not a promised event.';
+  return <div className={`marriage-results prediction-results ${compact ? 'compact' : ''}`}>
+    <p className="forecast-context">{isInterpretation ? 'Calculated chart interpretation' : prediction.topic === 'difficult-periods' ? 'Traditional period themes' : 'Calculated timing estimate'} · {topic?.label || prediction.topic}</p>
+    <p className="forecast-intro">{introduction}</p>
+    {prediction.currentPhase && <section className="current-phase-card"><span className="eyebrow">CURRENT TRADITIONAL PHASE</span><h3>{prediction.currentPhase.name}</h3><p>{prediction.currentPhase.description}</p></section>}
+    {Boolean(prediction.themes?.length) && <section className="prediction-themes"><h3>What this brings into focus</h3><ul>{prediction.themes?.map((theme, index) => <li key={index}>{theme}</li>)}</ul></section>}
+    {Boolean(prediction.factors?.length) && <details className="prediction-factors"><summary>Chart factors behind these themes</summary><ul>{prediction.factors?.map((factor, index) => <li key={index}>{factor}</li>)}</ul></details>}
+    {prediction.windows.length ? <div className="marriage-windows">{prediction.windows.map((window, index) => <section className={`marriage-window ${window.ageRange ? '' : 'theme-window'}`} key={`${window.start}-${index}`}><div className="window-number">{String(index + 1).padStart(2, '0')}</div><div><span className="eyebrow">{window.ageRange ? 'ESTIMATED AGE WINDOW' : prediction.topic === 'difficult-periods' ? 'TRADITIONAL PHASE DATES' : isInterpretation ? 'PERIOD THEMES' : 'CONDITIONAL TIMING WINDOW'}</span>{window.ageRange ? <h3>{formatAge(window.ageRange.min)}{window.ageRange.min !== window.ageRange.max && <>–{formatAge(window.ageRange.max)}</>} <span>years</span></h3> : <h3>{window.label || `Period ${index + 1}`}</h3>}<p className="window-dates">{formatDate(window.start)} – {formatDate(window.end)}</p>{Boolean(window.themes?.length) && <ul className="window-themes">{window.themes?.map((theme, themeIndex) => <li key={themeIndex}>{theme}</li>)}</ul>}{!compact && <ul className="window-reasons">{window.reasons.map((reason, reasonIndex) => <li key={reasonIndex}>{reason}</li>)}</ul>}</div></section>)}</div> : prediction.status === 'no-window' ? <div className="no-window"><h3>No qualifying window in this horizon.</h3><p>The current rules did not identify a timing window through {formatDate(prediction.horizonEnd)}. {isMarriage ? 'This is not a prediction that marriage will not happen.' : 'This does not rule out real-life opportunities or change.'}</p></div> : null}
+    {!compact && <details className="method-details"><summary>Method and interpretation limits</summary><p>{prediction.seventhHouse && <>Seventh house: {prediction.seventhHouse.rashi} · lord: {prediction.seventhHouse.lord}. </>}Calculated as of {formatDate(prediction.asOf)}.</p><ul>{prediction.method.map((item, index) => <li key={`method-${index}`}>{item}</li>)}{prediction.limitations.map((item, index) => <li key={`limit-${index}`}>{item}</li>)}</ul></details>}
+  </div>;
+}
+
 export default function App() {
   const [initialProfile] = useState(() => savedProfile());
   const profileInputRef = useRef<ProfileInput>(initialProfile || sampleProfile);
@@ -125,6 +197,22 @@ export default function App() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [nameInput, setNameInput] = useState(initialProfile?.name || sampleProfile.name);
   const [dateInput, setDateInput] = useState(initialProfile?.birthDate || sampleProfile.birthDate);
+  const [includeBirthDetails, setIncludeBirthDetails] = useState(Boolean(initialProfile && hasBirthDetails(initialProfile)));
+  const [timeInput, setTimeInput] = useState(initialProfile?.birthTime || '');
+  const [cityInput, setCityInput] = useState('');
+  const [placeInput, setPlaceInput] = useState(initialProfile?.birthPlace || '');
+  const [latitudeInput, setLatitudeInput] = useState(initialProfile?.latitude !== undefined ? String(initialProfile.latitude) : '');
+  const [longitudeInput, setLongitudeInput] = useState(initialProfile?.longitude !== undefined ? String(initialProfile.longitude) : '');
+  const [timeZoneInput, setTimeZoneInput] = useState(initialProfile?.timeZone || '');
+  const [chart, setChart] = useState<VedicChart | null>(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartError, setChartError] = useState('');
+  const [chartRetry, setChartRetry] = useState(0);
+  const [predictionTopic, setPredictionTopic] = useState<PredictionTopic>('marriage');
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [predictionLoading, setPredictionLoading] = useState(false);
+  const [predictionError, setPredictionError] = useState('');
+  const [predictionRetry, setPredictionRetry] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [storageNotice, setStorageNotice] = useState('');
@@ -138,6 +226,7 @@ export default function App() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState('');
   const [lastChat, setLastChat] = useState('');
+  const lastHistoryRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [chatMode, setChatMode] = useState<'local' | 'ai'>('local');
   const dialogRef = useRef<HTMLDialogElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -172,11 +261,32 @@ export default function App() {
     let active = true;
     setReadingLoading(true);
     setReadingError('');
-    api<Reading>('/api/reading', { profile: { name: profile.name, birthDate: profile.birthDate }, focus, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).then(data => {
+    api<Reading>('/api/reading', { profile: profilePayload(profile), focus, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).then(data => {
       if (active) { setReading(data); setReadingLoading(false); }
     }).catch(error => { if (active) { setReadingError(error.message); setReadingLoading(false); } });
     return () => { active = false; };
   }, [profile, focus, readingRetry]);
+
+  useEffect(() => {
+    let active = true;
+    setChart(null);
+    setChartError('');
+    if (!profile || !hasBirthDetails(profile)) { setChartLoading(false); return; }
+    setChartLoading(true);
+    api<VedicChart>('/api/chart', { profile: profilePayload(profile) }).then(data => { if (active) setChart(data); }).catch(error => { if (active) setChartError(error.message); }).finally(() => { if (active) setChartLoading(false); });
+    return () => { active = false; };
+  }, [profile, chartRetry]);
+
+  useEffect(() => {
+    let active = true;
+    setPrediction(null);
+    setPredictionError('');
+    if (!profile || !hasBirthDetails(profile)) { setPredictionLoading(false); return; }
+    setPredictionLoading(true);
+    const controller = new AbortController();
+    api<Prediction>('/api/prediction', { profile: profilePayload(profile), topic: predictionTopic }, controller.signal).then(data => { if (active) setPrediction(data); }).catch(error => { if (active) setPredictionError(error.message); }).finally(() => { if (active) setPredictionLoading(false); });
+    return () => { active = false; controller.abort(); };
+  }, [profile, predictionRetry, predictionTopic]);
 
   useEffect(() => {
     if (editorOpen && !dialogRef.current?.open) dialogRef.current?.showModal();
@@ -190,6 +300,16 @@ export default function App() {
   function openProfileEditor() {
     setNameInput(currentName);
     setDateInput(profile?.birthDate || profileInputRef.current.birthDate);
+    const details = profile || profileInputRef.current;
+    const existingDetails = isSaved && hasBirthDetails(details);
+    setIncludeBirthDetails(existingDetails);
+    setTimeInput(existingDetails ? details.birthTime || '' : '');
+    setPlaceInput(existingDetails ? details.birthPlace || '' : '');
+    setLatitudeInput(existingDetails ? String(details.latitude) : '');
+    setLongitudeInput(existingDetails ? String(details.longitude) : '');
+    setTimeZoneInput(existingDetails ? details.timeZone || '' : '');
+    const preset = existingDetails ? birthCities.find(city => city.name === details.birthPlace && city.latitude === details.latitude && city.longitude === details.longitude && city.timeZone === details.timeZone) : undefined;
+    setCityInput(preset?.id || (existingDetails ? 'custom' : ''));
     setSaveError('');
     setEditorOpen(true);
   }
@@ -198,7 +318,8 @@ export default function App() {
     event.preventDefault();
     setSaving(true);
     setSaveError('');
-    const input = { name: nameInput.trim(), birthDate: dateInput };
+    const input: ProfileInput = { name: nameInput.trim(), birthDate: dateInput };
+    if (includeBirthDetails) Object.assign(input, { birthTime: timeInput, birthPlace: placeInput.trim(), latitude: Number(latitudeInput), longitude: Number(longitudeInput), timeZone: timeZoneInput.trim() });
     try {
       const data = await api<Profile>('/api/profile', input);
       profileInputRef.current = input;
@@ -223,13 +344,20 @@ export default function App() {
   }
 
   function resetProfile() {
-    try { localStorage.removeItem('astral-profile'); } catch { /* Reset this session even if browser storage is restricted. */ }
+    try { localStorage.removeItem('astral-profile'); } catch { /* Reset the session even if the browser blocks storage. */ }
     setIsSaved(false);
     setStorageNotice('');
     profileInputRef.current = sampleProfile;
     setProfile(null);
     setNameInput('');
     setDateInput('');
+    setIncludeBirthDetails(false);
+    setTimeInput('');
+    setCityInput('');
+    setPlaceInput('');
+    setLatitudeInput('');
+    setLongitudeInput('');
+    setTimeZoneInput('');
     setSaveError('');
     ++chatRequestRef.current;
     setMessages([]);
@@ -265,24 +393,39 @@ export default function App() {
     const text = message.trim();
     if (!text || !profile || chatLoading) return;
     const requestId = ++chatRequestRef.current;
+    if (!retry) lastHistoryRef.current = messages.slice(-6).map(item => ({ role: item.role, content: item.text.slice(0, 1000) }));
     setLastChat(text);
     setChatError('');
     setChatInput('');
     setChatLoading(true);
     if (!retry) setMessages(previous => [...previous, { id: ++messageIdRef.current, role: 'user', text }]);
     try {
-      const result = await api<{ reply: string; source: 'local' | 'ai' }>('/api/chat', {
-        profile: { name: profile.name, birthDate: profile.birthDate }, message: text, focus, mode: chatMode,
+      const result = await api<{ reply: string; source: 'local' | 'ai'; references?: Reference[]; prediction?: Prediction }>('/api/chat', {
+        profile: profilePayload(profile), message: text, focus, mode: chatMode, history: lastHistoryRef.current,
       });
-      if (requestId === chatRequestRef.current) setMessages(previous => [...previous, { id: ++messageIdRef.current, role: 'assistant', text: result.reply, source: result.source }]);
+      if (requestId === chatRequestRef.current) setMessages(previous => [...previous, { id: ++messageIdRef.current, role: 'assistant', text: result.reply, source: result.source, references: result.references, prediction: result.prediction }]);
     } catch (error) { if (requestId === chatRequestRef.current) setChatError(error instanceof Error ? error.message : 'Your reflection couldn’t be created. Please try again.'); }
     finally { if (requestId === chatRequestRef.current) setChatLoading(false); }
+  }
+
+  const selectedPredictionTopic = predictionTopics.find(topic => topic.id === predictionTopic)!;
+  const fullBirthProfile = hasBirthDetails(profile);
+  const localChatLabel = fullBirthProfile ? 'Calculated Vedic guide' : 'Local reflection';
+  const aiChatLabel = fullBirthProfile ? 'Vedic AI' : 'AI reflection';
+
+  function chooseBirthCity(value: string) {
+    setCityInput(value);
+    const city = birthCities.find(item => item.id === value);
+    setPlaceInput(city?.name || '');
+    setLatitudeInput(city ? String(city.latitude) : '');
+    setLongitudeInput(city ? String(city.longitude) : '');
+    setTimeZoneInput(city?.timeZone || '');
   }
 
   const signOptions = signs.length ? signs.map(sign => ({ id: sign.id, name: sign.name, symbol: sign.symbol })) : allSigns.map(([id, name, symbol]) => ({ id, name, symbol }));
   const signALabel = signOptions.find(sign => sign.id === signA);
   const signBLabel = signOptions.find(sign => sign.id === signB);
-  const navigation: { page: Page; label: string; icon: string }[] = [{ page: 'today', label: 'Today', icon: 'sun' }, { page: 'compatibility', label: 'Compatibility', icon: 'heart' }, { page: 'chat', label: 'Ask Astral', icon: 'star' }];
+  const navigation: { page: Page; label: string; icon: string }[] = [{ page: 'today', label: 'Today', icon: 'sun' }, { page: 'chart', label: 'Birth chart', icon: 'compass' }, { page: 'compatibility', label: 'Compatibility', icon: 'heart' }, { page: 'chat', label: 'Ask Astral', icon: 'star' }];
 
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">Skip to content</a>
@@ -297,6 +440,7 @@ export default function App() {
     </header>
 
     <main id="main-content" className="main-container">
+      <p className="brand-note"><span aria-hidden="true">✧</span><span>No astrologer can remember all of Vedic wisdom. Astral brings key calculations to your chart.</span></p>
       {configError && <ErrorNotice message={configError} onRetry={() => setConfigRetry(value => value + 1)} />}
       {profileError && <ErrorNotice message={profileError} onRetry={() => setProfileRetry(value => value + 1)} />}
       {storageNotice && <div className="storage-notice" role="status">{storageNotice}</div>}
@@ -333,6 +477,22 @@ export default function App() {
         <div className="quiet-note"><span>✧</span><p>There’s no perfect way to be you. Just a little more room to grow.</p><span>✧</span></div>
       </>}
 
+      {page === 'chart' && <>
+        <section className="page-heading"><div><p className="eyebrow"><span className="tiny-star">✦</span> YOUR CALCULATED VEDIC BLUEPRINT</p><h1>A fuller view of <em>you.</em></h1><p className="heading-description">Sidereal placements, life periods, and thoughtfully estimated timing.</p></div><button className="chart-edit-button" onClick={openProfileEditor}><Icon name="edit" size={16} />Edit birth details</button></section>
+        {!isSaved && fullBirthProfile && <div className="demo-chart-notice"><Icon name="compass" size={19} /><div><strong>You’re exploring Alex’s demo chart.</strong><span>21 May 1995 · 10:30 · Hyderabad, India · Asia/Kolkata. Replace these example details to calculate your own chart.</span></div><button className="text-button" onClick={openProfileEditor}>Make it yours <Icon name="arrow" size={15} /></button></div>}
+        {!fullBirthProfile ? <section className="chart-onboarding"><SunWheel symbol="✧" compact /><span className="eyebrow">YOUR RECORDED DETAILS MATTER</span><h2>More than a sun sign.</h2><p>A Vedic birth chart needs your recorded birth time and place as well as your date of birth. We’ll use them to calculate your Moon rashi, nakshatra, ascendant, and Vimshottari periods.</p><button className="primary-button" onClick={() => { openProfileEditor(); setIncludeBirthDetails(true); }}>Add birth time &amp; place <Icon name="arrow" size={17} /></button><p className="chart-onboarding-note">Don’t know your birth time? Keep your basic profile and explore daily reflections. We won’t guess it.</p></section> : <div className="birth-chart-content">
+          <div className="birth-record-bar"><span><Icon name="lock" size={14} />{isSaved ? 'Birth profile saved only in this browser' : 'Example birth record · not saved'}</span><span>{profile?.birthPlace} · {profile?.birthTime} · {profile?.timeZone}</span></div>
+          {chartLoading ? <section className="chart-loading-card"><LoadingReading /><span className="eyebrow">CALCULATING SIDEREAL POSITIONS &amp; PERIODS</span></section> : chartError ? <ErrorNotice message={chartError} onRetry={() => setChartRetry(value => value + 1)} /> : chart && <>
+            <div className="chart-summary-grid"><section className="chart-summary-card moon-summary"><Icon name="moon" size={24} /><span className="eyebrow">MOON RASHI · CHANDRA</span><h2>{chart.moon.rashi}</h2><span className="chart-stat-detail">Sidereal longitude {degrees(chart.moon.longitude)}</span></section><section className="chart-summary-card"><Icon name="star" size={24} /><span className="eyebrow">BIRTH NAKSHATRA</span><h2>{chart.moon.nakshatra.name}</h2><span className="chart-stat-detail">Pada {chart.moon.pada} · lord {chart.moon.nakshatra.lord}</span></section><section className="chart-summary-card"><Icon name="compass" size={24} /><span className="eyebrow">ASCENDANT · LAGNA</span><h2>{chart.ascendant.rashi}</h2><span className="chart-stat-detail">Sidereal longitude {degrees(chart.ascendant.longitude)}</span></section></div>
+            <section className="chart-section dasha-section"><div className="chart-section-heading"><div><span className="eyebrow">VIMSHOTTARI DASHA</span><h2>Your current chapter.</h2></div><span className="small-tag">CALCULATED LIFE PERIODS</span></div><div className="dasha-grid"><div><span className="eyebrow">CURRENT MAHADASHA</span><h3>{chart.dasha.currentMahadasha?.lord || 'Outside calculated timeline'}</h3>{chart.dasha.currentMahadasha && <p>{formatDate(chart.dasha.currentMahadasha.start)} – {formatDate(chart.dasha.currentMahadasha.end)}</p>}</div><div><span className="eyebrow">CURRENT ANTARDASHA</span><h3>{chart.dasha.currentAntardasha?.lord || 'Outside calculated timeline'}</h3>{chart.dasha.currentAntardasha && <p>{formatDate(chart.dasha.currentAntardasha.start)} – {formatDate(chart.dasha.currentAntardasha.end)}</p>}</div><div><span className="eyebrow">BALANCE AT BIRTH</span><h3>{chart.dasha.birthBalance.lord}</h3><p>{chart.dasha.birthBalance.years.toFixed(2)} years remaining at birth</p></div></div><details className="method-details"><summary>Explore the full dasha timeline</summary><div className="dasha-timeline">{chart.dasha.periods.map((period, index) => <details key={`${period.lord}-${index}`}><summary><strong>{period.lord}</strong><span>{formatDate(period.start)} – {formatDate(period.end)}</span></summary><ul>{period.antardashas.map((subperiod, subIndex) => <li key={subIndex}><strong>{subperiod.lord}</strong><span>{formatDate(subperiod.start)} – {formatDate(subperiod.end)}</span></li>)}</ul></details>)}</div></details></section>
+            <section className="chart-section graha-section"><div className="chart-section-heading"><div><span className="eyebrow">D1 RASHI{chart.navamsa ? ' + D9 NAVAMSA' : ''}</span><h2>Your planetary placements.</h2></div><span className="small-tag">SIDEREAL · WHOLE SIGN</span></div><p className="chart-method-label">{chart.navamsa ? 'D1 + D9 · Lahiri approximation · mean nodes' : 'Approximate Lahiri · whole-sign D1 · mean nodes'}</p><PlanetTable planets={chart.planets} navamsa={chart.navamsa?.planets} />{chart.navamsa && <p className="navamsa-note"><strong>D9 ascendant:</strong> {chart.navamsa.ascendant.rashi}. Navamsa is derived from the natal longitudes and is sensitive to your recorded birth time.</p>}<details className="method-details"><summary>Calculation details &amp; precision</summary><p>{chart.navamsa ? 'D1 + D9 · Lahiri approximation · mean nodes' : 'Approximate Lahiri · whole-sign D1 · mean nodes'}.</p><dl className="calculation-details"><div><dt>System</dt><dd>{chart.calculation.system}</dd></div><div><dt>Ephemeris</dt><dd>{chart.calculation.ephemeris}</dd></div><div><dt>Ayanamsha</dt><dd>{chart.calculation.ayanamsha} · {degrees(chart.calculation.ayanamshaDegrees)}</dd></div><div><dt>Houses / nodes</dt><dd>{chart.calculation.houses} / {chart.calculation.nodeType}</dd></div></dl><ul>{[...chart.calculation.warnings, ...chart.limits].map((limit, index) => <li key={index}>{limit}</li>)}</ul></details></section>
+            <details className="chart-section transit-section"><summary>Current transit placements <span>{formatDate(chart.transits.asOf)}</span></summary><PlanetTable planets={chart.transits.planets} /></details>
+          </>}
+          <section className="chart-section forecast-section" aria-busy={predictionLoading}><div className="chart-section-heading"><div><span className="eyebrow"><Icon name={selectedPredictionTopic.icon} size={15} /> {selectedPredictionTopic.label.toUpperCase()}</span><h2>{selectedPredictionTopic.heading}</h2></div><div className="forecast-topic-control"><label htmlFor="prediction-topic">Explore a life topic</label><select id="prediction-topic" value={predictionTopic} onChange={event => setPredictionTopic(event.target.value as PredictionTopic)}>{predictionTopics.map(topic => <option key={topic.id} value={topic.id}>{topic.label}</option>)}</select></div></div>{predictionLoading ? <div className="prediction-loading" role="status">Bringing together your chart factors and traditional period themes…</div> : predictionError ? <ErrorNotice message={predictionError} onRetry={() => setPredictionRetry(value => value + 1)} /> : prediction && prediction.topic === predictionTopic ? <PredictionResults prediction={prediction} /> : <p className="forecast-intro">Your topic guide will appear when the calculation is ready.</p>}<button className="forecast-chat-link" onClick={() => { setPage('chat'); setChatInput(selectedPredictionTopic.question); }}>Ask Astral about {selectedPredictionTopic.label.toLowerCase()} <Icon name="arrow" size={17} /></button></section>
+        </div>}
+        <div className="quiet-note"><span>✧</span><p>Your chart is a lens for interpretation. Your life is yours to shape.</p><span>✧</span></div>
+      </>}
+
       {page === 'compatibility' && <>
         <section className="page-heading"><div><p className="eyebrow"><span className="tiny-star">✦</span> TWO SIGNS. NEW PERSPECTIVES.</p><h1>The art of <em>connection.</em></h1><p className="heading-description">Explore what comes easily — and where you can grow together.</p></div><div className="heading-decoration" aria-hidden="true">♡</div></section>
         <div className="compatibility-layout">
@@ -345,18 +505,19 @@ export default function App() {
 
       {page === 'chat' && <>
         <section className="page-heading"><div><p className="eyebrow"><span className="tiny-star">✦</span> A LITTLE ROOM TO REFLECT</p><h1>What’s on your <em>mind?</em></h1><p className="heading-description">Bring a question. Leave with a different way to look at it.</p></div><div className="heading-decoration chat-decoration" aria-hidden="true">✧</div></section>
-        <div className="chat-layout"><aside className="chat-context"><span className="eyebrow">YOUR REFLECTION SPACE</span><SunWheel symbol={profile?.sign.symbol || '✧'} compact /><h2>{currentName}’s perspective</h2><p>{profile?.sign.name || 'Your sun sign'} · {focusOptions.find(option => option.id === focus)?.label}</p><div className="chat-context-rule" /><h3>Start with a little curiosity.</h3><p>Astral uses astrology as a creative lens for reflection. You know your life best.</p><div className="chat-mode-status"><span className={`status-dot ${chatMode === 'ai' ? 'ai' : ''}`} /><div><strong>{chatMode === 'ai' ? 'AI reflection' : 'Local reflection'}</strong><span>{chatMode === 'ai' ? 'Responses generated by AI' : 'No AI key needed · guided prompts'}</span></div></div><p className="chat-disclaimer">For entertainment and self-reflection. For health, legal, or financial decisions, speak with a qualified professional.</p></aside>
-          <section className="chat-panel" aria-label="Ask Astral conversation"><div className="chat-panel-header"><span><Icon name="star" size={21} /><strong>Ask Astral</strong></span>{config?.aiEnabled ? <div className="chat-mode-switch" role="group" aria-label="Reflection mode"><button className={chatMode === 'local' ? 'selected' : ''} onClick={() => setChatMode('local')} aria-pressed={chatMode === 'local'} disabled={chatLoading}>Local</button><button className={chatMode === 'ai' ? 'selected' : ''} onClick={() => setChatMode('ai')} aria-pressed={chatMode === 'ai'} disabled={chatLoading}>AI <Icon name="star" size={12} /></button></div> : <span className="small-tag">LOCAL REFLECTION</span>}</div>
-            <div className="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages"><div className="assistant-message"><span className="message-avatar"><Icon name="star" size={18} /></span><div className="message-bubble"><p>Hi {currentName}. What would you like to make space for today? We can explore relationships, work, wellbeing, or a fresh perspective on your day.</p><span className="message-source">A welcome from Astral</span></div></div>{messages.map(message => <div className={`${message.role}-message`} key={message.id}>{message.role === 'assistant' && <span className="message-avatar"><Icon name="star" size={18} /></span>}<div className="message-bubble"><p>{message.text}</p>{message.role === 'assistant' && <span className="message-source">{message.source === 'ai' ? 'AI reflection' : 'Local reflection'}</span>}</div></div>)}{chatLoading && <div className="assistant-message"><span className="message-avatar"><Icon name="star" size={18} /></span><div className="message-bubble typing-indicator" role="status" aria-label="Astral is preparing a reflection"><span /><span /><span /></div></div>}{chatError && <div className="chat-error" role="alert"><p>{chatError}</p><div><button className="text-button" onClick={() => void sendChat(lastChat, true)}>Retry <Icon name="arrow" size={15} /></button>{chatMode === 'ai' && <button className="text-button" onClick={() => { setChatMode('local'); setChatError(''); setChatInput(lastChat); }}>Switch to local reflection</button>}</div></div>}<div ref={chatEndRef} /></div>
-            {!messages.length && <div className="suggested-prompts" aria-label="Suggested questions">{['What can I focus on today?', 'How can I communicate better?', 'Help me find balance.'].map(prompt => <button key={prompt} onClick={() => void sendChat(prompt)} disabled={chatLoading || !profile}>{prompt}<Icon name="arrow" size={14} /></button>)}</div>}
-            <form className="chat-compose" onSubmit={event => { event.preventDefault(); void sendChat(); }}><label htmlFor="chat-message" className="sr-only">Your question for Astral</label><textarea id="chat-message" placeholder="Share what’s on your mind…" value={chatInput} onChange={event => setChatInput(event.target.value)} maxLength={1000} rows={2} disabled={chatLoading || !profile} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void sendChat(); } }} /><button type="submit" className="send-button" disabled={!chatInput.trim() || chatLoading || !profile} aria-label="Send question"><Icon name="arrowUp" size={20} /></button><span className="compose-note">{chatMode === 'ai' ? 'Your question and sun sign are sent to OpenAI. AI responses can be imperfect.' : 'A guided, locally generated reflection. Not a live AI conversation.'}</span></form>
+        <div className="chat-layout"><aside className="chat-context"><span className="eyebrow">YOUR REFLECTION SPACE</span><SunWheel symbol={chart ? allSigns[Math.floor(chart.moon.longitude / 30)]?.[2] || '☾' : profile?.sign.symbol || '✧'} compact /><h2>{currentName}’s perspective</h2><p>{chart ? `${chart.moon.rashi} Moon · ${chart.ascendant.rashi} lagna` : `${profile?.sign.name || 'Your sun sign'} · ${focusOptions.find(option => option.id === focus)?.label}`}</p><div className="chat-context-rule" /><h3>Start with a little curiosity.</h3><p>{fullBirthProfile ? 'Your calculated chart and life periods provide the context. Traditional interpretation is a guide, and your choices still matter.' : 'Astral uses astrology as a creative lens for reflection. Add recorded birth details for a Vedic chart.'}</p><div className="chat-mode-status"><span className={`status-dot ${chatMode === 'ai' ? 'ai' : ''}`} /><div><strong>{chatMode === 'ai' ? aiChatLabel : localChatLabel}</strong><span>{chatMode === 'ai' ? 'Chart-informed language model' : fullBirthProfile ? 'Calculated chart · traditional rules' : 'No AI key needed · guided prompts'}</span></div></div><p className="chat-disclaimer">For entertainment and self-reflection. For health, legal, or financial decisions, speak with a qualified professional.</p></aside>
+          <section className="chat-panel" aria-label="Ask Astral conversation"><div className="chat-panel-header"><span><Icon name="star" size={21} /><strong>Ask Astral</strong></span>{config?.aiEnabled ? <div className="chat-mode-switch" role="group" aria-label="Reflection mode"><button className={chatMode === 'local' ? 'selected' : ''} onClick={() => setChatMode('local')} aria-pressed={chatMode === 'local'} disabled={chatLoading}>Local</button><button className={chatMode === 'ai' ? 'selected' : ''} onClick={() => setChatMode('ai')} aria-pressed={chatMode === 'ai'} disabled={chatLoading}>{fullBirthProfile ? 'Vedic AI' : 'AI'} <Icon name="star" size={12} /></button></div> : <span className="small-tag">{localChatLabel.toUpperCase()}</span>}</div>{!config?.aiEnabled && <details className="ai-setup-help"><summary>Enable live Vedic AI</summary><p>Add <code>ASTROLOGY_AI_API_KEY</code> securely in cloud environment settings, then restart the app. The AI toggle will appear when configured. Your key stays on the server; this chat never asks for it.</p></details>}
+            <div className="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages"><div className="assistant-message"><span className="message-avatar"><Icon name="star" size={18} /></span><div className="message-bubble"><p>Hi {currentName}. {fullBirthProfile ? 'We can explore marriage, married life, jobs, challenging periods, and other life topics through your calculated chart. What would you like to understand?' : 'What would you like to make space for today? We can explore relationships, work, wellbeing, or a fresh perspective on your day.'}</p><span className="message-source">A welcome from Astral</span></div></div>{messages.map(message => <div className={`${message.role}-message`} key={message.id}>{message.role === 'assistant' && <span className="message-avatar"><Icon name="star" size={18} /></span>}<div className="message-bubble"><p>{message.text}</p>{message.role === 'assistant' && <span className="message-source">{message.source === 'ai' ? aiChatLabel : localChatLabel}</span>}{message.prediction && <PredictionResults prediction={message.prediction} compact />}{Boolean(message.references?.length) && <details className="message-references"><summary>References considered</summary><ul>{message.references?.map((reference, index) => <li key={`${reference.id}-${index}`}><strong>{reference.id}</strong> {reference.title}</li>)}</ul></details>}</div></div>)}{chatLoading && <div className="assistant-message"><span className="message-avatar"><Icon name="star" size={18} /></span><div className="message-bubble typing-indicator" role="status" aria-label="Astral is preparing a reflection"><span /><span /><span /></div></div>}{chatError && <div className="chat-error" role="alert"><p>{chatError}</p><div><button className="text-button" onClick={() => void sendChat(lastChat, true)}>Retry <Icon name="arrow" size={15} /></button>{chatMode === 'ai' && <button className="text-button" onClick={() => { setChatMode('local'); setChatError(''); setChatInput(lastChat); }}>Switch to local reflection</button>}</div></div>}<div ref={chatEndRef} /></div>
+            {!messages.length && <div className="suggested-prompts" aria-label="Suggested questions">{(fullBirthProfile ? ['How might my married life be?', 'When might I get a job?', 'When might a difficult period ease?', 'When might I get married?'] : ['What can I focus on today?', 'How can I communicate better?', 'Help me find balance.']).map(prompt => <button key={prompt} onClick={() => void sendChat(prompt)} disabled={chatLoading || !profile}>{prompt}<Icon name="arrow" size={14} /></button>)}</div>}
+            <form className="chat-compose" onSubmit={event => { event.preventDefault(); void sendChat(); }}><label htmlFor="chat-message" className="sr-only">Your question for Astral</label><textarea id="chat-message" placeholder="Share what’s on your mind…" value={chatInput} onChange={event => setChatInput(event.target.value)} maxLength={1000} rows={2} disabled={chatLoading || !profile} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void sendChat(); } }} /><button type="submit" className="send-button" disabled={!chatInput.trim() || chatLoading || !profile} aria-label="Send question"><Icon name="arrowUp" size={20} /></button><span className="compose-note">{chatMode === 'ai' ? 'Your derived chart, question and recent conversation are sent to OpenAI; name and exact birth details are excluded.' : fullBirthProfile ? 'A calculated Vedic guide using chart factors and traditional rules. No language model is used in this mode.' : 'A guided, locally generated reflection. Not a live AI conversation.'}</span></form>
           </section>
         </div>
       </>}
     </main>
 
-    <footer className="site-footer"><div><span className="footer-brand"><Icon name="star" size={15} /> astral.</span><p>A little perspective. A little possibility.</p></div><p>Approximate Western sun signs. For entertainment &amp; self-reflection.</p><span className="footer-copyright">© {today.getFullYear()} Astral</span></footer>
+    <footer className="site-footer"><div><span className="footer-brand"><Icon name="star" size={15} /> astral.</span><p>A little perspective. A little possibility.</p></div><p>Approximate Western sun signs &amp; calculated Vedic charts. For entertainment &amp; self-reflection.</p><span className="footer-copyright">© {today.getFullYear()} Astral</span></footer>
 
-    <dialog ref={dialogRef} className="profile-dialog" onCancel={() => setEditorOpen(false)} onClose={() => setEditorOpen(false)} aria-labelledby="profile-title"><div className="dialog-heading"><Icon name="star" size={27} /><button type="button" className="icon-button" onClick={() => setEditorOpen(false)} aria-label="Close profile editor"><Icon name="close" size={22} /></button></div><span className="eyebrow">A LITTLE MORE YOU</span><h2 id="profile-title">Make it <em>personal.</em></h2><p className="dialog-description">Your date of birth is all we need to find your approximate Western sun sign.</p><form onSubmit={saveProfile}><div className="form-field"><label htmlFor="profile-name">What should we call you?</label><input id="profile-name" value={nameInput} onChange={event => setNameInput(event.target.value)} placeholder="Your first name" maxLength={60} required autoComplete="given-name" autoFocus /></div><div className="form-field"><label htmlFor="profile-date">Date of birth</label><input id="profile-date" type="date" value={dateInput} onChange={event => setDateInput(event.target.value)} required max={todayISO} min="1900-01-01" /></div>{saveError && <ErrorNotice message={saveError} />}<button className="primary-button full-width" type="submit" disabled={saving}>{saving ? 'Saving your profile…' : 'Find my perspective'}<Icon name="arrow" size={18} /></button></form><p className="privacy-note"><Icon name="lock" size={14} />Saved only in this browser. Clear your profile any time.</p>{isSaved && <button className="reset-profile" onClick={resetProfile} disabled={saving}>Clear saved profile</button>}</dialog>
+    <dialog ref={dialogRef} className="profile-dialog" onCancel={() => setEditorOpen(false)} onClose={() => setEditorOpen(false)} aria-labelledby="profile-title"><div className="dialog-heading"><Icon name="star" size={27} /><button type="button" className="icon-button" onClick={() => setEditorOpen(false)} aria-label="Close profile editor"><Icon name="close" size={22} /></button></div><span className="eyebrow">A LITTLE MORE YOU</span><h2 id="profile-title">Make it <em>personal.</em></h2><p className="dialog-description">Start with your date of birth, or add your recorded time and place for a calculated Vedic chart.</p><form onSubmit={saveProfile}><div className="form-field"><label htmlFor="profile-name">What should we call you?</label><input id="profile-name" value={nameInput} onChange={event => setNameInput(event.target.value)} placeholder="Your first name" maxLength={60} required autoComplete="given-name" autoFocus /></div><div className="form-field"><label htmlFor="profile-date">Date of birth</label><input id="profile-date" type="date" value={dateInput} onChange={event => setDateInput(event.target.value)} required max={todayISO} min="1900-01-01" /></div><div className="birth-details-opt-in"><label className="checkbox-label"><input type="checkbox" checked={includeBirthDetails} onChange={event => setIncludeBirthDetails(event.target.checked)} /><span>Add birth time and place for a Vedic chart</span></label><p>Use your recorded birth time. If it’s unknown, leave this off — we won’t guess.</p></div>{includeBirthDetails && <fieldset className="birth-details-fields"><legend>Vedic birth details</legend><div className="form-field"><label htmlFor="profile-time">Recorded birth time (local)</label><input id="profile-time" type="time" step={60} value={timeInput} onChange={event => setTimeInput(event.target.value)} required /><small>Enter the time recorded at your birth place, not today’s time zone.</small></div><div className="form-field"><label htmlFor="profile-city">Birth city</label><select id="profile-city" value={cityInput} onChange={event => chooseBirthCity(event.target.value)} required><option value="" disabled>Choose your birth city</option>{birthCities.map(city => <option key={city.id} value={city.id}>{city.name}</option>)}<option value="custom">Custom place &amp; coordinates</option></select></div>{cityInput === 'custom' ? <><div className="form-field"><label htmlFor="profile-place">Birth place</label><input id="profile-place" value={placeInput} onChange={event => setPlaceInput(event.target.value)} placeholder="City, country" maxLength={120} required /></div><div className="coordinates-fields"><div className="form-field"><label htmlFor="profile-latitude">Latitude</label><input id="profile-latitude" type="number" min={-90} max={90} step="any" value={latitudeInput} onChange={event => setLatitudeInput(event.target.value)} placeholder="17.385" required /></div><div className="form-field"><label htmlFor="profile-longitude">Longitude</label><input id="profile-longitude" type="number" min={-180} max={180} step="any" value={longitudeInput} onChange={event => setLongitudeInput(event.target.value)} placeholder="78.4867" required /></div></div><div className="form-field"><label htmlFor="profile-timezone">Birth place time zone (IANA)</label><input id="profile-timezone" value={timeZoneInput} onChange={event => setTimeZoneInput(event.target.value)} placeholder="Asia/Kolkata" required maxLength={100} /><small>Use an IANA identifier so historical time-zone rules can be applied.</small></div></> : cityInput && <p className="preset-place-details"><Icon name="compass" size={14} />{placeInput} · {latitudeInput}, {longitudeInput} · {timeZoneInput}</p>}</fieldset>}
+{saveError && <ErrorNotice message={saveError} />}<button className="primary-button full-width" type="submit" disabled={saving}>{saving ? 'Saving your profile…' : 'Find my perspective'}<Icon name="arrow" size={18} /></button></form><p className="privacy-note"><Icon name="lock" size={14} />Saved only in this browser. Clear your profile any time.</p>{isSaved && <button className="reset-profile" onClick={resetProfile} disabled={saving}>Clear saved profile</button>}</dialog>
   </div>;
 }

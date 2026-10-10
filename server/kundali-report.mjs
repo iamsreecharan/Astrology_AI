@@ -25,7 +25,7 @@ export function renderKundaliReport(model) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'A4', pdfVersion: '1.4', margins: { top: TOP, bottom: 72, left: LEFT, right: LEFT }, bufferPages: true,
-      info: { Title: 'Astral — English Kundali Matching', Author: 'Sree Charan Reddy Kailasam', Subject: 'Calculated Ashta Koota Milan: eight traditional categories out of 36 gunas', CreationDate: new Date(model.generatedAt), ModDate: new Date(model.generatedAt) },
+      info: { Title: 'Astral — English Kundali Matching', Author: 'Sree Charan Reddy Kailasam', Subject: model.method.displayName, CreationDate: new Date(model.generatedAt), ModDate: new Date(model.generatedAt) },
     });
     const chunks = [];
     doc.on('data', chunk => chunks.push(chunk));
@@ -109,6 +109,10 @@ export function renderKundaliReport(model) {
 
     heading('Your Kundali matching report');
     text('Eight traditional comparisons, calculated from both recorded birth profiles and explained in English.', { size: 10, color: COLORS.muted, gap: 17 });
+    text(model.method.displayName, { size: 12, bold: true });
+    text(`Matching convention: ${model.method.tradition}.`, { size: 9, color: COLORS.muted });
+    text(model.method.calculationBasis, { size: 9, color: COLORS.muted });
+    text(model.method.chartBasis, { size: 9, color: COLORS.muted, gap: 16 });
     text(`${model.total} / ${model.max} gunas`, { size: 34, bold: true, color: COLORS.jade, gap: 10 });
     text(model.benchmark.label, { size: 13, bold: true });
     text(model.benchmark.explanation, { color: COLORS.muted });
@@ -161,8 +165,11 @@ export function renderKundaliReport(model) {
     }
 
     heading('Method, conventions and cautions', { page: true });
+    text(model.method.displayName, { size: 12, bold: true });
+    text(`Matching convention: ${model.method.tradition}.`, { color: COLORS.muted });
     text(`Moon calculation: ${model.calculation.ayanamsha} · ${model.calculation.ephemeris}.`, { bold: true });
-    text('The server calculates both sidereal Moon positions from the birth date, local time and historical time zone. Moon signs and 27 birth-star divisions feed the eight-category tables; names do not add or remove points.', { color: COLORS.muted });
+    text(model.method.calculationBasis, { color: COLORS.muted });
+    text(model.method.chartBasis, { color: COLORS.muted });
     text(model.method.roleConvention, { color: COLORS.muted });
     text(model.method.cancellations, { color: COLORS.muted });
     for (const caution of [...new Set([...model.cautions, ...model.calculation.warnings])]) text(`• ${caution}`, { size: 8.5, color: COLORS.muted });

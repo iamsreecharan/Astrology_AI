@@ -20,7 +20,7 @@ For an existing service, deploy the latest `main` commit from the dashboard, or 
 
 After saving a complete birth profile, **Birth chart → Download English PDF** creates the English birth record, Panchanga basics, chart diagrams, period tables, transits and life-topic assessments. Career planning includes individual DD-MM-YYYY dates with birth-star/Moon/tithi factors and near-term application/interview periods. PDF generation uses bundled fonts and the calculation engine, so it needs no AI key, external document service, or writable server storage. The downloaded file includes personal birth details.
 
-**Compatibility → Kundali matching** accepts two complete birth profiles and calculates the eight Ashta Koota categories out of 36. Each person searches and selects a worldwide birthplace suggestion; coordinates and time zone are supplied automatically. The result includes the traditional benchmark, full/partial/zero-point category counts and an English matching PDF. It works without an AI key, extra service or persistent storage. Deploy the latest `main` revision to make the new tab and PDF routes available.
+**Compatibility → Kundali matching** accepts two complete birth profiles and names its method **Ashta Koota Guna Milan (36-point Kundali matching)**, using the North Indian base-score convention. Each person searches and selects a worldwide birthplace suggestion; coordinates and time zone are supplied automatically. The result includes the traditional benchmark, full/partial/zero-point category counts and an English matching PDF. It works without an AI key, extra service or persistent storage. Deploy the latest `main` revision to receive these updates.
 
 ## Enable Vedic AI
 

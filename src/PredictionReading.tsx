@@ -5,9 +5,10 @@ import './PredictionReading.css';
 
 export type PredictionOutlook = {
   summary: string;
+  explanation?: string;
   timing: { label: string; text: string; date?: string } | null;
   actions: string[];
-  periods: { label: string; text: string; start: string; end: string; current: boolean }[];
+  periods: { label: string; text: string; explanation?: string; start: string; end: string; current: boolean }[];
 };
 
 type Support = { kind: string; label: string; explanation: string; comparison?: string };
@@ -80,6 +81,7 @@ const PredictionReading = memo(function PredictionReading({ prediction, compact 
       <div className="prediction-meaning"><h3>What this means for you</h3><p>{outlook.summary}</p></div>
       {outlook.timing && !(focusStrongest && hasRelativeSupport) && <div className="prediction-timing"><h3>{outlook.timing.label || 'When things may shift'}</h3><p>{outlook.timing.text}</p></div>}
       {actions.length > 0 && <div className="prediction-actions"><h3>What you can do</h3><List items={actions} /></div>}
+      {outlook.explanation?.trim() && !(focusStrongest && hasRelativeSupport) && <div className="prediction-plain-reason"><h3>Why this fits your chart</h3><p>{outlook.explanation}</p></div>}
     </section>}
 
     {prediction.topic === 'career' && <CareerTiming planningDates={prediction.planningDates} searchWindows={prediction.searchWindows} searchHorizonEnd={prediction.searchHorizonEnd} compact={compact} />}
@@ -96,6 +98,7 @@ const PredictionReading = memo(function PredictionReading({ prediction, compact 
           {window?.support?.kind === 'relative' && <SupportBadge support={window.support} />}
           <DateRange start={period.start} end={period.end} />
           <p className="reading-period-explanation">{period.text}</p>
+          {period.explanation?.trim() && <p className="reading-period-reason"><strong>Why:</strong> {period.explanation}</p>}
         </article>;
       })}</div>
     </section>}

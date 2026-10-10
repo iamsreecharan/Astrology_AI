@@ -38,6 +38,9 @@ test('PDF model preserves the server matching score and explains each weighted c
   assert.equal(model.benchmark.minimum, 18);
   assert.ok(model.cautions.some(caution => /not a measured probability/i.test(caution)));
   assert.ok(model.method.sources.length > 0);
+  assert.equal(model.method.displayName, 'Ashta Koota Guna Milan (36-point Kundali matching)');
+  assert.equal(model.method.tradition, 'North Indian base-score convention');
+  assert.match(model.method.chartBasis, /approximate Lahiri/);
 });
 
 test('matching report filenames are short attachment-safe ASCII even for Unicode names and punctuation', () => {
@@ -58,6 +61,10 @@ test('report renderer produces a paginated searchable A4 PDF with exact Unicode 
   assert.match(syntax, /xref[\s\S]*trailer/);
   assert.match(syntax, /\/MediaBox\s*\[0 0 595\.28 841\.89\]/);
   assert.doesNotMatch(syntax, /\/JavaScript|\/OpenAction|\/JS\b/);
+  const subjectReference = /\/Subject\s+(\d+) 0 R/.exec(syntax)?.[1];
+  const subjectObject = new RegExp(`${subjectReference} 0 obj\\n([\\s\\S]*?)\\nendobj`).exec(syntax)?.[1];
+  const subject = /^\(((?:\\.|[^\\)])*)\)$/.exec(subjectObject || '')?.[1]?.replace(/\\([()\\])/g, '$1');
+  assert.equal(subject, model.method.displayName);
   const pages = [...syntax.matchAll(/\/Type\s*\/Page\b/g)].length;
   assert.ok(pages >= 6 && pages <= 10, `actual pages: ${pages}`);
   assert.match(syntax, new RegExp(`/Count ${pages}\\b`));

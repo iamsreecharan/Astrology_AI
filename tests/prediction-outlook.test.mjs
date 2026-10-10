@@ -11,6 +11,10 @@ const themes = {
   Moon: 'Emotional needs and a comfortable daily rhythm',
   Mercury: 'Learning, clear communication, and reviewing details',
   Mars: 'Direct effort and constructive ways to handle friction',
+  Venus: 'Cooperation, shared values, and enjoyment',
+  Saturn: 'Patience, consistent routines, and realistic commitments',
+  Rahu: 'Exploring unfamiliar choices while checking expectations',
+  Ketu: 'Reflection, simplification, and reviewing priorities',
 };
 const window = (start, end, lords = ['Jupiter', 'Sun'], extra = {}) => ({ start, end, label: `${lords.join(' / ')} period themes`, themes: lords.map(lord => themes[lord]), reasons: ['Calculated source detail.'], ...extra });
 const life = (topic = 'general', windows = [window(asOf, '2026-12-02'), window('2026-12-02', '2028-04-02', ['Jupiter', 'Moon'])]) => ({ topic, status: 'interpreted', asOf, horizonEnd, themes: [themes.Jupiter, themes.Sun], windows });
@@ -32,12 +36,14 @@ test('all ten real prediction topics get concise outlooks without changing calcu
     const outlook = buildPredictionOutlook(prediction);
     assert.deepEqual(prediction, original);
     assert.ok(outlook.summary.length > 30 && outlook.summary.length <= 360, prediction.topic);
+    if (outlook.explanation) assert.ok(outlook.explanation.length <= 360, prediction.topic);
     assert.equal(outlook.actions.length, 2, prediction.topic);
     assert.ok(outlook.actions.every(action => action.length <= 160));
     assert.ok(outlook.periods.length <= 3);
     for (const period of outlook.periods) {
       assert.ok(prediction.windows.some(source => source.start === period.start && source.end === period.end));
       assert.ok(period.label.length <= 90 && period.text.length <= 280);
+      if (period.explanation) assert.ok(period.explanation.length <= 360);
       assert.equal(typeof period.current, 'boolean');
     }
     if (outlook.timing) {
@@ -52,17 +58,18 @@ test('a Jupiter/Sun to Jupiter/Moon transition explains the actual new emphasis 
   const prediction = life();
   prediction.windows.push(window('2028-04-02', '2029-03-09', ['Jupiter', 'Mars']));
   const outlook = buildPredictionOutlook(prediction);
-  assert.match(outlook.summary, /clearer direction and responsibility/);
-  assert.match(outlook.summary, /learning from experience/);
+  assert.match(outlook.summary, /choose a clearer direction/);
+  assert.match(outlook.summary, /ownership of your decisions/);
+  assert.match(outlook.explanation, /learning from experience/);
   assert.equal(outlook.timing.date, '2026-12-02');
   assert.match(outlook.timing.text, /2 December 2026/);
-  assert.match(outlook.timing.text, /emotional needs and a steadier daily rhythm/);
+  assert.match(outlook.timing.text, /emotional needs and everyday rhythm/);
   assert.doesNotMatch(outlook.timing.text, /clearer direction/);
   assert.deepEqual(outlook.periods.map(period => period.current), [true, false, false]);
   assert.deepEqual(outlook.periods.map(period => period.label), ['Clarify your direction', 'Build a steadier rhythm', 'Put plans into action']);
   assert.match(outlook.periods[1].text, /emotional needs/);
   assert.match(outlook.periods[2].text, /practical steps/);
-  assert.match(outlook.timing.text, /does not promise an improvement/);
+  assert.match(outlook.timing.text, /not a promised improvement/);
 });
 
 test('the seven life-area summaries and actions stay specific to the selected topic', () => {
@@ -73,7 +80,7 @@ test('the seven life-area summaries and actions stay specific to the selected to
   assert.match(outlooks[0].actions.join(' '), /shared expectation|affection/);
   assert.match(outlooks[2].actions.join(' '), /study target|teacher/);
   assert.match(outlooks[3].actions.join(' '), /budget/);
-  assert.match(outlooks[4].summary, /home/);
+  assert.match(outlooks[4].summary, /family/);
   assert.match(outlooks[5].actions.join(' '), /documents/);
   assert.match(outlooks[6].actions.join(' '), /qualified care/);
 });
@@ -203,4 +210,147 @@ test('the deterministic view is bounded, ignores unknown source prose and return
     assert.deepEqual(outlook.actions, []);
     assert.deepEqual(outlook.periods, []);
   }
+});
+
+test('every known planet emphasis has a distinct natural reading in each of the seven life topics', () => {
+  const topics = ['married-life', 'general', 'education', 'finances', 'family', 'travel', 'wellbeing'];
+  for (const topic of topics) {
+    const readings = Object.keys(themes).map(lord => buildPredictionOutlook(life(topic, [window(asOf, horizonEnd, [lord])])).periods[0]);
+    assert.equal(new Set(readings.map(reading => reading.text)).size, 9, topic);
+    assert.ok(readings.every(reading => /\b(?:you|your)\b/i.test(reading.text)), topic);
+    assert.ok(readings.every(reading => !/Bring that focus|period themes|mahadasha|antardasha|D1 house|will happen|\d+%/.test(reading.text)), topic);
+  }
+});
+
+test('the relationship Saturn interpretation comes before a short explanation of the actual chart link', () => {
+  const source = life('married-life', [window(asOf, '2027-02-10', ['Rahu', 'Saturn'], { reasons: [
+    'Calculated Vimshottari period: Rahu mahadasha / Saturn antardasha.',
+    'Saturn, the antardasha lord, rules D1 house 2.',
+    'Saturn is in D1 house 5, Vrishabha (Taurus).',
+  ] })]);
+  const original = structuredClone(source);
+  const outlook = buildPredictionOutlook(freeze(source));
+  assert.match(outlook.summary, /relationship may need more patience around responsibilities/);
+  assert.match(outlook.periods[0].text, /Consistency may matter more/);
+  assert.match(outlook.explanation, /calculated Rahu \/ Saturn period/);
+  assert.match(outlook.explanation, /Saturn connects this period with shared resources and family values/);
+  assert.equal(outlook.periods[0].explanation, outlook.explanation);
+  assert.doesNotMatch(outlook.summary, /Saturn|Rahu|mahadasha|D1|bad phase|misfortune|divorce/);
+  assert.doesNotMatch(outlook.explanation, /D1|house 5|Vrishabha|always difficult/);
+  assert.deepEqual(source, original);
+});
+
+test('future-only life readings describe the future chapter and use its own rationale instead of saying it is active now', () => {
+  const source = life('education', [window('2027-01-01', '2027-07-01', ['Jupiter', 'Saturn'], { reasons: [
+    'Calculated Vimshottari period: Jupiter mahadasha / Saturn antardasha.',
+    'Saturn, the antardasha lord, occupies D1 house 9.',
+  ] })]);
+  const outlook = buildPredictionOutlook(source);
+  assert.match(outlook.summary, /^During your next shown period/);
+  assert.match(outlook.summary, /repetition and patience/);
+  assert.doesNotMatch(outlook.summary, /Right now|current period/);
+  assert.equal(outlook.timing.date, '2027-01-01');
+  assert.equal(outlook.periods[0].current, false);
+  assert.match(outlook.explanation, /advanced learning and mentors/);
+});
+
+test('marriage rationale translates supplied period and transit evidence while keeping unique, tied and single comparisons distinct', () => {
+  const reasons = [
+    'Vimshottari period: Jupiter mahadasha / Venus antardasha.',
+    'Venus, a traditional marriage significator, is the antardasha lord.',
+    'Jupiter in Simha (Leo) traditionally aspects Kumbha (Aquarius), the natal sign of the seventh house.',
+    'Saturn in Mesha (Aries) traditionally aspects Tula (Libra), the natal sign of Venus.',
+  ];
+  const source = { topic: 'marriage', status: 'estimated', asOf, horizonEnd, windows: [
+    window('2026-11-01', '2027-01-31', [], { ageRange: { min: 31, max: 31 }, reasons, support: { kind: 'relative', label: 'Joint most supported', comparison: 'tied-top' } }),
+    window('2028-03-01', '2028-09-30', [], { ageRange: { min: 32, max: 33 }, reasons, support: { kind: 'relative', label: 'Joint most supported', comparison: 'tied-top' } }),
+  ] };
+  const original = structuredClone(source);
+  const outlook = buildPredictionOutlook(freeze(source));
+  assert.match(outlook.periods[0].text, /Joint most supported: other shown periods have equal traditional support/);
+  assert.match(outlook.periods[1].text, /ages 32–33/);
+  assert.match(outlook.explanation, /calculated Jupiter \/ Venus period/);
+  assert.match(outlook.explanation, /Venus adds the traditional relationship link/);
+  assert.match(outlook.explanation, /Jupiter's sampled movement/);
+  assert.match(outlook.explanation, /Saturn adds a further timing cue/);
+  assert.doesNotMatch(JSON.stringify(outlook), /higher chances|high probability|\d+%|wedding will/);
+  assert.deepEqual(source, original);
+  const unique = buildPredictionOutlook({ ...source, windows: [{ ...source.windows[0], support: { kind: 'relative', label: 'Most supported', comparison: 'unique-top' } }] });
+  assert.match(unique.periods[0].text, /strongest traditional support among the shown periods/);
+  const single = buildPredictionOutlook({ ...source, windows: [{ ...source.windows[0], support: { kind: 'relative', label: 'Supported', comparison: 'single' } }] });
+  assert.match(single.periods[0].text, /only qualifying period shown, so no comparison/);
+  assert.doesNotMatch(single.periods[0].text, /strongest|Most supported/);
+});
+
+test('nearer career rationale follows the selected planning evidence without borrowing stronger later timing factors', () => {
+  const source = {
+    topic: 'career', status: 'estimated', asOf, horizonEnd,
+    windows: [window('2028-01-01', '2028-03-31', [], { reasons: ['Vimshottari period: Sun mahadasha / Saturn antardasha.', 'Saturn, the tenth-house ruler, is the antardasha lord.'] })],
+    planningDates: { status: 'available', sampledAt: `${asOf}T12:00:00Z`, horizon: { start: asOf, end: '2027-01-05' }, dates: [{
+      date: '2026-10-16', sampleUtc: '2026-10-16T06:30:00Z', reasons: [
+        'Tarabala: Mitra (8/9), a supportive birth-star relationship in this method.',
+        'Chandrabala: the transit Moon is in the 10th sign from the natal Moon, one of this method’s supportive signs.',
+      ],
+    }] },
+  };
+  const outlook = buildPredictionOutlook(source);
+  assert.equal(outlook.timing.date, '2026-10-16');
+  assert.match(outlook.explanation, /birth star and birth Moon/);
+  assert.doesNotMatch(outlook.explanation, /Saturn|2028|professional responsibilities/);
+  assert.match(outlook.periods[0].explanation, /Saturn connects this period to professional responsibilities/);
+});
+
+test('the marriage overview explains its earliest timing period even when a later card has stronger support', () => {
+  const source = {
+    topic: 'marriage', status: 'estimated', asOf, horizonEnd, windows: [
+      window('2028-02-01', '2028-06-30', [], { reasons: ['Vimshottari period: Jupiter mahadasha / Venus antardasha.'], support: { kind: 'relative', label: 'Most supported', comparison: 'unique-top' } }),
+      window('2026-11-01', '2027-02-28', [], { reasons: ['Vimshottari period: Saturn mahadasha / Mercury antardasha.'], support: { kind: 'relative', label: 'Supported', comparison: 'lower' } }),
+    ],
+  };
+  const outlook = buildPredictionOutlook(source);
+  assert.equal(outlook.timing.date, '2026-11-01');
+  assert.match(outlook.explanation, /Saturn \/ Mercury/);
+  assert.doesNotMatch(outlook.explanation, /Jupiter \/ Venus/);
+  assert.match(outlook.periods[0].explanation, /Jupiter \/ Venus/);
+  assert.match(outlook.periods[0].text, /Most supported/);
+});
+
+test('Saturn passage experience stays specific to the supplied stage and the rationale uses the sampled Moon relationship', () => {
+  const source = {
+    topic: 'difficult-periods', status: 'interpreted', asOf, horizonEnd, factors: [],
+    currentPhase: { name: 'Sade Sati — middle passage' },
+    windows: [{ start: asOf, end: horizonEnd, label: 'Current Sade Sati — middle passage', reasons: [
+      'Saturn sampled in Meena (Pisces) is the 1st sign from the natal Moon in Meena (Pisces).',
+      'This window is clipped to the requested horizon; no exit from this passage was found within that horizon.',
+    ] }],
+  };
+  const outlook = buildPredictionOutlook(source);
+  assert.match(outlook.summary, /more aware of responsibilities and need more breathing room/);
+  assert.match(outlook.explanation, /same sign as your birth Moon/);
+  assert.equal(outlook.timing, null);
+  assert.doesNotMatch(JSON.stringify(outlook), /stars are not supporting|bad phase|hardship will end|misfortune is destined/);
+  const future = buildPredictionOutlook({ ...source, currentPhase: { name: 'No current Sade Sati or Ashtama Shani' }, windows: [{ ...source.windows[0], start: '2027-01-01', label: 'Future Sade Sati — middle passage' }] });
+  assert.match(future.summary, /No current Saturn passage/);
+  assert.equal(future.periods[0].current, false);
+  assert.equal(future.explanation, undefined);
+});
+
+test('plain explanations copy only recognized calculation facts, ignore arbitrary prose and remain bounded', () => {
+  const secret = 'PRIVATE NAME, KEY AND FREE-FORM INSTRUCTION';
+  const source = life('family', [window(asOf, horizonEnd, ['Saturn'], { reasons: [
+    secret.repeat(1000),
+    'Calculated Vimshottari period: Jupiter mahadasha / Saturn antardasha.',
+    'Saturn, the antardasha lord, rules D1 house 2.',
+    'Saturn, the antardasha lord, rules D1 house 4.',
+    `Saturn, the antardasha lord, rules D1 house 2. ${secret}`,
+  ], method: [secret], profile: { name: secret } })]);
+  const outlook = buildPredictionOutlook(source);
+  assert.match(outlook.explanation, /family values and communication/);
+  assert.match(outlook.explanation, /home and everyday support/);
+  assert.ok(outlook.explanation.length <= 360);
+  assert.ok(outlook.periods[0].explanation.length <= 360);
+  assert.doesNotMatch(JSON.stringify(outlook), /PRIVATE|INSTRUCTION|KEY|D1 house/);
+  const noEvidence = buildPredictionOutlook({ topic: 'marriage', status: 'estimated', asOf, horizonEnd, windows: [window(asOf, horizonEnd, [], { reasons: [secret] })] });
+  assert.match(noEvidence.explanation, /supplied traditional marriage timing calculation/);
+  assert.doesNotMatch(noEvidence.explanation, /Jupiter|Venus|Saturn/);
 });

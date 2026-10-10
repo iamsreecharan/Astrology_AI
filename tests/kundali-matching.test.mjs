@@ -28,6 +28,22 @@ test('Ashwini and Pushya give the hand-calculated 29.5-point base score', () => 
   assert.deepEqual(result.kootas[2].details.femaleToMale, { count: 21, position: 3, name: 'Vipat', favourable: false, score: 0 });
 });
 
+test('the matching method is named separately from the sidereal chart calculation', () => {
+  const person = { name: 'Alex', birthDate: '1995-05-21', birthTime: '10:30', birthPlace: 'Hyderabad, India', latitude: 17.385, longitude: 78.4867, timeZone: 'Asia/Kolkata' };
+  const result = buildKundaliMatch({ male: person, female: { ...person, name: 'Mira' } }, { today: new Date('2026-10-08T12:00:00Z') });
+  assert.equal(result.method.displayName, 'Ashta Koota Guna Milan (36-point Kundali matching)');
+  assert.equal(result.method.tradition, 'North Indian base-score convention');
+  assert.match(result.method.calculationBasis, /eight weighted kootas/i);
+  assert.match(result.method.calculationBasis, /Moon signs \(rashis\).*birth stars \(nakshatras\)/);
+  assert.match(result.method.chartBasis, /approximate Lahiri sidereal chart/);
+  assert.match(result.method.chartBasis, /names do not affect the score/);
+  assert.equal(result.calculation.ayanamsha, 'Approximate Lahiri');
+  assert.match(result.method.roleConvention, /Varna, Vashya and Gana can change/);
+  assert.match(result.method.cancellations, /No Bhakoot or Nadi cancellation/);
+  assert.deepEqual(scores(result), [1, 2, 0, 4, 5, 6, 7, 0]);
+  assert.equal(result.total, 25);
+});
+
 test('same birth star keeps Janma Tara and same Nadi at zero without cancellation upgrades', () => {
   const result = calculateAshtaKoota(star(0), star(0));
   assert.deepEqual(scores(result), [1, 2, 0, 4, 5, 6, 7, 0]);

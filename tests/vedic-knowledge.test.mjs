@@ -508,15 +508,18 @@ test('plain-language outlook reaches the model without copying hidden metadata',
     topic: 'general', status: 'interpreted', windows: [], factors: [], themes: [], method: [], limitations: [],
     outlook: {
       summary: 'This period puts the focus on choosing a clear direction.',
+      explanation: 'The active period emphasizes responsibility and reviewing priorities.',
       timing: { label: 'Your next shift', text: 'From 2 December 2026, building a steady routine becomes the next focus.', date: '2026-12-02', privateProfile: 'PRIVATE TIMING' },
       actions: ['Choose one goal and make a weekly plan.'],
-      periods: [{ label: 'Build a steadier rhythm', text: 'Give everyday support more attention.', start: '2026-12-02', end: '2028-04-02', current: false, secret: 'PRIVATE PERIOD' }],
+      periods: [{ label: 'Build a steadier rhythm', text: 'Give everyday support more attention.', explanation: 'The next period shifts attention to emotional needs and steady routines.', start: '2026-12-02', end: '2028-04-02', current: false, secret: 'PRIVATE PERIOD' }],
       rawBirthRecord: 'PRIVATE BIRTH RECORD',
     },
   };
   const result = buildVedicMessages(chart, { message: 'How will things be and when is the next shift?', prediction: forecast });
   const context = JSON.parse(result.messages.at(-1).content);
   assert.equal(context.prediction.outlook.summary, forecast.outlook.summary);
+  assert.equal(context.prediction.outlook.explanation, forecast.outlook.explanation);
+  assert.equal(context.prediction.outlook.periods[0].explanation, forecast.outlook.periods[0].explanation);
   assert.equal(context.prediction.outlook.timing.date, '2026-12-02');
   assert.deepEqual(context.prediction.outlook.actions, forecast.outlook.actions);
   assert.equal(context.prediction.outlook.periods[0].current, false);
@@ -524,8 +527,31 @@ test('plain-language outlook reaches the model without copying hidden metadata',
   assert.match(result.messages[0].content, /next relevant calculated shift/);
   assert.match(result.messages[0].content, /change of planetary period alone does not calculate improvement/);
   const reply = buildVedicLocalReply(chart, { message: 'What should I do next?', prediction: forecast }).reply;
-  assert.equal(reply, [forecast.outlook.summary, forecast.outlook.timing.text, forecast.outlook.actions[0]].join('\n\n'));
+  assert.equal(reply, [forecast.outlook.summary, forecast.outlook.timing.text, forecast.outlook.explanation, forecast.outlook.actions[0]].join('\n\n'));
+  assert.ok(reply.indexOf(forecast.outlook.summary) < reply.indexOf(forecast.outlook.explanation));
   const direct = buildVedicLocalReply(chart, { message: 'What is my birth star?', prediction: forecast }).reply;
   assert.match(direct, /Rohini/);
   assert.doesNotMatch(direct, /weekly plan|next focus/);
+});
+
+test('conversational guidance keeps phase descriptions grounded and explanatory text bounded', () => {
+  const forecast = {
+    topic: 'married-life', status: 'interpreted', windows: [], factors: [], themes: [], method: [], limitations: [],
+    outlook: { summary: 'Shared responsibilities may need more patience.', explanation: 'x'.repeat(900), actions: [], periods: [
+      { label: 'A steady commitment', text: 'Make room for clear agreements.', start: '2027-02-11', end: '2029-10-08', explanation: 'y'.repeat(900) },
+      { label: 'No extra claim', text: 'Review the supplied reading.', start: '2029-10-09', end: '2029-11-01', explanation: { private: 'PRIVATE EXPLANATION' } },
+    ], rawReasons: 'PRIVATE CHART' },
+  };
+  for (const assistant of ['astral', 'yogi']) {
+    const result = buildVedicMessages(chart, { assistant, message: 'How will this phase affect my married life?', prediction: forecast });
+    const context = JSON.parse(result.messages.at(-1).content).prediction.outlook;
+    assert.equal(context.explanation.length, 360);
+    assert.equal(context.periods[0].explanation.length, 360);
+    assert.equal(context.periods[1].explanation, undefined);
+    assert.doesNotMatch(JSON.stringify(context), /PRIVATE/);
+    assert.match(result.messages[0].content, /Lead with that experience/);
+    assert.match(result.messages[0].content, /When the question names a supplied future period/);
+    assert.match(result.messages[0].content, /A missing timing signal does not mean the stars are against/);
+    assert.match(result.messages[0].content, /do not turn them into "high chances"/);
+  }
 });

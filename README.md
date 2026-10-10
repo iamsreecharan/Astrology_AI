@@ -19,7 +19,7 @@ The visual theme combines an indigo planetarium with ivory reading panels, coppe
 - Opens chat in **Vedic AI** when a server key is configured, with **Local** beside it for the calculated guide.
 - Suggests birthplaces worldwide as you type, with coordinates and time zones filled from the selected place.
 - Gives short, question-first chat replies, with supporting calculations available in **Calculation details**.
-- Summarizes each life topic in plain English: what the period may mean, the next relevant dated shift or opportunity, and practical steps. **Why this reading?** holds the chart factors and full methods.
+- Describes each life topic in everyday language: how the period may feel, the next relevant dated shift or opportunity, and practical steps. A short chart explanation follows the outlook; **Why this reading?** holds the full factors and methods.
 - Adds **AI Yogi**, an animated 3D guide with multilingual text and natural speech. Start a conversation once and it listens again after each answer until you end or close it.
 - Downloads an English horoscope PDF with your birth record, Panchanga basics, D1 and D9 chart diagrams, planetary positions, Vimshottari periods, transits, and all ten life-topic assessments.
 - Shows nearer career periods first, with six-month application/interview planning windows and individual star-based dates in DD-MM-YYYY.
@@ -75,7 +75,7 @@ PDF generation works without an AI key and recalculates the chart on the server.
 
 ## Match two Kundalis
 
-Open **Compatibility → Kundali matching** and enter each person's name, recorded birth date and time, and birthplace. Search and select a place suggestion to fill its coordinates and historical time zone. Birthplace is needed to interpret the local birth time correctly. Names identify the records; the score comes from calculated sidereal Moon signs and birth stars.
+Open **Compatibility → Kundali matching** and enter each person's name, recorded birth date and time, and birthplace. The form, result and PDF name the method: **Ashta Koota Guna Milan (36-point Kundali matching)**, using the **North Indian base-score convention**. Search and select a place suggestion to fill its coordinates and historical time zone. Birthplace is needed to interpret the local birth time correctly. Names identify the records; the score comes from calculated sidereal Moon signs and birth stars. Approximate Lahiri describes the chart calculation, separately from the matching method.
 
 The result breaks down **Varna (1), Vashya (2), Tara (3), Yoni (4), Graha Maitri (5), Gana (6), Bhakoot (7), and Nadi (8)**. It shows the points awarded, a short calculation explanation, and how many categories received full, partial or zero points. **Download matching PDF** includes both birth records, the eight-category table, the benchmark and the reasons behind each score. Calculations and downloads need no AI key and do not send the records to a model or store a server-side report.
 

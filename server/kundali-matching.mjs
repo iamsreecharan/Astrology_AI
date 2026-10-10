@@ -203,6 +203,10 @@ export function calculateAshtaKoota(maleChart, femaleChart) {
     moons: { male, female },
     method: {
       name: 'North Indian Ashta Koota — base score', version: '1',
+      displayName: 'Ashta Koota Guna Milan (36-point Kundali matching)',
+      tradition: 'North Indian base-score convention',
+      calculationBasis: 'Eight weighted kootas compare both sidereal Moon signs (rashis) and birth stars (nakshatras), adding up to a maximum of 36 gunas.',
+      chartBasis: 'Birth date, recorded local time and selected place establish each Moon position using an approximate Lahiri sidereal chart; names do not affect the score.',
       roleConvention: 'Male and female follow the historical groom/bride roles. Varna, Vashya and Gana can change when the roles are reversed; the remaining category scores are symmetric.',
       cancellations: 'No Bhakoot or Nadi cancellation, same-star exception, Manglik assessment or South Indian ten-porutham adjustment is applied. Different traditions may give different scores.',
       sources: [

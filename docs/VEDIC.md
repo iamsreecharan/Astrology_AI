@@ -95,11 +95,13 @@ Periods qualify when their mahadasha or antardasha lord rules or occupies a topi
 
 Married life also shows the D9 ascendant, seventh house, its ruler and occupants, and Venus when D9 is available. That context does not select or rank the D1-linked windows.
 
+The displayed outlook translates the supplied topic and planetary themes into daily-life language before explaining the chart link. For example, a Saturn-linked married-life theme emphasizes patience with shared responsibilities; a Venus-linked theme emphasizes affection and shared enjoyment. The brief explanation identifies the actual calculated period and recognized topic-house links. These descriptions preserve the original dates and reasons, and do not add a favorable ranking to qualitative periods. A future-only period is described as upcoming, rather than as the current phase.
+
 It does not determine a partner's behavior, relationship success, wealth, an exam result, travel permission, illness, or treatment. Wellbeing remains reflection on routines and support; financial themes do not establish investment returns. D9 context does not amount to a strength score or a complete relationship assessment.
 
 ## Ashta Koota matching
 
-**Compatibility → Kundali matching** calculates a North Indian base score from two complete recorded birth profiles. The server validates both local dates, times, places, coordinates and historical time zones, then recomputes the sidereal Moons. Names label the records and do not affect the score. The screen and English PDF share the same calculation model, without a language-model request or server-side report storage.
+**Compatibility → Kundali matching** names its method **Ashta Koota Guna Milan (36-point Kundali matching)** and uses the **North Indian base-score convention**. The server validates both local dates, times, places, coordinates and historical time zones, then recomputes the sidereal Moons using an approximate Lahiri chart. Eight weighted comparisons use the Moon signs (rashis) and birth stars (nakshatras). Names label the records and do not affect the score. The screen and English PDF share the same calculation model, without a language-model request or server-side report storage.
 
 | Category | Maximum | Rule in this convention |
 | --- | ---: | --- |

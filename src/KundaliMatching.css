@@ -12,6 +12,7 @@
 .kundali-introduction .eyebrow { color: #ddba88; font-size: 10px; }
 .kundali-introduction h2 { color: #f2e5d2; font-family: var(--serif); font-size: 31px; font-weight: 400; line-height: 1.2; margin: 10px 0 12px; }
 .kundali-introduction p { color: #c2b5cc; font-size: 13px; line-height: 1.85; max-width: 610px; }
+.kundali-introduction p.kundali-introduction-method { color: #edcf9f; font-weight: 500; margin-bottom: 8px; }
 .kundali-form { background: #211b33; border: 1px solid #dda95b3c; border-radius: 26px 3px 26px 3px; padding: 27px; }
 .kundali-birth-note { color: #d9caba; font-size: 12px; line-height: 1.85; margin: 0 0 23px; max-width: 830px; }
 .kundali-people-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; align-items: start; }
@@ -56,6 +57,11 @@
 .kundali-threshold { display: inline-flex; align-items: flex-start; gap: 8px; color: #376450; background: #e0e7d9; border: 1px solid #bbc8af; border-radius: 7px; padding: 9px 12px; margin-top: 15px; font-size: 11px; line-height: 1.7; }
 .kundali-threshold.below { color: #775531; background: #efe0c8; border-color: #d8bd98; }
 .kundali-score-story p.kundali-score-perspective { margin-top: 14px; color: #796371; font-size: 11px; }
+.kundali-method-summary { padding: 23px 25px; margin-top: 22px; border: 1px solid #dda95b37; border-radius: 13px; background: #251f37; }
+.kundali-method-summary .eyebrow { color: #dab581; font-size: 9px; line-height: 1.8; }
+.kundali-method-summary h3 { color: #f1e3d1; font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.4; margin: 10px 0 13px; }
+.kundali-method-summary p { color: #c2b4ca; font-size: 12px; line-height: 1.85; }
+.kundali-method-summary p + p { margin-top: 8px; }
 .kundali-matched-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(190px, 1.9fr); gap: 16px; border: 1px solid #78d0b737; border-radius: 13px; background: #25352f5e; margin: 22px 0 35px; padding: 19px 24px; align-items: center; }
 .kundali-matched-counts > div { display: flex; flex-direction: column; gap: 6px; }
 .kundali-matched-counts strong { font-family: var(--serif); font-weight: 400; color: #b6e3ca; font-size: 31px; }

@@ -301,6 +301,10 @@ export function renderHoroscopeReport(model) {
         }
         subheading('What you can do');
         list(prediction.outlook.actions);
+        if (prediction.outlook.explanation) {
+          subheading('Why this fits your chart');
+          text(prediction.outlook.explanation);
+        }
       }
       if (prediction.support) {
         text(prediction.support.label, { bold: true, color: COLORS.gold });
